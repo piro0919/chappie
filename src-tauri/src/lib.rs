@@ -1,5 +1,8 @@
+mod tray;
+
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
+use tray::{apply_tray_state, init_tray, open_settings_window, TrayState};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 static WHISPER_CTX: OnceCell<Mutex<WhisperContext>> = OnceCell::new();
@@ -55,12 +58,31 @@ fn transcribe(audio: Vec<f32>, language: Option<String>) -> Result<String, Strin
     Ok(out.trim().to_string())
 }
 
+#[tauri::command]
+fn set_tray_state(app: tauri::AppHandle, state: TrayState) -> Result<(), String> {
+    apply_tray_state(&app, state).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn open_settings(app: tauri::AppHandle) -> Result<(), String> {
+    open_settings_window(&app).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![transcribe])
+        .invoke_handler(tauri::generate_handler![
+            transcribe,
+            set_tray_state,
+            open_settings
+        ])
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+            init_tray(&app.handle())?;
+
             #[cfg(debug_assertions)]
             {
                 use tauri::Manager;

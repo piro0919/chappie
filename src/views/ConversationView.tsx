@@ -10,7 +10,7 @@ type Status =
   | "transcribing"
   | "error";
 
-function App() {
+export function ConversationView() {
   const [status, setStatus] = useState<Status>("init");
   const [error, setError] = useState<string | null>(null);
   const [transcripts, setTranscripts] = useState<string[]>([]);
@@ -107,12 +107,10 @@ function App() {
       <h2 style={{ fontSize: 14, marginTop: 20 }}>文字起こし</h2>
       <ul>
         {transcripts.map((t, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: PoC list, replaced in Task 3
+          // biome-ignore lint/suspicious/noArrayIndexKey: PoC list, replaced in Task 5
           <li key={`${i}-${t.length}`}>{t}</li>
         ))}
       </ul>
     </main>
   );
 }
-
-export default App;
