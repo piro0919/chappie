@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { MicVAD } from "@ricky0123/vad-web";
-import { pipeline } from "@huggingface/transformers";
+import { invoke } from "@tauri-apps/api/core";
 
 type Status =
   | "init"
-  | "loading-whisper"
+  | "loading-vad"
   | "ready"
   | "listening"
   | "transcribing"
@@ -14,21 +14,13 @@ function App() {
   const [status, setStatus] = useState<Status>("init");
   const [error, setError] = useState<string | null>(null);
   const [transcripts, setTranscripts] = useState<string[]>([]);
-  const transcriberRef = useRef<((audio: Float32Array, opts?: object) => Promise<{ text: string }>) | null>(null);
   const vadRef = useRef<MicVAD | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        setStatus("loading-whisper");
-        const transcriber = (await pipeline(
-          "automatic-speech-recognition",
-          "Xenova/whisper-tiny",
-        )) as (audio: Float32Array, opts?: object) => Promise<{ text: string }>;
-        if (cancelled) return;
-        transcriberRef.current = transcriber;
-
+        setStatus("loading-vad");
         const vad = await MicVAD.new({
           baseAssetPath: "/",
           onnxWASMBasePath: "/",
@@ -39,12 +31,12 @@ function App() {
             console.log("[vad] speech end, samples:", audio.length);
             setStatus("transcribing");
             try {
-              const result = await transcriberRef.current!(audio, {
-                language: "japanese",
-                task: "transcribe",
+              const text = await invoke<string>("transcribe", {
+                audio: Array.from(audio),
+                language: "ja",
               });
-              setTranscripts((prev) => [...prev, result.text]);
-              console.log("[whisper]", result.text);
+              setTranscripts((prev) => [...prev, text]);
+              console.log("[whisper-rs]", text);
             } catch (err) {
               console.error("transcribe failed", err);
               setError(String(err));
@@ -63,7 +55,7 @@ function App() {
         vadRef.current = vad;
         setStatus("ready");
       } catch (e) {
-        console.error("init failed", e);
+        console.error("VAD init failed", e);
         setError(String(e));
         setStatus("error");
       }
@@ -88,9 +80,13 @@ function App() {
 
   return (
     <main style={{ padding: 16, fontFamily: "system-ui, sans-serif" }}>
-      <h1 style={{ fontSize: 18 }}>Chappie PoC: VAD + Whisper</h1>
+      <h1 style={{ fontSize: 18 }}>Chappie PoC: VAD + whisper-rs</h1>
       <div>状態: {status}</div>
-      {error && <div style={{ color: "red", whiteSpace: "pre-wrap" }}>{error}</div>}
+      {error && (
+        <div style={{ color: "red", whiteSpace: "pre-wrap", marginTop: 4 }}>
+          {error}
+        </div>
+      )}
       <div style={{ marginTop: 12 }}>
         <button type="button" onClick={startListening} disabled={status !== "ready"}>
           開始
@@ -107,7 +103,7 @@ function App() {
       <h2 style={{ fontSize: 14, marginTop: 20 }}>文字起こし</h2>
       <ul>
         {transcripts.map((t, i) => (
-          <li key={i}>{t}</li>
+          <li key={`${i}-${t.length}`}>{t}</li>
         ))}
       </ul>
     </main>

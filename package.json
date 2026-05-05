@@ -10,7 +10,6 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.2.0",
     "@ricky0123/vad-web": "^0.0.30",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
