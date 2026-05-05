@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
 import { MicVAD } from "@ricky0123/vad-web";
 import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useRef, useState } from "react";
 
 type Status =
   | "init"
@@ -88,7 +88,11 @@ function App() {
         </div>
       )}
       <div style={{ marginTop: 12 }}>
-        <button type="button" onClick={startListening} disabled={status !== "ready"}>
+        <button
+          type="button"
+          onClick={startListening}
+          disabled={status !== "ready"}
+        >
           開始
         </button>
         <button
@@ -103,6 +107,7 @@ function App() {
       <h2 style={{ fontSize: 14, marginTop: 20 }}>文字起こし</h2>
       <ul>
         {transcripts.map((t, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: PoC list, replaced in Task 3
           <li key={`${i}-${t.length}`}>{t}</li>
         ))}
       </ul>

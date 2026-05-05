@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri generated
+src-tauri/gen/
+src-tauri/target/
+
+# Whisper model cache (downloaded at runtime per-user, not in repo anyway)
+.chappie/
