@@ -1,5 +1,5 @@
 import { electronApp, is } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, session } from "electron";
 import { join } from "path";
 import { getSettings, setSettings } from "./settings-store";
 import { initTray, setTrayState, type TrayState } from "./tray";
@@ -51,6 +51,17 @@ app.whenReady().then(() => {
   electronApp.setAppUserModelId("io.kkweb.chappie");
 
   if (process.platform === "darwin") app.dock?.hide();
+
+  // Auto-grant microphone access so the renderer can run continuous
+  // wake-word detection without per-restart prompts.
+  session.defaultSession.setPermissionRequestHandler(
+    (_wc, permission, callback) => {
+      callback(permission === "media");
+    },
+  );
+  session.defaultSession.setPermissionCheckHandler(
+    (_wc, permission) => permission === "media",
+  );
 
   ipcMain.handle("settings:get", () => getSettings());
   ipcMain.handle("settings:set", (_e, patch) => {
