@@ -41,12 +41,16 @@
 
 | 役割 | 採用技術 | 備考 |
 |---|---|---|
-| ランタイム | Electron | Tauriから変更。WKWebViewが`SpeechRecognition`未実装のため、Mac/Win両対応にはChromium同梱が必要 |
+| ランタイム | Electron | Tauriから変更。素の Chromium ベースで完全な Web API を期待しないことに留意 |
 | UI | React + TypeScript | |
-| ウェイクワード検出 | `use-ear`（自作npmパッケージ） | Web Speech APIベース |
-| STT（発話のテキスト化） | Web Speech API `SpeechRecognition` | Chromium版は実装上Googleサーバへ音声送信される。MVPでは許容 |
+| 音声区切り検出（VAD） | `@ricky0123/vad-web` | レンダラ常駐の軽量 VAD。発話開始／終了を検知する |
+| ウェイクワード検出 + 検出後STT | `@xenova/transformers` の Whisper-base | VAD で切り出した発話を Whisper でローカル文字起こしし、文字列マッチでウェイクワードを判定。検出時は同じ文字起こし結果から本文を抽出する |
 | AI | OpenAI API | MVPはOpenAIに固定。利用モデルはコード内デフォルト値とし、設定UIでの切替は持たない |
-| TTS（読み上げ） | Web Speech API `SpeechSynthesis` | OS標準ボイスを利用、追加コストなし |
+| TTS（読み上げ） | Web Speech API `SpeechSynthesis` | OS標準ボイスを利用。Electron でも動く API なので継続採用 |
+
+**重要：採用しない技術**
+- Web Speech API の `SpeechRecognition` は使用しない。Electron の素の Chromium には Google 音声サービスのキーが同梱されておらず、`error: network` で動かないため。
+- 自作 npm の `use-ear` も同上の理由で不採用。
 
 ## 6. 対応プラットフォーム
 
@@ -58,27 +62,41 @@
 
 ```
 [待機]
-   use-ear が SpeechRecognition でウェイクワードを待ち受け
+   VAD が常時マイクを監視（軽量、CPU 1〜2%）
+   Whisper-base モデルはレンダラに常駐ロード済
    トレイアイコン: 待機色
-        ↓ 検知
-   use-ear の SpeechRecognition を停止
+        ↓ VAD: 発話開始検知 → 音声バッファ録音開始
+        ↓ VAD: 発話終了検知 → 録音停止
+   Whisper でその発話をローカル文字起こし
         ↓
-[聞いてる]
-   本命発話取得用に SpeechRecognition を起動して発話取得
+   テキストにウェイクワード（"chappie" or "チャッピー"、大小無視）が
+   含まれるか？
+     NO  → そのまま [待機] へ（無音でフェイルバック）
+     YES → ウェイクワード以降の本文を抽出
+        ↓ 本文が空（"chappie" だけで終わった）場合
+   [聞いてる]
    トレイアイコン: 聞いてる色
-        ↓ 終話判定 / 本命用 SpeechRecognition を停止
+   次の発話を VAD + Whisper でもう一度取り込み、それを本文とする
+        ↓ 6 秒以内に発話が来なければタイムアウトで [待機]
 [考えてる]
-   発話テキストをクラウドAIへ送信（直近の会話履歴を併送）
+   抽出した本文を OpenAI API へ送信（直近の会話履歴を併送）
    トレイアイコン: 考えてる色
         ↓ 返答受信
 [喋ってる]
    SpeechSynthesis で読み上げ
    トレイアイコン: 喋ってる色
         ↓ 読み上げ完了
-   use-ear の SpeechRecognition を再起動して [待機] へ戻る
+   [待機] へ戻る（VAD は流れの間ずっと動かしっぱなしで OK）
 ```
 
-**SpeechRecognition の運用方針**: Web Speech API の `SpeechRecognition` は同時に複数インスタンスを安定運用できないため、「ウェイクワード待ち用」と「本命発話取得用」を**直列に切り替える**。各遷移時に明示的に stop / start を行う。
+**VAD と Whisper の運用方針**：
+- VAD は常時稼働。Whisper はモデルを起動時に一度だけロードし、推論はオンデマンド。
+- 「`chappie` 〇〇」と一息で言われた場合は1回の Whisper 呼び出しで完結（推奨フロー）。
+- 「`chappie`」だけ言って一拍置く使い方も許容するため、本文が空のときは次の発話を本文として取り込む補助フローを用意する。
+
+**ウェイクワード判定**：
+- 採用文字列: `"chappie"` または `"チャッピー"`（前者は英語発音、後者は日本語）
+- 小文字化して部分一致で判定。誤発火を抑えるため、判定後の本文抽出は **ウェイクワード以降の文字列**のみを対象にする。
 
 **会話履歴の保持**: アプリ起動中はメモリ上に会話履歴を保持し、毎リクエスト時にAPIへ併送する。アプリ終了でリセット。履歴のトークン量がモデル上限に近づいた場合の扱い（古いターンの切り捨て等）は実装時に決める。
 
