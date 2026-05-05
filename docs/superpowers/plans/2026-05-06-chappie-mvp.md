@@ -6,7 +6,12 @@
 
 **Architecture:** Tauri 2 app with a Rust backend that owns the tray icon, settings store, whisper-rs model context, and on-demand window management. The renderer (React + TypeScript on the WebView) runs the VAD (`@ricky0123/vad-web`), wake-word detection, conversation orchestration, OpenAI calls, and Web Speech `SpeechSynthesis` TTS. Pure logic (state machine, conversation history, OpenAI client wrapper, wake-word detection, settings wrapper, TTS wrapper) lives in plain TypeScript modules under `src/lib/` and is unit-tested with Vitest. The conversation worker is the (hidden) "main" WebView window; the settings UI is a separate WebView window opened on demand from the tray menu.
 
-**Tech Stack:** Tauri 2 (Rust backend), React 19 + TypeScript (Vite), `@ricky0123/vad-web`, `whisper-rs` (Rust, Metal-accelerated), `tauri-plugin-store` (settings persistence), Web Speech `SpeechSynthesis` (TTS), `openai` SDK, Biome + lefthook + commitlint + secretlint (house style). Whisper model: `ggml-base.bin` placed at `~/.chappie/models/ggml-base.bin`, auto-downloaded on first run if missing.
+**Tech Stack:** Tauri 2 (Rust backend), React 19 + TypeScript (Vite), `@ricky0123/vad-web`, `whisper-rs` (Rust, Metal-accelerated), `tauri-plugin-store` (settings persistence), Web Speech `SpeechSynthesis` (TTS), `openai` SDK, Biome (formatter/linter). Whisper model: `ggml-base.bin` placed at `~/.chappie/models/ggml-base.bin`, fetched once via a tiny shell script before first run.
+
+**MVP simplifications (intentional):**
+- House-style tooling is **Biome only** for MVP. lefthook / commitlint / secretlint are deferred.
+- Whisper model has **no in-app auto-download**. A `scripts/fetch-model.sh` (single `curl`) is provided; README documents running it once.
+- Settings changes (API key / voice) require an **app restart to take effect**. No live event reload.
 
 ---
 
@@ -102,67 +107,22 @@ The following are committed on `feat/tauri-pivot` and **must not be redone**. Th
 
 ---
 
-## Task 1: House-style tooling (Biome, lefthook, commitlint, secretlint)
+## Task 1: Biome (minimal lint/format setup)
 
-**Files:** `biome.json`, `lefthook.yml`, `commitlint.config.js`, `.secretlintrc.json`, `package.json`, `.gitignore`
+**Files:** `biome.json`, `package.json`, `.gitignore`
 
-- [ ] **Step 1: Install tooling**
+> lefthook / commitlint / secretlint are intentionally **deferred** for MVP. Add them in a follow-up PR if/when they earn their keep.
 
-```bash
-pnpm add -D @biomejs/biome lefthook @commitlint/cli @commitlint/config-conventional secretlint @secretlint/secretlint-rule-preset-recommend
-```
-
-- [ ] **Step 2: Initialize Biome**
+- [ ] **Step 1: Install Biome and add scripts**
 
 ```bash
+pnpm add -D @biomejs/biome
 pnpm biome init
 ```
 
-Edit `biome.json`:
-- `formatter.indentStyle: "space"`
-- Keep `linter.rules.recommended: true`
-- Exclude generated/binary directories. Set `files.includes` to:
-  - include `src/**`, `*.{ts,tsx,js,json,jsonc}` at repo root
-  - explicitly exclude `node_modules/**`, `dist/**`, `src-tauri/target/**`, `src-tauri/gen/**`, `public/*.wasm`, `public/*.mjs`, `public/*.onnx`
+Edit `biome.json`: `formatter.indentStyle: "space"`, keep `linter.rules.recommended: true`, exclude `node_modules`, `dist`, `src-tauri/target`, `src-tauri/gen`, `public/*.wasm`, `public/*.mjs`, `public/*.onnx`.
 
-- [ ] **Step 3: Create `commitlint.config.js`**
-
-```js
-module.exports = { extends: ["@commitlint/config-conventional"] };
-```
-
-- [ ] **Step 4: Create `lefthook.yml`**
-
-```yaml
-pre-commit:
-  parallel: true
-  commands:
-    biome:
-      glob: "*.{ts,tsx,js,json}"
-      run: pnpm biome check --write {staged_files}
-      stage_fixed: true
-    secretlint:
-      glob: "*"
-      run: pnpm secretlint {staged_files}
-commit-msg:
-  commands:
-    commitlint:
-      run: pnpm commitlint --edit {1}
-```
-
-- [ ] **Step 5: Create `.secretlintrc.json`**
-
-```json
-{ "rules": [{ "id": "@secretlint/secretlint-rule-preset-recommend" }] }
-```
-
-- [ ] **Step 6: Install hooks**
-
-```bash
-pnpm lefthook install
-```
-
-- [ ] **Step 7: Add scripts to `package.json`**
+- [ ] **Step 2: Add scripts to `package.json`**
 
 ```json
 "scripts": {
@@ -177,35 +137,27 @@ pnpm lefthook install
 }
 ```
 
-- [ ] **Step 8: Update `.gitignore`**
+- [ ] **Step 3: Update `.gitignore`**
 
 Append:
 ```
-# Tauri generated
 src-tauri/gen/
 src-tauri/target/
-
-# Whisper model cache (downloaded at runtime per-user, not in repo anyway)
 .chappie/
 ```
 
-- [ ] **Step 9: Format the existing TS sources once**
+- [ ] **Step 4: Format existing sources**
 
 ```bash
 pnpm biome check --write src
 ```
-Inspect the diff with `git diff` before staging.
+Inspect diff before staging.
 
-- [ ] **Step 10: Smoke-test the hooks**
-
-- Make a trivial whitespace edit in `src/App.tsx`, then `git commit -am "test"` → commitlint should reject the message; retry with a conventional message → biome should auto-format and re-stage.
-- Restore intent.
-
-- [ ] **Step 11: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add -A
-git commit -m "chore: add biome, lefthook, commitlint, secretlint"
+git commit -m "chore: add biome formatter/linter"
 ```
 
 ---
@@ -736,7 +688,6 @@ pnpm test:run src/lib/settings.test.ts
 
 ```tsx
 import { useEffect, useState } from "react";
-import { emit } from "@tauri-apps/api/event";
 import { loadSettings, saveSettings, type Settings } from "../lib/settings";
 
 export function SettingsView() {
@@ -762,7 +713,6 @@ export function SettingsView() {
 
   const onSave = async () => {
     await saveSettings({ openaiApiKey: apiKey, voiceURI });
-    await emit("settings:updated");
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
@@ -809,14 +759,14 @@ export function SettingsView() {
         <button type="button" onClick={onSave}>
           保存
         </button>
-        {saved && <span style={{ color: "#10b981" }}>保存しました</span>}
+        {saved && <span style={{ color: "#10b981" }}>保存しました（再起動後に反映されます）</span>}
       </div>
     </main>
   );
 }
 ```
 
-(`emit` import requires `core:event:default` capability — added in Task 5.)
+> 設定変更はアプリ再起動後に反映される（MVP 簡素化）。即時反映は後続バージョンで追加余地。
 
 - [ ] **Step 6: Manual smoke test**
 
@@ -843,24 +793,15 @@ git commit -m "feat: persist settings via tauri-plugin-store and wire settings U
 **Files:**
 - Create: `src/hooks/useConversationLoop.ts`
 - Replace: `src/views/ConversationView.tsx`
-- Modify: `src-tauri/capabilities/default.json` (add `core:event:default`)
 
-This is where every previous piece is wired together: VAD → `transcribe` → `detectWake` → state machine → OpenAI → `speak` → tray sync.
+This is where every previous piece is wired together: VAD → `transcribe` → `detectWake` → state machine → OpenAI → `speak` → tray sync. Settings are loaded once at startup; changes require restart (per Task 4).
 
-- [ ] **Step 1: Add event capability**
-
-In `src-tauri/capabilities/default.json` permissions, add:
-```json
-"core:event:default"
-```
-
-- [ ] **Step 2: Create `src/hooks/useConversationLoop.ts`**
+- [ ] **Step 1: Create `src/hooks/useConversationLoop.ts`**
 
 ```ts
 import { useEffect, useRef, useState } from "react";
 import { MicVAD } from "@ricky0123/vad-web";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import OpenAI from "openai";
 import {
   createMachine,
@@ -1050,25 +991,11 @@ export function useConversationLoop() {
     };
   }, []);
 
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    void (async () => {
-      unlisten = await listen("settings:updated", async () => {
-        const s = await loadSettings();
-        apiKeyRef.current = s.openaiApiKey;
-        voiceURIRef.current = s.voiceURI;
-      });
-    })();
-    return () => {
-      unlisten?.();
-    };
-  }, []);
-
   return { state, error };
 }
 ```
 
-- [ ] **Step 3: Replace `src/views/ConversationView.tsx`**
+- [ ] **Step 2: Replace `src/views/ConversationView.tsx`**
 
 ```tsx
 import { useConversationLoop } from "../hooks/useConversationLoop";
@@ -1091,7 +1018,7 @@ export function ConversationView() {
 
 (The window stays hidden; this UI is for DevTools-side inspection only.)
 
-- [ ] **Step 4: Manual end-to-end verification (sequence)**
+- [ ] **Step 3: Manual end-to-end verification (sequence)**
 
 `pnpm tauri dev` and run through:
 
@@ -1101,11 +1028,11 @@ export function ConversationView() {
 4. **Wake-only + follow-up** — say "チャッピー" alone. Tray turns blue (listening). Within 6s say "明日の天気は？" → continues to thinking → speaking → idle.
 5. **Follow-up timeout** — say "チャッピー" alone, stay silent 7+s. Tray returns to gray silently, no TTS.
 6. **Multi-turn context** — "チャッピー、私の名前は河村です" → reply → "チャッピー、私の名前覚えてる？" → reply references 河村.
-7. **No-API-key path** — clear API key in Settings, save. Conversation worker DevTools shows `settings:updated` reflected. Say "チャッピー、おはよう" → TTS says "OpenAI APIキーが未設定です…", returns to idle.
+7. **No-API-key path** — clear API key in Settings, save, **restart the app**. Say "チャッピー、おはよう" → TTS says "OpenAI APIキーが未設定です…", returns to idle.
 8. **TTS self-trigger guard** — during reply playback, no spurious VAD trigger / re-transcription.
 9. **Restart resets history** — quit, restart, ask the name → no recall.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add -A
@@ -1114,153 +1041,59 @@ git commit -m "feat: integrate VAD, whisper, wake-word, openai, tts, tray state 
 
 ---
 
-## Task 6: Promote Whisper to base + auto-download UX
+## Task 6: Promote Whisper to base (manual fetch script)
 
 **Files:**
-- Modify: `src-tauri/Cargo.toml` (add `reqwest`, `tokio`, `dirs`)
-- Create: `src-tauri/src/model.rs`
-- Modify: `src-tauri/src/lib.rs` (`model_path` → base, add `ensure_model` command, emit progress events)
-- Modify: `src/hooks/useConversationLoop.ts` (await `ensure_model` before starting VAD; handle progress UI)
-- Modify: `src-tauri/capabilities/default.json` (`core:event:default` already added)
+- Modify: `src-tauri/src/lib.rs` (`model_path` → `ggml-base.bin`)
+- Create: `scripts/fetch-model.sh`
 
-**Constraints:**
-- Source URL: `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin` (~150MB)
-- Destination: `~/.chappie/models/ggml-base.bin`
-- If file already exists with non-zero size, skip download.
-- Progress: emit `model:progress` with `{ received, total }` periodically; `model:ready` on success; `model:error` with `{ message }` on failure.
-- Tray icon during download: `thinking` color with tooltip "Whisper モデルを取得中…"; switch to `idle` once ready.
+> 自動 DL UX は MVP では作らない。シェルスクリプトを 1 回叩いてもらう運用。アプリ側ではモデル不在時に `transcribe` が分かりやすいエラー文字列を返すだけにする。
 
-- [ ] **Step 1: Add Rust deps**
+- [ ] **Step 1: Update Rust model path**
+
+In `src-tauri/src/lib.rs`, change `model_path()`:
+```rust
+fn model_path() -> std::path::PathBuf {
+    let home = std::env::var("HOME").expect("HOME unset");
+    std::path::PathBuf::from(home).join(".chappie/models/ggml-base.bin")
+}
+```
+
+- [ ] **Step 2: Create `scripts/fetch-model.sh`**
 
 ```bash
-cd src-tauri
-cargo add reqwest --features rustls-tls,stream --no-default-features
-cargo add tokio --features rt-multi-thread,macros,fs,io-util
-cargo add dirs
-cargo add futures-util
-cd -
+#!/usr/bin/env bash
+set -euo pipefail
+DEST="$HOME/.chappie/models/ggml-base.bin"
+URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"
+mkdir -p "$(dirname "$DEST")"
+if [ -s "$DEST" ]; then
+  echo "model already present at $DEST"
+  exit 0
+fi
+echo "downloading whisper base model to $DEST..."
+curl -L --fail -o "$DEST.part" "$URL"
+mv "$DEST.part" "$DEST"
+echo "done"
 ```
 
-- [ ] **Step 2: Create `src-tauri/src/model.rs`**
-
-```rust
-use std::path::PathBuf;
-use tauri::{AppHandle, Emitter, Runtime};
-use tokio::io::AsyncWriteExt;
-use futures_util::StreamExt;
-
-const MODEL_URL: &str =
-    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin";
-
-pub fn model_path() -> PathBuf {
-    let home = dirs::home_dir().expect("home dir unset");
-    home.join(".chappie/models/ggml-base.bin")
-}
-
-pub async fn ensure_model<R: Runtime>(app: AppHandle<R>) -> Result<PathBuf, String> {
-    let path = model_path();
-    if path.exists() {
-        if let Ok(meta) = tokio::fs::metadata(&path).await {
-            if meta.len() > 0 {
-                return Ok(path);
-            }
-        }
-    }
-    if let Some(parent) = path.parent() {
-        tokio::fs::create_dir_all(parent)
-            .await
-            .map_err(|e| format!("mkdir: {e}"))?;
-    }
-
-    let res = reqwest::get(MODEL_URL)
-        .await
-        .map_err(|e| format!("request: {e}"))?;
-    let total = res.content_length().unwrap_or(0);
-    let mut received: u64 = 0;
-    let mut stream = res.bytes_stream();
-
-    let tmp = path.with_extension("bin.part");
-    let mut file = tokio::fs::File::create(&tmp)
-        .await
-        .map_err(|e| format!("create tmp: {e}"))?;
-
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| format!("chunk: {e}"))?;
-        file.write_all(&chunk)
-            .await
-            .map_err(|e| format!("write: {e}"))?;
-        received += chunk.len() as u64;
-        let _ = app.emit(
-            "model:progress",
-            serde_json::json!({ "received": received, "total": total }),
-        );
-    }
-    file.flush().await.map_err(|e| format!("flush: {e}"))?;
-    drop(file);
-    tokio::fs::rename(&tmp, &path)
-        .await
-        .map_err(|e| format!("rename: {e}"))?;
-    let _ = app.emit("model:ready", serde_json::json!({ "path": path.to_string_lossy() }));
-    Ok(path)
-}
+```bash
+chmod +x scripts/fetch-model.sh
 ```
 
-- [ ] **Step 3: Modify `src-tauri/src/lib.rs`**
+- [ ] **Step 3: Manual verification**
 
-- Replace the local `model_path()` function with `model::model_path()`.
-- Update `get_ctx()` to use the base path.
-- Add a Tauri command:
-  ```rust
-  #[tauri::command]
-  async fn ensure_model(app: tauri::AppHandle) -> Result<String, String> {
-      model::ensure_model(app).await.map(|p| p.to_string_lossy().into_owned())
-  }
-  ```
-- Register `ensure_model` in `invoke_handler`.
-- Add `mod model;`.
-
-Note: `transcribe` must continue to fail clearly if called before the model is downloaded — `get_ctx()` will already return an error, which is fine.
-
-- [ ] **Step 4: Renderer — gate VAD on `ensure_model`**
-
-In `useConversationLoop.ts`, before calling `MicVAD.new`:
-
-```ts
-// inside the init effect
-void invoke("set_tray_state", { state: "thinking" }).catch(() => {});
-const off = await listen<{ received: number; total: number }>(
-  "model:progress",
-  (e) => {
-    setError(null);
-    const pct = e.payload.total
-      ? Math.floor((e.payload.received / e.payload.total) * 100)
-      : 0;
-    setError(`Whisper モデルを取得中… ${pct}%`); // reuse the error slot for status
-  },
-);
-try {
-  await invoke<string>("ensure_model");
-} finally {
-  off();
-}
-setError(null);
-void invoke("set_tray_state", { state: "idle" }).catch(() => {});
+```bash
+rm -f ~/.chappie/models/ggml-base.bin
+bash scripts/fetch-model.sh   # downloads ~150MB
+pnpm tauri dev                 # whisper loads base; run a wake-word turn
 ```
 
-(For MVP, reusing `error` as a generic status banner is acceptable; the conversation window is hidden anyway. The tray tooltip "考え中" doubles as user-visible feedback.)
-
-- [ ] **Step 5: Manual verification**
-
-- Delete the model: `rm -f ~/.chappie/models/ggml-base.bin ~/.chappie/models/ggml-tiny.bin`
-- `pnpm tauri dev`. Tray turns amber on launch and tooltip says `Chappie: 考え中` while download runs. Once complete, tray flips to idle. File present at `~/.chappie/models/ggml-base.bin`.
-- Re-launch with the file present → tray goes straight to idle (no download).
-- Run a wake-word turn — verify base accuracy is noticeably better than the PoC tiny on a Japanese sentence.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add -A
-git commit -m "feat: promote whisper to base with first-run auto-download"
+git commit -m "feat: switch whisper to base model with fetch script"
 ```
 
 ---
@@ -1354,7 +1187,13 @@ pnpm install
 pnpm tauri dev
 ```
 
-初回起動時に `~/.chappie/models/ggml-base.bin`（約150MB）を自動ダウンロード。トレイの「設定を開く」から OpenAI API キーを登録すると会話が始められる。
+初回のみ Whisper モデルを取得：
+
+```bash
+bash scripts/fetch-model.sh   # ~150MB を ~/.chappie/models/ggml-base.bin に配置
+```
+
+トレイの「設定を開く」から OpenAI API キーを登録すると会話が始められる（**設定変更後はアプリを再起動**）。
 
 ## ビルド
 
@@ -1384,4 +1223,4 @@ git commit -m "docs: rewrite README for Tauri 2 + whisper-rs MVP"
 - **Decisions locked の値はタスク間で一貫**: ウェイクワード `"chappie"` / `"チャッピー"` (Task 2)、`gpt-4o-mini` / system prompt / `FOLLOWUP_TIMEOUT_MS=6000` (Task 5)、`ggml-base.bin` (Task 6)、設定 2 キー (Task 4)。
 - **型契約のクロスファイル整合**: `TrayState` (Rust enum, lowercase serde) ↔ `State` (TS state-machine union) が一致。`Settings` (TS) ↔ store keys (`openaiApiKey`, `voiceURI`)。`MachineEvent` 型は `useConversationLoop` の dispatch で網羅。
 - **Spec §7 との差分**: 「VAD は流れの間ずっと動かしっぱなしで OK」と書いてあるが、TTS セルフトリガー回避のため Task 5 で `thinking`/`speaking` 中は VAD を pause する。Decisions locked に明記済み。spec の文言は次回更新時に追補する。
-- **モデル DL の失敗ハンドリング**: ネットワーク不通時、`ensure_model` のエラーは `useConversationLoop` の `setError` に流れ、tray は `idle` のまま (`thinking` から戻らない可能性あり)。MVP 後で `model:error` 受信時に `error` 色 + 再試行ボタンの UX を追加する余地。
+- **MVP 簡素化の意図的な省略**: lefthook/commitlint/secretlint、設定変更の即時反映、アプリ内モデル自動 DL UX は MVP 範囲外。後続 PR で追加する。spec §11 の拡張余地リストとは別軸の「ツーリング・UX 磨き込み」枠。
