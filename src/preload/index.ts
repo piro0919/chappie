@@ -21,15 +21,10 @@ const api = {
   openSettings: () => ipcRenderer.invoke("window:openSettings"),
 };
 
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld("api", api);
-  } catch (error) {
-    console.error(error);
-  }
-} else {
-  // @ts-expect-error (define in dts)
-  window.api = api;
+try {
+  contextBridge.exposeInMainWorld("api", api);
+} catch (error) {
+  console.error(error);
 }
 
 export type Api = typeof api;

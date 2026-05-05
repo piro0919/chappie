@@ -66,7 +66,5 @@ app.whenReady().then(() => {
   createWorkerWindow();
 });
 
-// Tray-only app: never quit on window close.
-app.on("window-all-closed", (e: Event) => {
-  e.preventDefault();
-});
+// Tray-only app: stay alive when all windows close.
+app.on("window-all-closed", () => {});
