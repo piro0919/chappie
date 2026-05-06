@@ -8,9 +8,8 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 static WHISPER_CTX: OnceCell<Mutex<WhisperContext>> = OnceCell::new();
 
 fn model_path() -> std::path::PathBuf {
-    // PoC: read from a fixed location in the user's home dir.
     let home = std::env::var("HOME").expect("HOME unset");
-    std::path::PathBuf::from(home).join(".chappie/models/ggml-tiny.bin")
+    std::path::PathBuf::from(home).join(".chappie/models/ggml-base.bin")
 }
 
 fn get_ctx() -> Result<&'static Mutex<WhisperContext>, String> {
@@ -39,6 +38,10 @@ fn transcribe(audio: Vec<f32>, language: Option<String>) -> Result<String, Strin
     params.set_print_realtime(false);
     params.set_print_special(false);
     params.set_print_timestamps(false);
+    // Bias the model toward recognizing the wake word "チャッピー".
+    params.set_initial_prompt("チャッピー、はい、チャッピーです。");
+    params.set_no_speech_thold(0.6);
+    params.set_temperature(0.0);
 
     state
         .full(params, &audio)

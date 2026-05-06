@@ -28,6 +28,20 @@ const SYSTEM_PROMPT =
 const FOLLOWUP_TIMEOUT_MS = 6000;
 const WHISPER_LANG = "ja";
 
+// Common Whisper Japanese hallucinations on silence/noise. Drop these utterances
+// instead of letting them flow to wake-word detection.
+const HALLUCINATION_PATTERNS = [
+  /^ご視聴ありがとうございました/,
+  /^チャンネル登録/,
+  /^字幕by/i,
+  /^Thank you for watching/i,
+];
+
+function isHallucination(text: string): boolean {
+  const t = text.trim();
+  return HALLUCINATION_PATTERNS.some((p) => p.test(t));
+}
+
 export function useConversationLoop(): { state: State; error: string | null } {
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +139,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
       return;
     }
     console.log("[whisper]", text);
+
+    if (isHallucination(text)) {
+      console.log("[whisper] hallucination filtered");
+      return;
+    }
 
     if (awaitingBodyRef.current) {
       awaitingBodyRef.current = false;

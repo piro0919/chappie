@@ -1,6 +1,21 @@
 export type WakeMatch = { matched: false } | { matched: true; body: string };
 
-const WAKE_WORDS = ["chappie", "チャッピー"] as const;
+// Primary plus common Whisper mistranscriptions of the same utterance.
+// Order matters only for tie-breaks; matching is by earliest position in the input.
+const WAKE_WORDS = [
+  "chappie",
+  "チャッピー",
+  "チョッピー",
+  "ジャッピー",
+  "ジュッピー",
+  "ちゃっぴー",
+  "ちょっぴー",
+  "じゃっぴー",
+  "じゅっぴー",
+  "juppie",
+  "joppy",
+  "choppy",
+] as const;
 
 const LEAD_TRIM_RE = /^[\s、。．，,.!！?？:：;；\-—–…]+/;
 const TRAIL_TRIM_RE = /\s+$/;

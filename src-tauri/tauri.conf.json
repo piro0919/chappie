@@ -14,9 +14,9 @@
       {
         "label": "main",
         "title": "Chappie",
-        "width": 320,
-        "height": 200,
-        "visible": false,
+        "width": 360,
+        "height": 240,
+        "visible": true,
         "skipTaskbar": true
       }
     ],
@@ -33,6 +33,10 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "entitlements": null,
+      "infoPlist": "Info.plist"
+    }
   }
 }
