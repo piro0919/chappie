@@ -13,6 +13,7 @@
     "core:window:allow-set-focus",
     "core:event:default",
     "opener:default",
-    "store:default"
+    "store:default",
+    "autostart:default"
   ]
 }

@@ -1,4 +1,9 @@
 import { emit } from "@tauri-apps/api/event";
+import {
+  disable as disableAutostart,
+  enable as enableAutostart,
+  isEnabled as isAutostartEnabled,
+} from "@tauri-apps/plugin-autostart";
 import { useEffect, useState } from "react";
 import { loadSettings, type Settings, saveSettings } from "../lib/settings";
 
@@ -6,6 +11,7 @@ export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
   const [voiceURI, setVoiceURI] = useState<string | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [autostart, setAutostart] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -14,6 +20,7 @@ export function SettingsView() {
       const s: Settings = await loadSettings();
       setApiKey(s.openaiApiKey);
       setVoiceURI(s.voiceURI);
+      setAutostart(await isAutostartEnabled());
       setLoaded(true);
     })();
     const refresh = () => setVoices(window.speechSynthesis.getVoices());
@@ -25,6 +32,8 @@ export function SettingsView() {
 
   const onSave = async () => {
     await saveSettings({ openaiApiKey: apiKey, voiceURI });
+    if (autostart) await enableAutostart();
+    else await disableAutostart();
     await emit("settings:updated");
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
@@ -66,6 +75,22 @@ export function SettingsView() {
             </option>
           ))}
         </select>
+      </label>
+
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginTop: 16,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={autostart}
+          onChange={(e) => setAutostart(e.target.checked)}
+        />
+        ログイン時に自動起動する
       </label>
 
       <div
