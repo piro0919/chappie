@@ -1,3 +1,5 @@
+mod audio;
+mod mic_permission;
 mod model;
 mod tray;
 
@@ -24,21 +26,19 @@ fn get_ctx() -> Result<&'static Mutex<WhisperContext>, String> {
     })
 }
 
-#[tauri::command]
-fn transcribe(audio: Vec<f32>, language: Option<String>) -> Result<String, String> {
+pub(crate) fn run_whisper(audio: Vec<f32>) -> Result<String, String> {
     let ctx = get_ctx()?;
     let ctx = ctx.lock().map_err(|e| format!("lock poisoned: {e}"))?;
 
     let mut state = ctx.create_state().map_err(|e| format!("create_state: {e}"))?;
 
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-    params.set_language(language.as_deref().or(Some("ja")));
+    params.set_language(Some("ja"));
     params.set_translate(false);
     params.set_print_progress(false);
     params.set_print_realtime(false);
     params.set_print_special(false);
     params.set_print_timestamps(false);
-    // Bias the model toward recognizing the wake word "チャッピー".
     params.set_initial_prompt("チャッピー、はい、チャッピーです。");
     params.set_no_speech_thold(0.6);
     params.set_temperature(0.0);
@@ -59,6 +59,11 @@ fn transcribe(audio: Vec<f32>, language: Option<String>) -> Result<String, Strin
         out.push_str(&text);
     }
     Ok(out.trim().to_string())
+}
+
+#[tauri::command]
+fn transcribe(audio: Vec<f32>, _language: Option<String>) -> Result<String, String> {
+    run_whisper(audio)
 }
 
 #[tauri::command]
@@ -101,13 +106,32 @@ pub fn run() {
             transcribe,
             set_tray_state,
             open_settings,
-            ensure_model
+            ensure_model,
+            mic_permission::check_microphone_permission,
+            mic_permission::request_microphone_access,
+            audio::start_listening,
+            audio::stop_listening,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
             let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             init_tray(&app.handle())?;
+
+            // Prevent the debug ('main') window's close button from destroying
+            // the conversation worker; hide it instead so the loop keeps running.
+            {
+                use tauri::Manager;
+                if let Some(win) = app.get_webview_window("main") {
+                    let win_clone = win.clone();
+                    win.on_window_event(move |event| {
+                        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                            api.prevent_close();
+                            let _ = win_clone.hide();
+                        }
+                    });
+                }
+            }
 
             #[cfg(debug_assertions)]
             {

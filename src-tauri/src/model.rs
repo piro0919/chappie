@@ -4,11 +4,11 @@ use tauri::{AppHandle, Emitter, Runtime};
 use tokio::io::AsyncWriteExt;
 
 const MODEL_URL: &str =
-    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin";
+    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin";
 
 pub fn model_path() -> PathBuf {
     let home = dirs::home_dir().expect("home dir unset");
-    home.join(".chappie/models/ggml-base.bin")
+    home.join(".chappie/models/ggml-small.bin")
 }
 
 pub async fn ensure_model<R: Runtime>(app: AppHandle<R>) -> Result<PathBuf, String> {

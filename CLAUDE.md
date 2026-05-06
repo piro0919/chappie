@@ -7,8 +7,8 @@ A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チ�
 - **Tauri v2** (Rust backend + WebView UI)
 - **React 19 + Vite + TypeScript** (renderer)
 - **pnpm** (package manager)
-- **whisper-rs** (local STT, Metal-accelerated on macOS)
-- **`@ricky0123/vad-web`** (voice activity detection)
+- **whisper-rs** (local STT, Metal-accelerated on macOS) — uses `ggml-small.bin`
+- **cpal** (mic capture in Rust) + **rubato** (resampling) + **voice_activity_detector** (Silero VAD V5)
 - **OpenAI Chat Completions** (`gpt-4o-mini`, hardcoded)
 - **Web Speech API `SpeechSynthesis`** (TTS)
 
@@ -16,17 +16,19 @@ A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チ�
 
 ### Rust Backend (`src-tauri/src/`)
 
-- `lib.rs` — main: Builder, plugin registration, tray init, Tauri commands (`transcribe`, `set_tray_state`, `open_settings`, `ensure_model`). Hides the Dock icon (`ActivationPolicy::Accessory`); blocks duplicate launches via `tauri-plugin-single-instance`.
-- `tray.rs` — menu-bar tray icon (5 states: idle/listening/thinking/speaking/error). Switches icon, tooltip, and menu per state.
-- `model.rs` — auto-downloads the Whisper model (`ggml-base.bin`) into `~/.chappie/models/`. Streams via `reqwest`, emits `model:progress` and `model:ready` events.
+- `lib.rs` — main: Builder, plugin registration, tray init, Tauri commands (`transcribe`, `set_tray_state`, `open_settings`, `ensure_model`, mic permission, `start_listening`/`stop_listening`). Hides the Dock icon (`ActivationPolicy::Accessory`); blocks duplicate launches via `tauri-plugin-single-instance`. Hosts `run_whisper(audio: Vec<f32>) -> Result<String, String>` used by both the IPC `transcribe` command and the in-process audio pipeline.
+- `tray.rs` — menu-bar tray icon (5 states: idle/listening/thinking/speaking/error). Switches icon, tooltip, and menu per state. Menu items: 設定 / デバッグウィンドウ / 終了.
+- `model.rs` — auto-downloads the Whisper model (`ggml-small.bin`) into `~/.chappie/models/`. Streams via `reqwest`, emits `model:progress` and `model:ready` events.
+- `audio.rs` — cpal-based mic capture on a dedicated OS thread → mono f32 → rubato resample to 16kHz → Silero VAD (`voice_activity_detector` 0.2) on 512-sample frames → utterance segmentation by speech probability → Whisper → emit `speech` event with text.
+- `mic_permission.rs` — `AVCaptureDevice.requestAccessForMediaType:` via objc2 + block2. **Always invokes requestAccess regardless of cached status** (cached status can be wrong for ad-hoc signed apps). Mirrors Galopen's calendar permission pattern.
 - The Whisper context lives globally in `OnceCell<Mutex<WhisperContext>>`.
 
 ### Frontend (`src/`)
 
 - `main.tsx` — routes `?view=settings` → SettingsView, anything else → ConversationView.
-- `views/ConversationView.tsx` — UI for the hidden conversation worker window (status text only).
+- `views/ConversationView.tsx` — debug window UI: state + last 50 transcription log entries. Hidden by default; shown via tray menu. Close button hides instead of destroys (handled in `lib.rs`).
 - `views/SettingsView.tsx` — on-demand settings window opened from the tray menu (OpenAI API key + voice + autostart).
-- `hooks/useConversationLoop.ts` — orchestrates VAD → Whisper → wake-word detection → OpenAI → TTS → tray sync.
+- `hooks/useConversationLoop.ts` — calls `request_microphone_access` → `ensure_model` → `start_listening`, then listens for `speech` events from Rust and dispatches wake-word detection → OpenAI → TTS → tray sync.
 - `lib/state-machine.ts` — pure state machine (idle/listening/thinking/speaking/error).
 - `lib/conversation-history.ts` — sliding window of the last 20 messages.
 - `lib/openai-client.ts` — thin wrapper over the OpenAI SDK.
@@ -37,13 +39,13 @@ A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チ�
 ## Key Design Decisions
 
 - **whisper-rs lives in Rust**: an early `@xenova/transformers` WebGPU/WASM Whisper attempt held the renderer hostage and ignored Apple's Metal stack, so STT moved to Rust.
-- **VAD lives in the renderer**: `@ricky0123/vad-web` (lightweight, ~1-2% CPU). When it detects an utterance boundary it ships PCM (Float32Array) to Rust through a Tauri command.
-- **Wake-word detection is renderer-side string matching**: Whisper output is normalized (NFKC + lowercase) and substring-matched. `chappie` / `チャッピー` plus tolerance for homophone variants.
-- **VAD pauses while TTS plays**: prevents Chappie's own voice from re-triggering itself.
+- **Mic capture + VAD live in Rust** (cpal + Silero via `voice_activity_detector`): WKWebView's `getUserMedia` hangs forever on hidden, accessory-mode windows without a user gesture. Doing capture at the OS layer sidesteps the entire WebKit permission/activation issue and emits a single `speech` event per utterance to the renderer.
+- **Wake-word detection is renderer-side string matching**: Whisper output is normalized (NFKC + lowercase) and substring-matched. `chappie` / `チャッピー` plus tolerance for homophone variants (`チョッピー` etc).
+- **TTS-active flag suppresses captured speech**: while `speak()` is running, incoming `speech` events are ignored to prevent Chappie from re-triggering on its own voice.
 - **Settings changes apply on next app launch** (MVP): a `settings:updated` event path exists too, but simpler is better.
-- **Whisper initial prompt biases toward "チャッピー"**: `set_initial_prompt("チャッピー、はい、チャッピーです。")` teaches the base model the wake word so transcription accuracy holds up.
+- **Whisper initial prompt biases toward "チャッピー"**: `set_initial_prompt("チャッピー、はい、チャッピーです。")` improves wake-word recognition.
 - **Color-state icons, not template icons**: state is conveyed by hue (template-style would only convey state by shape).
-- **Main window is hidden**: the conversation worker runs in a hidden main window; the user only ever interacts via the tray icon and the on-demand Settings window.
+- **Main window is hidden / debug-only**: the conversation worker runs there but it has no user-facing UI in the normal flow. Open it via tray → "デバッグウィンドウを開く" to see the live transcription log.
 
 ## Build & Distribute
 
@@ -51,7 +53,7 @@ A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チ�
 
 ```bash
 pnpm install
-bash scripts/fetch-model.sh     # one-time: fetch the Whisper base model (~150MB)
+bash scripts/fetch-model.sh     # one-time: fetch the Whisper small model (~466MB)
 pnpm tauri dev
 ```
 
@@ -84,3 +86,27 @@ Outputs:
 
 - Design doc: `docs/superpowers/specs/2026-05-06-chappie-design.md` (Japanese, working doc)
 - Implementation plan: `docs/superpowers/plans/2026-05-06-chappie-mvp.md` (Japanese, working doc; progress tracked via checkboxes)
+
+## Working Notes (must read before debugging permission/system-level issues)
+
+### macOS マイク許可（同様の OS 権限） — 過去の失敗から
+
+ad-hoc 署名（`APPLE_SIGNING_IDENTITY="-"`）+ LSUIElement の Tauri アプリでも、macOS のマイク（および同種の OS 権限）は **正しく実装すれば普通に動く**。本番に Apple Developer Program は不要。
+
+実装すべきこと（これだけで動く）：
+
+1. `src-tauri/Entitlements.plist` に該当エンタイトルメント（マイクなら `com.apple.security.device.audio-input`）を入れて `tauri.conf.json` の `macOS.entitlements` で参照させる
+2. `Info.plist` に `NSMicrophoneUsageDescription` を入れる
+3. Rust 側で `AVCaptureDevice.requestAccessForMediaType:completionHandler:` を **専用スレッドから / status チェックで早期 return せず常に呼ぶ**。完了は `block2::RcBlock` で受ける
+4. 手本: `~/Repository/galopen/src-tauri/src/calendar.rs`（カレンダー版だがパターンは同一）
+
+やってはいけないこと（過去にハマった寄り道）：
+
+- `authorizationStatusForMediaType:` の値で早期 return → プロンプトが出ない原因。常に requestAccess を呼ぶ
+- `ActivationPolicy::Accessory` → `Regular` に切り替える → 不要、プロンプトは出る
+- WKWebView の `getUserMedia` で取りに行く → 隠しウィンドウだと user activation 無しでハングする。マイクは Rust 側で取る（cpal 等）か、別途 user gesture を伴う UI から呼ぶ
+- ad-hoc 署名そのものを諦める / Apple Developer 加入を勧める → 解決ではない、原因ではない
+
+### デバッグ時の鉄則
+
+ユーザーが「○○リポジトリを見て」のような **同マシン上の動いている参照実装** を提示したら、Web 検索や推測より先に必ず `Read` で開いて差分を取る。Web 検索結果（特に未解決の Apple Developer Forum スレッドや AI 要約）を「解決不能の根拠」として扱わない。動いている現物が常に最強のエビデンス。

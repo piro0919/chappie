@@ -1,4 +1,3 @@
-import { MicVAD } from "@ricky0123/vad-web";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import OpenAI from "openai";
@@ -26,7 +25,6 @@ const MODEL = "gpt-4o-mini";
 const SYSTEM_PROMPT =
   "You are Chappie, a friendly hands-free voice assistant. Keep replies short and conversational because they will be read aloud.";
 const FOLLOWUP_TIMEOUT_MS = 6000;
-const WHISPER_LANG = "ja";
 
 // Common Whisper Japanese hallucinations on silence/noise. Drop these utterances
 // instead of letting them flow to wake-word detection.
@@ -50,9 +48,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const historyRef = useRef<History>(createHistory(SYSTEM_PROMPT));
   const apiKeyRef = useRef<string>("");
   const voiceURIRef = useRef<string | null>(null);
-  const vadRef = useRef<MicVAD | null>(null);
   const awaitingBodyRef = useRef(false);
   const followupTimerRef = useRef<number | null>(null);
+  const ttsActiveRef = useRef(false);
 
   function dispatch(event: MachineEvent) {
     const next = transition(machineRef.current, event);
@@ -69,23 +67,17 @@ export function useConversationLoop(): { state: State; error: string | null } {
     }
   }
 
-  async function transcribe(audio: Float32Array): Promise<string> {
-    return invoke<string>("transcribe", {
-      audio: Array.from(audio),
-      language: WHISPER_LANG,
-    });
-  }
-
   async function runTurn(userText: string) {
-    vadRef.current?.pause();
     try {
       if (!apiKeyRef.current) {
         try {
+          ttsActiveRef.current = true;
           await speak(
             "OpenAI APIキーが未設定です。設定画面から登録してください。",
             voiceURIRef.current,
           );
         } catch {}
+        ttsActiveRef.current = false;
         dispatch({ type: "responseFailed", message: "no api key" });
         dispatch({ type: "errorAcknowledged" });
         return;
@@ -104,8 +96,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
       } catch (e) {
         console.error("openai failed", e);
         try {
+          ttsActiveRef.current = true;
           await speak("うまく繋がりませんでした。", voiceURIRef.current);
         } catch {}
+        ttsActiveRef.current = false;
         dispatch({ type: "responseFailed", message: String(e) });
         dispatch({ type: "errorAcknowledged" });
         return;
@@ -115,29 +109,23 @@ export function useConversationLoop(): { state: State; error: string | null } {
       dispatch({ type: "responseReady", reply });
 
       try {
+        ttsActiveRef.current = true;
         await speak(reply, voiceURIRef.current);
       } catch (e) {
         console.error("tts failed", e);
       }
+      ttsActiveRef.current = false;
       dispatch({ type: "speechDone" });
     } finally {
-      try {
-        vadRef.current?.start();
-      } catch {}
+      ttsActiveRef.current = false;
     }
   }
 
-  async function handleUtterance(audio: Float32Array) {
+  async function handleSpeech(text: string) {
+    if (ttsActiveRef.current) return;
     const cur = machineRef.current.state;
     if (cur === "thinking" || cur === "speaking" || cur === "error") return;
 
-    let text = "";
-    try {
-      text = await transcribe(audio);
-    } catch (e) {
-      console.error("transcribe failed", e);
-      return;
-    }
     console.log("[whisper]", text);
 
     if (isHallucination(text)) {
@@ -181,13 +169,13 @@ export function useConversationLoop(): { state: State; error: string | null } {
   useEffect(() => {
     let cancelled = false;
     let progressOff: (() => void) | undefined;
+    let speechOff: (() => void) | undefined;
     void (async () => {
       try {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
         voiceURIRef.current = s.voiceURI;
 
-        // Show download progress in tray while model is fetched.
         void invoke("set_tray_state", { state: "initializing" }).catch(
           () => {},
         );
@@ -201,6 +189,18 @@ export function useConversationLoop(): { state: State; error: string | null } {
           },
         );
         try {
+          // Always request — the system prompt only fires through this path
+          // for ad-hoc signed LSUIElement apps (cached status can be wrong).
+          const granted = await invoke<boolean>(
+            "request_microphone_access",
+          ).catch(() => false);
+          if (!granted) {
+            setError(
+              "マイクの使用が許可されていません。システム設定 → プライバシーとセキュリティ → マイク で Chappie を有効にしてください。",
+            );
+            void invoke("set_tray_state", { state: "error" }).catch(() => {});
+            return;
+          }
           await invoke<string>("ensure_model");
         } catch (e) {
           setError(`モデル取得に失敗: ${String(e)}`);
@@ -212,19 +212,19 @@ export function useConversationLoop(): { state: State; error: string | null } {
         }
         setError(null);
 
-        const vad = await MicVAD.new({
-          baseAssetPath: "/",
-          onnxWASMBasePath: "/",
-          onSpeechEnd: (audio) => {
-            void handleUtterance(audio);
-          },
+        speechOff = await listen<string>("speech", (e) => {
+          void handleSpeech(e.payload);
         });
-        if (cancelled) {
-          vad.destroy();
+
+        try {
+          await invoke("start_listening");
+        } catch (e) {
+          setError(`マイク開始に失敗: ${String(e)}`);
+          void invoke("set_tray_state", { state: "error" }).catch(() => {});
           return;
         }
-        vadRef.current = vad;
-        vad.start();
+
+        if (cancelled) return;
         void invoke("set_tray_state", { state: "idle" }).catch(() => {});
       } catch (e) {
         console.error("conversation loop init failed", e);
@@ -234,8 +234,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
     return () => {
       cancelled = true;
       progressOff?.();
+      speechOff?.();
       clearFollowupTimer();
-      vadRef.current?.destroy();
+      void invoke("stop_listening").catch(() => {});
     };
   }, []);
 

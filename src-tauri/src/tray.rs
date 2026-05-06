@@ -54,6 +54,13 @@ pub fn init_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             "open_settings" => {
                 let _ = open_settings_window(app);
             }
+            "show_debug" => {
+                use tauri::Manager;
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
+            }
             "quit" => {
                 app.exit(0);
             }
@@ -72,11 +79,13 @@ fn build_menu<R: Runtime>(
         .enabled(false)
         .build(app)?;
     let settings = MenuItemBuilder::with_id("open_settings", "設定を開く").build(app)?;
+    let debug = MenuItemBuilder::with_id("show_debug", "デバッグウィンドウを開く").build(app)?;
     let quit = MenuItemBuilder::with_id("quit", "終了").build(app)?;
     MenuBuilder::new(app)
         .item(&status)
         .item(&PredefinedMenuItem::separator(app)?)
         .item(&settings)
+        .item(&debug)
         .item(&quit)
         .build()
 }
