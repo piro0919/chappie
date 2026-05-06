@@ -188,7 +188,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
         voiceURIRef.current = s.voiceURI;
 
         // Show download progress in tray while model is fetched.
-        void invoke("set_tray_state", { state: "thinking" }).catch(() => {});
+        void invoke("set_tray_state", { state: "initializing" }).catch(
+          () => {},
+        );
         progressOff = await listen<{ received: number; total: number }>(
           "model:progress",
           (e) => {

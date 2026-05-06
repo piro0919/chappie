@@ -9,6 +9,7 @@ use tauri::{
 #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TrayState {
+    Initializing,
     Idle,
     Listening,
     Thinking,
@@ -19,6 +20,7 @@ pub enum TrayState {
 impl TrayState {
     fn icon_bytes(self) -> &'static [u8] {
         match self {
+            Self::Initializing => include_bytes!("../icons/tray-initializing.png"),
             Self::Idle => include_bytes!("../icons/tray-idle.png"),
             Self::Listening => include_bytes!("../icons/tray-listening.png"),
             Self::Thinking => include_bytes!("../icons/tray-thinking.png"),
@@ -28,6 +30,7 @@ impl TrayState {
     }
     fn label(self) -> &'static str {
         match self {
+            Self::Initializing => "Chappie: 起動中",
             Self::Idle => "Chappie: 待機中",
             Self::Listening => "Chappie: 聞いています",
             Self::Thinking => "Chappie: 考え中",
