@@ -1,3 +1,4 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { emit } from "@tauri-apps/api/event";
 import {
   disable as disableAutostart,
@@ -14,6 +15,7 @@ export function SettingsView() {
   const [autostart, setAutostart] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [version, setVersion] = useState("");
 
   useEffect(() => {
     void (async () => {
@@ -23,6 +25,9 @@ export function SettingsView() {
       setAutostart(await isAutostartEnabled());
       setLoaded(true);
     })();
+    getVersion()
+      .then(setVersion)
+      .catch(() => {});
     const refresh = () => setVoices(window.speechSynthesis.getVoices());
     refresh();
     window.speechSynthesis.addEventListener("voiceschanged", refresh);
@@ -106,6 +111,19 @@ export function SettingsView() {
         </button>
         {saved && <span style={{ color: "#10b981" }}>保存しました</span>}
       </div>
+
+      {version && (
+        <div
+          style={{
+            marginTop: 24,
+            color: "#888",
+            fontSize: 11,
+            textAlign: "right",
+          }}
+        >
+          v{version}
+        </div>
+      )}
     </main>
   );
 }
