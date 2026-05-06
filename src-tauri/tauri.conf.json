@@ -29,8 +29,8 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "category": "Productivity",
-    "shortDescription": "ハンズフリー音声AIアシスタント",
-    "longDescription": "ウェイクワード「チャッピー」で起動し、声だけで会話できるトレイ常駐型のデスクトップAIアシスタント。",
+    "shortDescription": "Hands-free voice AI assistant",
+    "longDescription": "A tray-only desktop AI assistant. Say 'chappie' to wake it up and have a fully voice-driven conversation with no keyboard or mouse.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

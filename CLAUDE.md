@@ -1,61 +1,61 @@
-# Chappie Desktop
+# Chappie
 
-ハンズフリー音声 AI アシスタント。ウェイクワード「**チャッピー**」（または `chappie`）で起動して声だけで会話できる、トレイ常駐型のデスクトップアプリ。
+A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チャッピー**" (Japanese) and have a fully voice-driven conversation, all from a tray-only desktop app.
 
 ## Tech Stack
 
-- **Tauri v2**（Rust バックエンド + WebView UI）
-- **React 19 + Vite + TypeScript**（renderer）
-- **pnpm**（パッケージマネージャ）
-- **whisper-rs**（ローカル STT、macOS は Metal 加速）
-- **`@ricky0123/vad-web`**（音声区切り検出）
-- **OpenAI Chat Completions**（`gpt-4o-mini` ハードコード）
-- **Web Speech API `SpeechSynthesis`**（TTS）
+- **Tauri v2** (Rust backend + WebView UI)
+- **React 19 + Vite + TypeScript** (renderer)
+- **pnpm** (package manager)
+- **whisper-rs** (local STT, Metal-accelerated on macOS)
+- **`@ricky0123/vad-web`** (voice activity detection)
+- **OpenAI Chat Completions** (`gpt-4o-mini`, hardcoded)
+- **Web Speech API `SpeechSynthesis`** (TTS)
 
 ## Architecture
 
 ### Rust Backend (`src-tauri/src/`)
 
-- `lib.rs` — メイン: Builder, plugin 登録, tray 初期化, Tauri command (`transcribe`, `set_tray_state`, `open_settings`, `ensure_model`)。Dock アイコン非表示 (`ActivationPolicy::Accessory`)、`tauri-plugin-single-instance` で多重起動防止
-- `tray.rs` — メニューバー トレイアイコン (5 状態: idle/listening/thinking/speaking/error)。状態に応じてアイコン・ツールチップ・メニューを切替
-- `model.rs` — Whisper モデル (`ggml-base.bin`) を `~/.chappie/models/` に自動 DL。`reqwest` でストリーミング、`model:progress` / `model:ready` イベント発火
-- whisper コンテキストは `OnceCell<Mutex<WhisperContext>>` で常駐
+- `lib.rs` — main: Builder, plugin registration, tray init, Tauri commands (`transcribe`, `set_tray_state`, `open_settings`, `ensure_model`). Hides the Dock icon (`ActivationPolicy::Accessory`); blocks duplicate launches via `tauri-plugin-single-instance`.
+- `tray.rs` — menu-bar tray icon (5 states: idle/listening/thinking/speaking/error). Switches icon, tooltip, and menu per state.
+- `model.rs` — auto-downloads the Whisper model (`ggml-base.bin`) into `~/.chappie/models/`. Streams via `reqwest`, emits `model:progress` and `model:ready` events.
+- The Whisper context lives globally in `OnceCell<Mutex<WhisperContext>>`.
 
 ### Frontend (`src/`)
 
-- `main.tsx` — `?view=settings` で SettingsView、それ以外で ConversationView にルーティング
-- `views/ConversationView.tsx` — 隠しウィンドウで動作する会話ワーカー UI（状態テキストのみ）
-- `views/SettingsView.tsx` — トレイメニューから on-demand で開かれる設定ウィンドウ。OpenAI API キーと読み上げ音声を編集
-- `hooks/useConversationLoop.ts` — VAD → whisper → ウェイクワード判定 → OpenAI → TTS → トレイ同期 のオーケストレーション
-- `lib/state-machine.ts` — 純粋な状態機械 (idle/listening/thinking/speaking/error)
-- `lib/conversation-history.ts` — 直近 20 メッセージの sliding window
-- `lib/openai-client.ts` — OpenAI SDK の薄いラッパー
-- `lib/wake-word.ts` — `chappie` / `チャッピー` + Whisper 同音バリアント (`チョッピー`/`Juppie` 等) の正規化マッチ
-- `lib/speech-synthesis.ts` — `speechSynthesis.speak()` の Promise ラッパー
-- `lib/settings.ts` — `tauri-plugin-store` の薄いラッパー
+- `main.tsx` — routes `?view=settings` → SettingsView, anything else → ConversationView.
+- `views/ConversationView.tsx` — UI for the hidden conversation worker window (status text only).
+- `views/SettingsView.tsx` — on-demand settings window opened from the tray menu (OpenAI API key + voice + autostart).
+- `hooks/useConversationLoop.ts` — orchestrates VAD → Whisper → wake-word detection → OpenAI → TTS → tray sync.
+- `lib/state-machine.ts` — pure state machine (idle/listening/thinking/speaking/error).
+- `lib/conversation-history.ts` — sliding window of the last 20 messages.
+- `lib/openai-client.ts` — thin wrapper over the OpenAI SDK.
+- `lib/wake-word.ts` — normalized matching for `chappie` / `チャッピー` plus Whisper homophone variants (`チョッピー` / `Juppie` / etc.).
+- `lib/speech-synthesis.ts` — Promise wrapper over `speechSynthesis.speak()`.
+- `lib/settings.ts` — thin wrapper over `tauri-plugin-store`.
 
 ## Key Design Decisions
 
-- **whisper-rs を Rust 側で持つ**: 当初 `@xenova/transformers` の WebGPU/WASM Whisper を検討したが、レンダラ占有が大きく Mac の Metal を活かせないため Rust 側に移管
-- **VAD はレンダラ常駐**: `@ricky0123/vad-web`（軽量、CPU 1-2%）。発話区切り検出時に PCM (Float32Array) を Tauri command で Rust に渡す
-- **ウェイクワード判定はレンダラの文字列マッチ**: Whisper 結果の正規化 (NFKC + lowercase) 後に部分一致。`chappie`/`チャッピー` + 同音バリアントを許容
-- **TTS 中は VAD pause**: 自分の TTS 音声でセルフトリガーするのを防ぐ
-- **設定変更は再起動で反映**（MVP）: `settings:updated` イベントで即時反映する経路もあるが、シンプルさ優先
-- **Whisper 初期プロンプトでバイアス**: `set_initial_prompt("チャッピー、はい、チャッピーです。")` で base モデルに「チャッピー」という単語を教え込み、認識精度を確保
-- **テンプレートアイコンではなくフルカラー**: 状態を色で示す UX を優先（macOS テンプレート方式は単色で形でしか状態表現できない）
-- **メイン window は非表示**: 会話ワーカーは hidden な main window で動作、ユーザーは tray アイコンとオンデマンド Settings ウィンドウのみで操作
+- **whisper-rs lives in Rust**: an early `@xenova/transformers` WebGPU/WASM Whisper attempt held the renderer hostage and ignored Apple's Metal stack, so STT moved to Rust.
+- **VAD lives in the renderer**: `@ricky0123/vad-web` (lightweight, ~1-2% CPU). When it detects an utterance boundary it ships PCM (Float32Array) to Rust through a Tauri command.
+- **Wake-word detection is renderer-side string matching**: Whisper output is normalized (NFKC + lowercase) and substring-matched. `chappie` / `チャッピー` plus tolerance for homophone variants.
+- **VAD pauses while TTS plays**: prevents Chappie's own voice from re-triggering itself.
+- **Settings changes apply on next app launch** (MVP): a `settings:updated` event path exists too, but simpler is better.
+- **Whisper initial prompt biases toward "チャッピー"**: `set_initial_prompt("チャッピー、はい、チャッピーです。")` teaches the base model the wake word so transcription accuracy holds up.
+- **Color-state icons, not template icons**: state is conveyed by hue (template-style would only convey state by shape).
+- **Main window is hidden**: the conversation worker runs in a hidden main window; the user only ever interacts via the tray icon and the on-demand Settings window.
 
 ## Build & Distribute
 
-### 開発
+### Development
 
 ```bash
 pnpm install
-bash scripts/fetch-model.sh     # 初回のみ Whisper base モデル取得（150MB）
+bash scripts/fetch-model.sh     # one-time: fetch the Whisper base model (~150MB)
 pnpm tauri dev
 ```
 
-### リリースビルド（重要：環境変数必須）
+### Release build (env vars are required)
 
 ```bash
 TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/chappie.key)" \
@@ -64,22 +64,23 @@ APPLE_SIGNING_IDENTITY="-" \
 pnpm tauri build
 ```
 
-- `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD`: updater 用 minisign 署名（無いと自動更新が壊れる）
-- `APPLE_SIGNING_IDENTITY="-"`: ad-hoc コード署名。**これを忘れると配布後 macOS で「壊れている」エラーになる**
+- `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD`: minisign signing for the updater (auto-update breaks without it).
+- `APPLE_SIGNING_IDENTITY="-"`: ad-hoc code signing. **Skip this and macOS will show "the app is damaged" after distribution.**
 
-成果物:
+Outputs:
 - `src-tauri/target/release/bundle/macos/Chappie.app`
-- `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz`（updater 配信用）
-- `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz.sig`（minisign 署名）
+- `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz` (updater feed)
+- `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz.sig` (minisign signature)
+- `src-tauri/target/release/bundle/dmg/Chappie_<version>_aarch64.dmg`
 
-### リリース（GitHub Release 公開 + updater エンドポイント更新）
+### Release (publish to GitHub + bump updater feed)
 
-1. `package.json` と `src-tauri/tauri.conf.json` のバージョンを更新
-2. 上記の環境変数付きで `pnpm tauri build`
-3. `pnpm release` — GitHub Release 作成 + .app.tar.gz / .sig / latest.json をアップロード
-4. updater エンドポイント `https://github.com/piro0919/chappie/releases/latest/download/latest.json` が次回起動時に新バージョンを案内する
+1. Bump versions in `package.json` and `src-tauri/tauri.conf.json`.
+2. Run the release build above with the env vars.
+3. `pnpm release` — creates the GitHub Release and uploads `.app.tar.gz` / `.sig` / `latest.json` / `.dmg`.
+4. The updater feed at `https://github.com/piro0919/chappie/releases/latest/download/latest.json` will surface the new build to existing installs on next launch.
 
 ## Spec & Plan
 
-- 設計書: `docs/superpowers/specs/2026-05-06-chappie-design.md`
-- 実装プラン: `docs/superpowers/plans/2026-05-06-chappie-mvp.md`（Task 1-8、進捗は checkbox で管理）
+- Design doc: `docs/superpowers/specs/2026-05-06-chappie-design.md` (Japanese, working doc)
+- Implementation plan: `docs/superpowers/plans/2026-05-06-chappie-mvp.md` (Japanese, working doc; progress tracked via checkboxes)

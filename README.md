@@ -1,80 +1,84 @@
-# Chappie Desktop
+# Chappie
 
-ハンズフリー音声 AI アシスタント。ウェイクワード「**チャッピー**」で起動して声だけで会話できる、トレイ常駐型のデスクトップアプリ。
+A hands-free voice AI assistant for macOS. Say "**chappie**" (or "チャッピー" in Japanese) to wake it up and have a fully voice-driven conversation, all from the menu bar.
 
-## アーキテクチャ
+## Architecture
 
-- **Tauri 2** (Rust 製バックエンド + WebView UI)
-- **音声区切り検出**: [`@ricky0123/vad-web`](https://github.com/ricky0123/vad)
-- **STT**: [`whisper-rs`](https://github.com/tazz4843/whisper-rs)（Rust 側、macOS は Metal 加速）
-- **ウェイクワード判定**: 文字列マッチ（renderer 側、NFKC 正規化 + 同音バリアント許容）
-- **AI**: OpenAI Chat Completions（`gpt-4o-mini`）
-- **TTS**: Web Speech API `SpeechSynthesis`（OS 標準ボイス）
-- **設定永続化**: `tauri-plugin-store`
+- **Tauri 2** (Rust backend + WebView UI)
+- **Voice activity detection**: [`@ricky0123/vad-web`](https://github.com/ricky0123/vad)
+- **Speech-to-text**: [`whisper-rs`](https://github.com/tazz4843/whisper-rs) (Rust, Metal-accelerated on macOS)
+- **Wake word matching**: in-renderer string match (NFKC normalization + tolerant variants)
+- **AI**: OpenAI Chat Completions (`gpt-4o-mini`)
+- **Text-to-speech**: Web Speech API `SpeechSynthesis` (OS native voices)
+- **Settings persistence**: `tauri-plugin-store`
 
-## 開発
+## Development
 
-### 必要なもの
+### Requirements
 
-- macOS 13+ または Windows 10+
+- macOS 13+ or Windows 10+
 - [pnpm](https://pnpm.io/)
-- [Rust](https://rustup.rs/)（Tauri ビルドに必要）
+- [Rust](https://rustup.rs/) (for the Tauri build)
 
-### セットアップ & 起動
+### Setup & run
 
 ```bash
 pnpm install
 pnpm tauri dev
 ```
 
-初回起動時に Whisper の base モデル（約 150MB）が `~/.chappie/models/ggml-base.bin` に自動ダウンロードされます。完了するとメニューバーにチャッピーのアイコンが現れ、「設定を開く」から OpenAI API キーを登録すると会話できるようになります。
+On first launch the Whisper `base` model (~150MB) is auto-downloaded to `~/.chappie/models/ggml-base.bin`. Once it's ready the Chappie icon appears in the menu bar; pick "Open Settings" and add your OpenAI API key to start talking.
 
-> 設定変更（API キー・読み上げ音声）はアプリの再起動後に反映されます（MVP）。
+> Settings changes (API key, voice) take effect on next app launch.
 
-### モデルを手動取得したい場合
+### Manual model fetch
 
 ```bash
 bash scripts/fetch-model.sh
 ```
 
-## 使い方
+## Usage
 
-1. メニューバーのチャッピーアイコンを右クリック →「設定を開く」
-2. OpenAI API キー（`sk-...`）を入力 → 保存 → アプリを再起動
-3. 「**チャッピー、おはよう**」と話しかける（または「チャッピー」だけ言って一拍置いてから本文）
+1. Right-click the menu bar icon → **Open Settings**
+2. Enter your OpenAI API key (`sk-...`) → Save → restart the app
+3. Say "**chappie, good morning**" — or just "chappie" then pause and say your message
 
-メニューバーアイコンの色で状態がわかります：
-| 状態 | 色 |
-|---|---|
-| 待機中 | グレー |
-| 聞いてる | 水色 |
-| 考え中 | 黄色 |
-| 喋ってる | 緑 |
-| エラー | 赤 |
+The menu bar icon color tells you the current state:
 
-## ビルド
+| State | Color |
+|-------|-------|
+| idle | gray |
+| listening | light blue |
+| thinking | yellow |
+| speaking | green |
+| error | red |
+
+## Build
 
 ```bash
+TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/chappie.key)" \
+TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
+APPLE_SIGNING_IDENTITY="-" \
 pnpm tauri build
 ```
 
-成果物：
-- macOS: `src-tauri/target/release/bundle/macos/Chappie.app`（配布は zip 圧縮で）
+Outputs:
+- macOS: `src-tauri/target/release/bundle/macos/Chappie.app` and `dmg/Chappie_<version>_*.dmg`
 - Windows: `src-tauri/target/release/bundle/nsis/Chappie_<version>_*-setup.exe`
 
-> macOS の DMG バンドラ (`bundle_dmg.sh`) は AppleScript で Finder ウィンドウを操作するため CI 等の非対話環境ではハングする。MVP では `.app` 直接配布を推奨。
+> The macOS DMG bundler (`bundle_dmg.sh`) drives Finder via AppleScript, which can hang in non-interactive environments. Distributing the `.app` directly is the safer path.
 >
-> 署名・公証（notarization）は未対応。macOS では初回起動時に右クリック →「開く」で Gatekeeper をバイパスしてください。
+> The build is ad-hoc code-signed only (no notarization). On first launch on macOS, right-click the app and choose "Open" to bypass Gatekeeper.
 
-## テスト
+## Test
 
 ```bash
-pnpm test:run    # 1 回実行
-pnpm test        # watch モード
+pnpm test:run    # one-shot
+pnpm test        # watch mode
 ```
 
-純ロジック（state machine / 会話履歴 / OpenAI クライアント / ウェイクワード / 設定）は Vitest で単体テスト。VAD / Whisper / TTS / Tauri command を絡める部分は手動検証です。
+Pure logic (state machine, conversation history, OpenAI client wrapper, wake-word detection, settings) is covered by Vitest unit tests. The audio chain (VAD / Whisper / TTS) and Tauri command bridges are verified manually.
 
-## ライセンス
+## License
 
 MIT

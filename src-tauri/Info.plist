@@ -7,6 +7,6 @@
     <key>CFBundleName</key>
     <string>Chappie</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>ウェイクワードと音声入力の検知に使用します</string>
+    <string>Used to detect the wake word and capture your voice for conversation.</string>
 </dict>
 </plist>
