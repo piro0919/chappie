@@ -1,6 +1,6 @@
 [package]
 name = "chappie"
-version = "0.1.4"
+version = "0.1.5"
 description = "Hands-free voice AI assistant"
 authors = ["piro <piro.haniwa@gmail.com>"]
 edition = "2021"
@@ -32,6 +32,7 @@ futures-util = "0.3.32"
 tauri-plugin-single-instance = "2.4.2"
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-updater = "2.10.1"
+tauri-plugin-process = "2"
 
 [features]
 # Enable Metal acceleration on macOS for whisper-rs.
