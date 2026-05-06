@@ -62,11 +62,6 @@ pub(crate) fn run_whisper(audio: Vec<f32>) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn transcribe(audio: Vec<f32>, _language: Option<String>) -> Result<String, String> {
-    run_whisper(audio)
-}
-
-#[tauri::command]
 fn set_tray_state(app: tauri::AppHandle, state: TrayState) -> Result<(), String> {
     apply_tray_state(&app, state).map_err(|e| e.to_string())
 }
@@ -104,7 +99,6 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            transcribe,
             set_tray_state,
             open_settings,
             ensure_model,

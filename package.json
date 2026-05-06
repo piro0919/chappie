@@ -18,7 +18,6 @@
     "release:upload": "pnpm release:generate-latest && gh release upload v$npm_package_version \"src-tauri/target/release/bundle/dmg/Chappie_${npm_package_version}_aarch64.dmg\" \"src-tauri/target/release/bundle/macos/Chappie.app.tar.gz\" \"src-tauri/target/release/bundle/macos/Chappie.app.tar.gz.sig\" latest.json --clobber"
   },
   "dependencies": {
-    "@ricky0123/vad-web": "^0.0.30",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-autostart": "^2.5.1",
     "@tauri-apps/plugin-dialog": "^2.7.1",
