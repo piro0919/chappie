@@ -1,3 +1,4 @@
+mod model;
 mod tray;
 
 use once_cell::sync::OnceCell;
@@ -8,8 +9,7 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 static WHISPER_CTX: OnceCell<Mutex<WhisperContext>> = OnceCell::new();
 
 fn model_path() -> std::path::PathBuf {
-    let home = std::env::var("HOME").expect("HOME unset");
-    std::path::PathBuf::from(home).join(".chappie/models/ggml-base.bin")
+    model::model_path()
 }
 
 fn get_ctx() -> Result<&'static Mutex<WhisperContext>, String> {
@@ -71,6 +71,13 @@ fn open_settings(app: tauri::AppHandle) -> Result<(), String> {
     open_settings_window(&app).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn ensure_model(app: tauri::AppHandle) -> Result<String, String> {
+    model::ensure_model(app)
+        .await
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -79,7 +86,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             transcribe,
             set_tray_state,
-            open_settings
+            open_settings,
+            ensure_model
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

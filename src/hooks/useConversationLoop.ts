@@ -180,11 +180,35 @@ export function useConversationLoop(): { state: State; error: string | null } {
   // biome-ignore lint/correctness/useExhaustiveDependencies: init runs once; handlers read refs
   useEffect(() => {
     let cancelled = false;
+    let progressOff: (() => void) | undefined;
     void (async () => {
       try {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
         voiceURIRef.current = s.voiceURI;
+
+        // Show download progress in tray while model is fetched.
+        void invoke("set_tray_state", { state: "thinking" }).catch(() => {});
+        progressOff = await listen<{ received: number; total: number }>(
+          "model:progress",
+          (e) => {
+            const pct = e.payload.total
+              ? Math.floor((e.payload.received / e.payload.total) * 100)
+              : 0;
+            setError(`Whisper モデルを取得中… ${pct}%`);
+          },
+        );
+        try {
+          await invoke<string>("ensure_model");
+        } catch (e) {
+          setError(`モデル取得に失敗: ${String(e)}`);
+          void invoke("set_tray_state", { state: "error" }).catch(() => {});
+          return;
+        } finally {
+          progressOff?.();
+          progressOff = undefined;
+        }
+        setError(null);
 
         const vad = await MicVAD.new({
           baseAssetPath: "/",
@@ -207,6 +231,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     })();
     return () => {
       cancelled = true;
+      progressOff?.();
       clearFollowupTimer();
       vadRef.current?.destroy();
     };
