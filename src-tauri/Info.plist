@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>io.kkweb.chappie</string>
+    <key>CFBundleName</key>
+    <string>Chappie</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>ウェイクワードと音声入力の検知に使用します</string>
+</dict>
+</plist>

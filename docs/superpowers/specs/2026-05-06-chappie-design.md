@@ -41,12 +41,19 @@
 
 | 役割 | 採用技術 | 備考 |
 |---|---|---|
-| ランタイム | Electron | Tauriから変更。WKWebViewが`SpeechRecognition`未実装のため、Mac/Win両対応にはChromium同梱が必要 |
-| UI | React + TypeScript | |
-| ウェイクワード検出 | `use-ear`（自作npmパッケージ） | Web Speech APIベース |
-| STT（発話のテキスト化） | Web Speech API `SpeechRecognition` | Chromium版は実装上Googleサーバへ音声送信される。MVPでは許容 |
+| ランタイム | Tauri 2 | Electron から再ピボット。Rust バックエンド + WebView UI。バイナリサイズ・常駐メモリで Electron に対し優位。`tauri-plugin-store` で設定永続化、Tauri 2 標準のトレイ API でメニューバー常駐 |
+| UI | React + TypeScript（Vite） | renderer 側。Tauri の WebView 上で動作 |
+| 音声区切り検出（VAD） | `@ricky0123/vad-web` | レンダラ常駐の軽量 VAD。発話開始／終了を検知し、PCM を IPC で Rust 側へ渡す |
+| STT | `whisper-rs`（Rust側、Metal 加速） | Whisper.cpp の Rust バインディング。モデルは `~/.chappie/models/ggml-{tiny,base}.bin` に配置。MVP は **base** を採用（PoC は tiny で検証済）。VAD で切り出した音声を Tauri command 経由で Rust に渡し、文字列を返す |
+| ウェイクワード判定 | 文字列マッチ（renderer 側） | Whisper 結果に `chappie` / `チャッピー` が含まれるかを正規化後に部分一致で判定。検出時はウェイクワード以降を本文として抽出 |
 | AI | OpenAI API | MVPはOpenAIに固定。利用モデルはコード内デフォルト値とし、設定UIでの切替は持たない |
-| TTS（読み上げ） | Web Speech API `SpeechSynthesis` | OS標準ボイスを利用、追加コストなし |
+| TTS（読み上げ） | Web Speech API `SpeechSynthesis` | OS標準ボイスを利用。Tauri の WebView でも動作することを PoC で確認済 |
+| 設定永続化 | `tauri-plugin-store` | OpenAI APIキー・選択ボイス等を JSON で保存 |
+
+**重要：採用しない技術**
+- `@xenova/transformers` の Whisper（旧案）: WebGPU/WASM 経由はレンダラ占有が大きく、Mac の Metal を素直に活かせないため `whisper-rs` で Rust 側に寄せた。
+- Web Speech API の `SpeechRecognition`: ネット必須・Chromium 実装依存・プライバシー懸念のため不採用。
+- 自作 npm の `use-ear`: 上と同根で不採用。
 
 ## 6. 対応プラットフォーム
 
@@ -58,38 +65,61 @@
 
 ```
 [待機]
-   use-ear が SpeechRecognition でウェイクワードを待ち受け
+   VAD（レンダラ）が常時マイクを監視（軽量、CPU 1〜2%）
+   whisper-rs（Rust側）はアプリ起動時にモデルをロード済（Metal 加速）
    トレイアイコン: 待機色
-        ↓ 検知
-   use-ear の SpeechRecognition を停止
+        ↓ VAD: 発話開始検知 → PCM バッファ録音開始
+        ↓ VAD: 発話終了検知 → 録音停止、Float32Array を Tauri command 経由で Rust 側へ送信
+   Rust 側で whisper-rs が文字起こし、結果文字列をレンダラへ返す
         ↓
-[聞いてる]
-   本命発話取得用に SpeechRecognition を起動して発話取得
+   レンダラ側で正規化し、ウェイクワード（"chappie" or "チャッピー"、大小無視）が
+   含まれるか判定
+     NO  → そのまま [待機] へ（無音でフェイルバック）
+     YES → ウェイクワード以降の本文を抽出
+        ↓ 本文が空（"chappie" だけで終わった）場合
+   [聞いてる]
    トレイアイコン: 聞いてる色
-        ↓ 終話判定 / 本命用 SpeechRecognition を停止
+   次の発話を同じ経路（VAD → Rust whisper-rs）でもう一度取り込み、本文とする
+        ↓ 6 秒以内に発話が来なければタイムアウトで [待機]
 [考えてる]
-   発話テキストをクラウドAIへ送信（直近の会話履歴を併送）
+   抽出した本文を OpenAI API へ送信（直近の会話履歴を併送）
    トレイアイコン: 考えてる色
         ↓ 返答受信
 [喋ってる]
    SpeechSynthesis で読み上げ
    トレイアイコン: 喋ってる色
         ↓ 読み上げ完了
-   use-ear の SpeechRecognition を再起動して [待機] へ戻る
+   [待機] へ戻る（VAD は流れの間ずっと動かしっぱなしで OK）
 ```
 
-**SpeechRecognition の運用方針**: Web Speech API の `SpeechRecognition` は同時に複数インスタンスを安定運用できないため、「ウェイクワード待ち用」と「本命発話取得用」を**直列に切り替える**。各遷移時に明示的に stop / start を行う。
+**VAD と Whisper の運用方針**：
+- VAD は常時稼働（レンダラ）。whisper-rs のモデルは Rust 側で起動時に一度だけロードし、`Mutex<WhisperContext>` で保持。推論はオンデマンドで Tauri command 経由。
+- レンダラ ⇄ Rust の IPC は VAD で発話が確定するごとに 1 回。PCM は f32 配列でシリアライズして渡す。
+- 「`chappie` 〇〇」と一息で言われた場合は 1 回の Whisper 呼び出しで完結（推奨フロー）。
+- 「`chappie`」だけ言って一拍置く使い方も許容するため、本文が空のときは次の発話を本文として取り込む補助フローを用意する。
+- モデルファイルは `~/.chappie/models/ggml-{tiny,base}.bin` に配置。PoC では tiny を手動配置で検証済。MVP では base を採用し、初回起動時に自動ダウンロード（後述タスク参照）。
+
+**ウェイクワード判定**：
+- 採用文字列: `"chappie"` または `"チャッピー"`（前者は英語発音、後者は日本語）
+- 小文字化して部分一致で判定。誤発火を抑えるため、判定後の本文抽出は **ウェイクワード以降の文字列**のみを対象にする。
 
 **会話履歴の保持**: アプリ起動中はメモリ上に会話履歴を保持し、毎リクエスト時にAPIへ併送する。アプリ終了でリセット。履歴のトークン量がモデル上限に近づいた場合の扱い（古いターンの切り捨て等）は実装時に決める。
 
 ## 8. UI構成
 
-- **トレイアイコンのみ**（メインウィンドウは持たない）
-- アイコンの状態表現：待機 / 聞いてる / 考えてる / 喋ってる の4状態を色または形で区別
-- **設定画面**（トレイメニューから開く独立ウィンドウ）
+- **トレイアイコンのみ**（メインウィンドウは常時表示しない）
+  - Tauri 2 標準の TrayIcon API で実装
+  - 状態: 待機 / 聞いてる / 考えてる / 喋ってる / エラー
+  - macOS はメニューバー、Windows はタスクトレイに常駐
+  - アイコン画像を状態ごとに用意し、Rust 側の状態遷移イベントで切替
+- **トレイメニュー**
+  - 「設定を開く」: 設定ウィンドウを表示
+  - 「終了」
+- **設定ウィンドウ**（独立ウィンドウ、必要時のみ表示）
   - OpenAI APIキー入力
-  - 読み上げ音声の選択（OSで利用可能な音声から選ぶ）
-- ウェイクワード名はMVPでは**コード内固定の単一名**。設定UIでは変更不可。
+  - 読み上げ音声の選択（`SpeechSynthesis.getVoices()` の中から選択、保存）
+  - 永続化は `tauri-plugin-store`（macOS: `~/Library/Application Support/chappie/settings.json` 等）
+- ウェイクワード名は MVP では**コード内固定**（`"chappie"` / `"チャッピー"`）。設定UIでは変更不可。
 
 ## 9. エラー時の振る舞い
 
@@ -99,14 +129,17 @@
 
 ## 10. 設計上の前提・既知のトレードオフ
 
-- **常時マイク稼働**: ウェイクワード待ちの間、マイクは常時オンになる。`SpeechRecognition`の仕様上、Chromiumでは音声がGoogleに送られる。プライバシーに敏感なユーザー向けではないが、MVPではこの構成で出す。後段でローカルウェイクワード検出（Picovoice等）への置き換えを検討する。
+- **常時マイク稼働**: ウェイクワード待ちの間、マイクは常時オンになる。ただし STT は whisper-rs によりローカル完結し、音声データが外部に送信されることはない（OpenAI API へは確定した本文テキストのみを送信）。ウェイクワードを含まない発話は文字起こしのみ行い、テキストはメモリ上で破棄する。
 - **マイクは内蔵想定**: 同じ部屋・数メートル以内の利用に限定する。離れた場所からの利用やスマホ連携は対象外。
 - **同期的な単一会話セッション**: 同時に複数の会話・割り込み・聞き直しは扱わない。1回のウェイク〜読み上げ完了を1ターンとして直列に処理する。
+- **whisper-rs のリソース**: 起動時にモデルをメモリにロード（base で約150MB前後）。Mac は Metal、Windows は CPU で推論する想定。Windows での速度は MVP 後に実機検証して決める。
 
 ## 11. 後続バージョンへの拡張余地（メモ）
 
 - ローカルウェイクワード検出（Picovoice Porcupine / openWakeWord）への置き換え
 - 任意のウェイクワード設定
+- Whisper モデル切替UI（tiny / base / small）と精度・速度のトレードオフ調整
+- Windows での GPU 推論対応（CUDA / Vulkan ビルド）
 - ファイル操作・検索（Tool useベース）
 - メモ／タイマー／リマインダー
 - 他AIプロバイダ対応（Anthropic等）／プロバイダ・モデル選択UI

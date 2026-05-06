@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{ts,tsx,js,json}"
+      exclude:
+        - "src-tauri/**"
+        - "public/**"
+      run: pnpm biome check --write {staged_files}
+      stage_fixed: true
+    secretlint:
+      glob: "*"
+      run: pnpm secretlint {staged_files}
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm commitlint --edit {1}
