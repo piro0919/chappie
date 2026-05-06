@@ -1,6 +1,6 @@
 [package]
 name = "chappie"
-version = "0.1.7"
+version = "0.1.8"
 description = "Hands-free voice AI assistant"
 authors = ["piro <piro.haniwa@gmail.com>"]
 edition = "2021"
