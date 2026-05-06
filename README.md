@@ -58,11 +58,13 @@ bash scripts/fetch-model.sh
 pnpm tauri build
 ```
 
-成果物は `src-tauri/target/release/bundle/` 以下に生成されます：
-- macOS: `dmg/Chappie_<version>_*.dmg` と `macos/Chappie.app`
-- Windows: `nsis/Chappie_<version>_*-setup.exe`
+成果物：
+- macOS: `src-tauri/target/release/bundle/macos/Chappie.app`（配布は zip 圧縮で）
+- Windows: `src-tauri/target/release/bundle/nsis/Chappie_<version>_*-setup.exe`
 
-> 署名・公証（notarization）は未対応のため、macOS では初回起動時に右クリック →「開く」で Gatekeeper をバイパスしてください。
+> macOS の DMG バンドラ (`bundle_dmg.sh`) は AppleScript で Finder ウィンドウを操作するため CI 等の非対話環境ではハングする。MVP では `.app` 直接配布を推奨。
+>
+> 署名・公証（notarization）は未対応。macOS では初回起動時に右クリック →「開く」で Gatekeeper をバイパスしてください。
 
 ## テスト
 
