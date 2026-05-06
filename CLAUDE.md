@@ -47,14 +47,37 @@
 
 ## Build & Distribute
 
+### 開発
+
 ```bash
 pnpm install
 bash scripts/fetch-model.sh     # 初回のみ Whisper base モデル取得（150MB）
-pnpm tauri dev                   # 開発
-pnpm tauri build                 # .app + (時々ハングする) DMG
+pnpm tauri dev
 ```
 
-成果物: `src-tauri/target/release/bundle/macos/Chappie.app`（配布は zip 圧縮で）。署名・公証は未対応。
+### リリースビルド（重要：環境変数必須）
+
+```bash
+TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/chappie.key)" \
+TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
+APPLE_SIGNING_IDENTITY="-" \
+pnpm tauri build
+```
+
+- `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD`: updater 用 minisign 署名（無いと自動更新が壊れる）
+- `APPLE_SIGNING_IDENTITY="-"`: ad-hoc コード署名。**これを忘れると配布後 macOS で「壊れている」エラーになる**
+
+成果物:
+- `src-tauri/target/release/bundle/macos/Chappie.app`
+- `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz`（updater 配信用）
+- `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz.sig`（minisign 署名）
+
+### リリース（GitHub Release 公開 + updater エンドポイント更新）
+
+1. `package.json` と `src-tauri/tauri.conf.json` のバージョンを更新
+2. 上記の環境変数付きで `pnpm tauri build`
+3. `pnpm release` — GitHub Release 作成 + .app.tar.gz / .sig / latest.json をアップロード
+4. updater エンドポイント `https://github.com/piro0919/chappie-desktop/releases/latest/download/latest.json` が次回起動時に新バージョンを案内する
 
 ## Spec & Plan
 

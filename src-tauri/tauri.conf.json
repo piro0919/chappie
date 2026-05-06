@@ -27,6 +27,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "category": "Productivity",
     "shortDescription": "ハンズフリー音声AIアシスタント",
     "longDescription": "ウェイクワード「チャッピー」で起動し、声だけで会話できるトレイ常駐型のデスクトップAIアシスタント。",
@@ -41,6 +42,14 @@
       "entitlements": null,
       "infoPlist": "Info.plist",
       "minimumSystemVersion": "11.0"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUzQkI1QzQ4MzlFRjM1NDkKUldSSk5lODVTRnk3VTBwMlh4TU83Z3VLOVFhblRncWJLOEVPRG1jUjhrbnd0UHEwdnpaWHdUeFgK",
+      "endpoints": [
+        "https://github.com/piro0919/chappie-desktop/releases/latest/download/latest.json"
+      ]
     }
   }
 }
