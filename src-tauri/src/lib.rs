@@ -81,6 +81,14 @@ async fn ensure_model(app: tauri::AppHandle) -> Result<String, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // If a second instance launches, focus the existing settings window
+            // (or just no-op for the hidden conversation worker).
+            use tauri::Manager;
+            if let Some(win) = app.get_webview_window("settings") {
+                let _ = win.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(tauri::generate_handler![

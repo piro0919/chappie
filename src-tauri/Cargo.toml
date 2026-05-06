@@ -29,6 +29,7 @@ reqwest = { version = "0.13", default-features = false, features = ["rustls", "s
 tokio = { version = "1.52.2", features = ["rt-multi-thread", "macros", "fs", "io-util"] }
 dirs = "6.0.0"
 futures-util = "0.3.32"
+tauri-plugin-single-instance = "2.4.2"
 
 [features]
 # Enable Metal acceleration on macOS for whisper-rs.
