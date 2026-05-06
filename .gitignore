@@ -29,3 +29,6 @@ src-tauri/target/
 
 # Whisper model cache (downloaded at runtime per-user, not in repo anyway)
 .chappie/
+
+# Claude Code local state (user-specific, not project source)
+.claude/
