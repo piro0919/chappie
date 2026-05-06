@@ -1,12 +1,32 @@
 import { getVersion } from "@tauri-apps/api/app";
+import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import {
   disable as disableAutostart,
   enable as enableAutostart,
   isEnabled as isAutostartEnabled,
 } from "@tauri-apps/plugin-autostart";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 import { loadSettings, type Settings, saveSettings } from "../lib/settings";
+
+type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
+
+const MIC_PRIVACY_URL =
+  "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
+
+function micStatusMeta(status: MicStatus): { label: string; color: string } {
+  switch (status) {
+    case "granted":
+      return { label: "許可済み", color: "#10b981" };
+    case "denied":
+      return { label: "拒否されています", color: "#ef4444" };
+    case "restricted":
+      return { label: "システムにより制限", color: "#ef4444" };
+    default:
+      return { label: "未設定", color: "#6b7280" };
+  }
+}
 
 export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
@@ -16,13 +36,34 @@ export function SettingsView() {
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [version, setVersion] = useState("");
+  const [micStatus, setMicStatus] = useState<MicStatus>("not_determined");
+  const [requestingMic, setRequestingMic] = useState(false);
 
+  async function refreshMicStatus() {
+    try {
+      const status = await invoke<MicStatus>("check_microphone_permission");
+      setMicStatus(status);
+    } catch {}
+  }
+
+  async function requestMic() {
+    setRequestingMic(true);
+    try {
+      await invoke<boolean>("request_microphone_access").catch(() => false);
+      await refreshMicStatus();
+    } finally {
+      setRequestingMic(false);
+    }
+  }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: init runs once
   useEffect(() => {
     void (async () => {
       const s: Settings = await loadSettings();
       setApiKey(s.openaiApiKey);
       setVoiceURI(s.voiceURI);
       setAutostart(await isAutostartEnabled());
+      await refreshMicStatus();
       setLoaded(true);
     })();
     getVersion()
@@ -51,6 +92,67 @@ export function SettingsView() {
   return (
     <main style={{ padding: 16, fontFamily: "system-ui, sans-serif" }}>
       <h1 style={{ fontSize: 18, margin: 0 }}>Chappie 設定</h1>
+
+      <section
+        style={{
+          marginTop: 16,
+          padding: 12,
+          border: "1px solid #e5e5ea",
+          borderRadius: 6,
+          background: "#fafafa",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 13 }}>マイクアクセス</span>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: micStatusMeta(micStatus).color,
+            }}
+          >
+            {micStatusMeta(micStatus).label}
+          </span>
+        </div>
+        {micStatus !== "granted" && (
+          <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
+            {micStatus === "not_determined" && (
+              <button
+                type="button"
+                onClick={requestMic}
+                disabled={requestingMic}
+              >
+                {requestingMic ? "リクエスト中…" : "マイクを許可する"}
+              </button>
+            )}
+            {(micStatus === "denied" || micStatus === "restricted") && (
+              <button
+                type="button"
+                onClick={() => {
+                  void openUrl(MIC_PRIVACY_URL).catch(() => {});
+                }}
+              >
+                システム設定を開く
+              </button>
+            )}
+            <button type="button" onClick={refreshMicStatus}>
+              再確認
+            </button>
+          </div>
+        )}
+        {micStatus === "denied" && (
+          <p style={{ fontSize: 11, color: "#666", margin: "8px 0 0" }}>
+            一度拒否すると、システム設定からのみ再有効化できます。
+          </p>
+        )}
+      </section>
 
       <label style={{ display: "block", marginTop: 16 }}>
         OpenAI API キー
