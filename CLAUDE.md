@@ -77,7 +77,7 @@ pnpm tauri build
 1. `package.json` と `src-tauri/tauri.conf.json` のバージョンを更新
 2. 上記の環境変数付きで `pnpm tauri build`
 3. `pnpm release` — GitHub Release 作成 + .app.tar.gz / .sig / latest.json をアップロード
-4. updater エンドポイント `https://github.com/piro0919/chappie-desktop/releases/latest/download/latest.json` が次回起動時に新バージョンを案内する
+4. updater エンドポイント `https://github.com/piro0919/chappie/releases/latest/download/latest.json` が次回起動時に新バージョンを案内する
 
 ## Spec & Plan
 
