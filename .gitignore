@@ -32,3 +32,11 @@ src-tauri/target/
 
 # Claude Code local state (user-specific, not project source)
 .claude/
+
+# Next.js (lp/)
+lp/.next/
+lp/out/
+lp/next-env.d.ts
+lp/tsconfig.tsbuildinfo
+lp/public/sitemap*.xml
+lp/public/robots.txt

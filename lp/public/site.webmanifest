@@ -1,0 +1,13 @@
+{
+  "name": "Chappie",
+  "short_name": "Chappie",
+  "description": "ハンズフリーで話しかける、Mac の menubar 常駐型 AI アシスタント。",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#fffaf3",
+  "background_color": "#fffaf3",
+  "display": "standalone",
+  "start_url": "/"
+}

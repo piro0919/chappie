@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Warm cream + pastel palette tuned to Chappie's character */
+  --color-cream-50: #fffaf3;
+  --color-cream-100: #fdf3e3;
+  --color-cream-200: #f7e6c9;
+  --color-cream-300: #ead6b1;
+
+  --color-cocoa-700: #4a3826;
+  --color-cocoa-600: #6b4f37;
+  --color-cocoa-500: #8a6a4d;
+  --color-cocoa-400: #a98966;
+  --color-cocoa-300: #cdb295;
+
+  --color-blush-400: #f3a5a5;
+  --color-blush-300: #f6c0c0;
+  --color-blush-200: #fbdcdc;
+
+  --color-mint-400: #9bd6c0;
+  --color-mint-300: #b8e2d1;
+
+  --color-card: #ffffff;
+  --color-bg: var(--color-cream-50);
+  --color-ink: var(--color-cocoa-700);
+  --color-ink-muted: var(--color-cocoa-500);
+
+  --font-sans:
+    "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-blush-400) 35%, transparent);
+}
+
+/* Soft polka dot background — sits under hero/feature sections */
+.bg-dots {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--color-cocoa-300) 40%, transparent) 1.5px,
+    transparent 0
+  );
+  background-size: 22px 22px;
+}
+
+/* Subtle floating animation for the hero mascot */
+@keyframes chappie-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: chappie-float 5s ease-in-out infinite;
+}

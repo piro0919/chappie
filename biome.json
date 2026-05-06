@@ -9,8 +9,10 @@
     "ignoreUnknown": false,
     "includes": [
       "src/**",
+      "lp/**",
       "*.{ts,tsx,js,json,jsonc}",
-      "!node_modules",
+      "!**/node_modules",
+      "!**/.next",
       "!dist",
       "!src-tauri/target",
       "!src-tauri/gen",
