@@ -44,7 +44,13 @@ const PREROLL_FRAMES: usize = 5;
 // hallucinating phrases like "ご視聴ありがとうございました" on near-silence.
 const MIN_RMS_ENERGY: f32 = 0.003;
 
-static RUNNING: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
+// Replaceable handle to the current capture thread's "keep running" flag.
+// Re-assigned every time start_listening kicks off a new capture run, so
+// stop_listening always points the new thread (not a leftover Arc from a
+// prior session) at false.
+static RUNNING: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
+// Transient mute, flipped on/off by the conversation loop while TTS is
+// playing so we don't transcribe Chappie's own voice.
 static MUTED: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
 static STARTED: Mutex<bool> = Mutex::new(false);
 
@@ -52,6 +58,14 @@ fn muted_flag() -> Arc<AtomicBool> {
     MUTED
         .get_or_init(|| Arc::new(AtomicBool::new(false)))
         .clone()
+}
+
+pub fn is_effectively_muted() -> bool {
+    muted_flag().load(Ordering::SeqCst)
+}
+
+pub fn is_listening() -> bool {
+    *STARTED.lock().unwrap()
 }
 
 #[tauri::command]
@@ -76,7 +90,7 @@ pub async fn start_listening(app: tauri::AppHandle) -> Result<(), String> {
         *started = true;
     }
     let running = Arc::new(AtomicBool::new(true));
-    let _ = RUNNING.set(running.clone());
+    *RUNNING.lock().unwrap() = Some(running.clone());
 
     let (ready_tx, ready_rx) = std::sync::mpsc::channel::<Result<(), String>>();
     std::thread::spawn(move || {
@@ -91,7 +105,7 @@ pub async fn start_listening(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn stop_listening() -> Result<(), String> {
-    if let Some(r) = RUNNING.get() {
+    if let Some(r) = RUNNING.lock().unwrap().take() {
         r.store(false, Ordering::SeqCst);
     }
     *STARTED.lock().unwrap() = false;
@@ -168,7 +182,7 @@ fn run_capture(
     }
     let _ = ready_tx.send(Ok(()));
 
-    run_segmenter(in_rate, rx, running, muted_flag(), app)?;
+    run_segmenter(in_rate, rx, running, app)?;
     drop(stream);
     Ok(())
 }
@@ -210,7 +224,6 @@ fn run_segmenter(
     in_rate: u32,
     rx: std::sync::mpsc::Receiver<Vec<f32>>,
     running: Arc<AtomicBool>,
-    muted: Arc<AtomicBool>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     let needs_resample = in_rate != TARGET_RATE;
@@ -238,7 +251,7 @@ fn run_segmenter(
         "audio",
         "segmenter started: in_rate={in_rate} resample={} muted={}",
         needs_resample,
-        muted.load(Ordering::SeqCst)
+        is_effectively_muted()
     );
 
     let mut accum_in: Vec<f32> = Vec::new();
@@ -264,14 +277,15 @@ fn run_segmenter(
                 &app,
                 "audio",
                 "heartbeat: chunks={chunks_seen} muted={} in_speech={in_speech}",
-                muted.load(Ordering::SeqCst)
+                is_effectively_muted()
             );
             last_log = std::time::Instant::now();
         }
 
-        // While muted (e.g. TTS playing), drop captured audio and reset
-        // segmentation state so we never hand self-speech to Whisper.
-        if muted.load(Ordering::SeqCst) {
+        // While muted (e.g. TTS playing or user toggled off from tray),
+        // drop captured audio and reset segmentation state so we never
+        // hand self-speech (or anything else) to Whisper.
+        if is_effectively_muted() {
             accum_in.clear();
             accum_out.clear();
             preroll.clear();
