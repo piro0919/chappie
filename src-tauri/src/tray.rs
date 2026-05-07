@@ -62,6 +62,10 @@ pub fn init_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
                 }
             }
             "quit" => {
+                // Stop cpal cleanly so Core Audio releases the input device
+                // before the process exits. Without this the tray exit can
+                // leave the mic indicator stuck briefly on macOS.
+                let _ = crate::audio::stop_listening();
                 app.exit(0);
             }
             _ => {}

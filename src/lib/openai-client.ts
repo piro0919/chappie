@@ -1,18 +1,27 @@
-import type OpenAI from "openai";
+import { invoke } from "@tauri-apps/api/core";
 import type { Message } from "./conversation-history";
 
 export type ChatClient = {
   complete: (messages: Message[]) => Promise<string>;
 };
 
+export type Invoker = <T>(
+  cmd: string,
+  args: Record<string, unknown>,
+) => Promise<T>;
+
 export function createChatClient(
-  openai: Pick<OpenAI, "chat">,
+  apiKey: string,
   model: string,
+  invoker: Invoker = invoke,
 ): ChatClient {
   return {
     async complete(messages) {
-      const res = await openai.chat.completions.create({ model, messages });
-      const reply = res.choices[0]?.message?.content;
+      const reply = await invoker<string>("chat_complete", {
+        apiKey,
+        model,
+        messages,
+      });
       if (!reply) throw new Error("OpenAI returned no content");
       return reply;
     },

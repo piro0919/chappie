@@ -15,6 +15,13 @@ type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
 const MIC_PRIVACY_URL =
   "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
 
+const MODEL_OPTIONS = [
+  { value: "gpt-4o-mini", label: "gpt-4o-mini（高速・低コスト）" },
+  { value: "gpt-4o", label: "gpt-4o（高品質）" },
+  { value: "gpt-4.1-mini", label: "gpt-4.1-mini" },
+  { value: "gpt-4.1", label: "gpt-4.1" },
+];
+
 function micStatusMeta(status: MicStatus): { label: string; color: string } {
   switch (status) {
     case "granted":
@@ -31,6 +38,7 @@ function micStatusMeta(status: MicStatus): { label: string; color: string } {
 export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
   const [voiceURI, setVoiceURI] = useState<string | null>(null);
+  const [model, setModel] = useState("gpt-4o-mini");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [autostart, setAutostart] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -62,6 +70,7 @@ export function SettingsView() {
       const s: Settings = await loadSettings();
       setApiKey(s.openaiApiKey);
       setVoiceURI(s.voiceURI);
+      setModel(s.model);
       setAutostart(await isAutostartEnabled());
       await refreshMicStatus();
       setLoaded(true);
@@ -77,7 +86,7 @@ export function SettingsView() {
   }, []);
 
   const onSave = async () => {
-    await saveSettings({ openaiApiKey: apiKey, voiceURI });
+    await saveSettings({ openaiApiKey: apiKey, voiceURI, model });
     if (autostart) await enableAutostart();
     else await disableAutostart();
     await emit("settings:updated");
@@ -164,6 +173,21 @@ export function SettingsView() {
           spellCheck={false}
           style={{ display: "block", width: "100%", marginTop: 4, padding: 6 }}
         />
+      </label>
+
+      <label style={{ display: "block", marginTop: 16 }}>
+        モデル
+        <select
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          style={{ display: "block", width: "100%", marginTop: 4, padding: 6 }}
+        >
+          {MODEL_OPTIONS.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
+          ))}
+        </select>
       </label>
 
       <label style={{ display: "block", marginTop: 16 }}>

@@ -1,6 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import OpenAI from "openai";
 import { useEffect, useRef, useState } from "react";
 import {
   addAssistant,
@@ -9,7 +8,7 @@ import {
   type History,
   messagesForRequest,
 } from "../lib/conversation-history";
-import { createChatClient } from "../lib/openai-client";
+import { type ChatClient, createChatClient } from "../lib/openai-client";
 import { loadSettings } from "../lib/settings";
 import { speak } from "../lib/speech-synthesis";
 import {
@@ -21,18 +20,34 @@ import {
 } from "../lib/state-machine";
 import { detectWake } from "../lib/wake-word";
 
-const MODEL = "gpt-4o-mini";
+const DEFAULT_MODEL = "gpt-4o-mini";
 const SYSTEM_PROMPT =
-  "You are Chappie, a friendly hands-free voice assistant. Keep replies short and conversational because they will be read aloud.";
+  "あなたはチャッピー、ハンズフリー音声アシスタントです。返答は読み上げられるので、短く自然な会話調の日本語で答えてください。";
 const FOLLOWUP_TIMEOUT_MS = 6000;
+// After Chappie finishes speaking, accept follow-up without requiring a fresh
+// "チャッピー" wake-word for this window. Lets a multi-turn conversation flow.
+const CONTINUE_WINDOW_MS = 6000;
+// Time the tray "error" state stays visible before auto-recovering.
+const ERROR_DISPLAY_MS = 1800;
+// Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
+// room for speaker reverb and ensures Chappie doesn't re-trigger on its tail.
+const POST_TTS_COOLDOWN_MS = 350;
 
 // Common Whisper Japanese hallucinations on silence/noise. Drop these utterances
 // instead of letting them flow to wake-word detection.
 const HALLUCINATION_PATTERNS = [
-  /^ご視聴ありがとうございました/,
+  /^ご(視聴|清聴)(いただき)?ありがとうございました/,
+  /^ご視聴ありがとうございます/,
   /^チャンネル登録/,
-  /^字幕by/i,
-  /^Thank you for watching/i,
+  /^字幕\s*by/i,
+  /^Thank(s| you)( so much)? for watching/i,
+  /^Subscribe/i,
+  /^おやすみなさい[。!]?$/,
+  /^ありがとうございました[。!]?$/,
+  /^見てくださってありがとうございました/,
+  /^お疲れ様でした[。!]?$/,
+  /^バイバイ[。!]?$/,
+  /^んー[。!]?$/,
 ];
 
 function isHallucination(text: string): boolean {
@@ -47,10 +62,38 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const machineRef = useRef<Machine>(createMachine());
   const historyRef = useRef<History>(createHistory(SYSTEM_PROMPT));
   const apiKeyRef = useRef<string>("");
+  const modelRef = useRef<string>(DEFAULT_MODEL);
+  const chatClientRef = useRef<ChatClient | null>(null);
   const voiceURIRef = useRef<string | null>(null);
   const awaitingBodyRef = useRef(false);
   const followupTimerRef = useRef<number | null>(null);
   const ttsActiveRef = useRef(false);
+  const errorRecoveryTimerRef = useRef<number | null>(null);
+
+  async function withMutedCapture<T>(fn: () => Promise<T>): Promise<T> {
+    ttsActiveRef.current = true;
+    await invoke("pause_listening").catch(() => {});
+    try {
+      return await fn();
+    } finally {
+      // Wait out speaker reverb before re-enabling capture so we don't
+      // re-trigger on the tail of our own TTS.
+      await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
+      await invoke("resume_listening").catch(() => {});
+      ttsActiveRef.current = false;
+    }
+  }
+
+  function scheduleErrorRecovery(message: string) {
+    dispatch({ type: "responseFailed", message });
+    if (errorRecoveryTimerRef.current !== null) {
+      clearTimeout(errorRecoveryTimerRef.current);
+    }
+    errorRecoveryTimerRef.current = window.setTimeout(() => {
+      errorRecoveryTimerRef.current = null;
+      dispatch({ type: "errorAcknowledged" });
+    }, ERROR_DISPLAY_MS);
+  }
 
   function dispatch(event: MachineEvent) {
     const next = transition(machineRef.current, event);
@@ -68,57 +111,58 @@ export function useConversationLoop(): { state: State; error: string | null } {
   }
 
   async function runTurn(userText: string) {
-    try {
-      if (!apiKeyRef.current) {
-        try {
-          ttsActiveRef.current = true;
-          await speak(
+    if (!apiKeyRef.current || !chatClientRef.current) {
+      try {
+        await withMutedCapture(() =>
+          speak(
             "OpenAI APIキーが未設定です。設定画面から登録してください。",
             voiceURIRef.current,
-          );
-        } catch {}
-        ttsActiveRef.current = false;
-        dispatch({ type: "responseFailed", message: "no api key" });
-        dispatch({ type: "errorAcknowledged" });
-        return;
-      }
-
-      historyRef.current = addUser(historyRef.current, userText);
-
-      let reply: string;
-      try {
-        const openai = new OpenAI({
-          apiKey: apiKeyRef.current,
-          dangerouslyAllowBrowser: true,
-        });
-        const client = createChatClient(openai, MODEL);
-        reply = await client.complete(messagesForRequest(historyRef.current));
-      } catch (e) {
-        console.error("openai failed", e);
-        try {
-          ttsActiveRef.current = true;
-          await speak("うまく繋がりませんでした。", voiceURIRef.current);
-        } catch {}
-        ttsActiveRef.current = false;
-        dispatch({ type: "responseFailed", message: String(e) });
-        dispatch({ type: "errorAcknowledged" });
-        return;
-      }
-
-      historyRef.current = addAssistant(historyRef.current, reply);
-      dispatch({ type: "responseReady", reply });
-
-      try {
-        ttsActiveRef.current = true;
-        await speak(reply, voiceURIRef.current);
-      } catch (e) {
-        console.error("tts failed", e);
-      }
-      ttsActiveRef.current = false;
-      dispatch({ type: "speechDone" });
-    } finally {
-      ttsActiveRef.current = false;
+          ),
+        );
+      } catch {}
+      scheduleErrorRecovery("no api key");
+      return;
     }
+
+    historyRef.current = addUser(historyRef.current, userText);
+
+    let reply: string;
+    try {
+      reply = await chatClientRef.current.complete(
+        messagesForRequest(historyRef.current),
+      );
+    } catch (e) {
+      console.error("openai failed", e);
+      try {
+        await withMutedCapture(() =>
+          speak("うまく繋がりませんでした。", voiceURIRef.current),
+        );
+      } catch {}
+      scheduleErrorRecovery(String(e));
+      return;
+    }
+
+    historyRef.current = addAssistant(historyRef.current, reply);
+    dispatch({ type: "responseReady", reply });
+
+    try {
+      await withMutedCapture(() => speak(reply, voiceURIRef.current));
+    } catch (e) {
+      console.error("tts failed", e);
+    }
+    dispatch({ type: "speechDone" });
+    startContinuationWindow();
+  }
+
+  function startContinuationWindow() {
+    clearFollowupTimer();
+    dispatch({ type: "wakeDetected" });
+    awaitingBodyRef.current = true;
+    followupTimerRef.current = window.setTimeout(() => {
+      awaitingBodyRef.current = false;
+      followupTimerRef.current = null;
+      dispatch({ type: "speechTimeout" });
+    }, CONTINUE_WINDOW_MS);
   }
 
   async function handleSpeech(text: string) {
@@ -175,6 +219,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
         voiceURIRef.current = s.voiceURI;
+        modelRef.current = s.model || DEFAULT_MODEL;
+        chatClientRef.current = s.openaiApiKey
+          ? createChatClient(s.openaiApiKey, modelRef.current)
+          : null;
 
         void invoke("set_tray_state", { state: "initializing" }).catch(
           () => {},
@@ -236,6 +284,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
       progressOff?.();
       speechOff?.();
       clearFollowupTimer();
+      if (errorRecoveryTimerRef.current !== null) {
+        clearTimeout(errorRecoveryTimerRef.current);
+        errorRecoveryTimerRef.current = null;
+      }
       void invoke("stop_listening").catch(() => {});
     };
   }, []);
@@ -247,6 +299,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
         voiceURIRef.current = s.voiceURI;
+        modelRef.current = s.model || DEFAULT_MODEL;
+        chatClientRef.current = s.openaiApiKey
+          ? createChatClient(s.openaiApiKey, modelRef.current)
+          : null;
       });
     })();
     return () => {

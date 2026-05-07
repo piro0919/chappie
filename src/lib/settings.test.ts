@@ -23,15 +23,21 @@ describe("settings", () => {
   });
 
   it("returns defaults when store is empty", async () => {
-    expect(await loadSettings()).toEqual({ openaiApiKey: "", voiceURI: null });
+    expect(await loadSettings()).toEqual({
+      openaiApiKey: "",
+      voiceURI: null,
+      model: "gpt-4o-mini",
+    });
   });
 
   it("returns persisted values when present", async () => {
     fakeStoreState.set("openaiApiKey", "sk-test");
     fakeStoreState.set("voiceURI", "com.apple.voice.Kyoko");
+    fakeStoreState.set("model", "gpt-4o");
     expect(await loadSettings()).toEqual({
       openaiApiKey: "sk-test",
       voiceURI: "com.apple.voice.Kyoko",
+      model: "gpt-4o",
     });
   });
 
@@ -42,6 +48,7 @@ describe("settings", () => {
     expect(await loadSettings()).toEqual({
       openaiApiKey: "sk-new",
       voiceURI: null,
+      model: "gpt-4o-mini",
     });
   });
 

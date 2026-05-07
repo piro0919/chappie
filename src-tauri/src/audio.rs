@@ -26,13 +26,39 @@ const VAD_THRESHOLD: f32 = 0.5;
 const SILENCE_FRAMES_TO_END: usize = 22;
 // Minimum speech frames before accepting an utterance (~250ms) — filters clicks.
 const MIN_SPEECH_FRAMES: usize = 8;
-// Maximum utterance length cap (~15s).
-const MAX_UTTERANCE_FRAMES: usize = 470;
+// Maximum utterance length cap (~30s). Whisper's own context is ~30s, so going
+// beyond this is pointless; below 30s avoids clipping reasonable spoken queries.
+const MAX_UTTERANCE_FRAMES: usize = 940;
 // Pre-roll frames prepended so we don't clip the start of the utterance.
 const PREROLL_FRAMES: usize = 5;
+// Minimum average VAD probability across voiced frames in a segment.
+// Filters segments that barely cleared VAD_THRESHOLD — the dominant source
+// of Whisper hallucinations on near-silence.
+const MIN_AVG_VOICED_PROB: f32 = 0.65;
+// Minimum peak VAD probability — at least one frame must be confidently voiced.
+const MIN_PEAK_PROB: f32 = 0.85;
 
 static RUNNING: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
+static MUTED: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
 static STARTED: Mutex<bool> = Mutex::new(false);
+
+fn muted_flag() -> Arc<AtomicBool> {
+    MUTED
+        .get_or_init(|| Arc::new(AtomicBool::new(false)))
+        .clone()
+}
+
+#[tauri::command]
+pub fn pause_listening() -> Result<(), String> {
+    muted_flag().store(true, Ordering::SeqCst);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn resume_listening() -> Result<(), String> {
+    muted_flag().store(false, Ordering::SeqCst);
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn start_listening(app: tauri::AppHandle) -> Result<(), String> {
@@ -136,7 +162,7 @@ fn run_capture(
     }
     let _ = ready_tx.send(Ok(()));
 
-    run_segmenter(in_rate, rx, running, app)?;
+    run_segmenter(in_rate, rx, running, muted_flag(), app)?;
     drop(stream);
     Ok(())
 }
@@ -170,6 +196,7 @@ fn run_segmenter(
     in_rate: u32,
     rx: std::sync::mpsc::Receiver<Vec<f32>>,
     running: Arc<AtomicBool>,
+    muted: Arc<AtomicBool>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     let needs_resample = in_rate != TARGET_RATE;
@@ -200,6 +227,8 @@ fn run_segmenter(
     let mut in_speech = false;
     let mut speech_frames = 0usize;
     let mut silence_frames = 0usize;
+    let mut voiced_prob_sum = 0.0f32;
+    let mut max_prob = 0.0f32;
 
     while running.load(Ordering::SeqCst) {
         let chunk = match rx.recv_timeout(std::time::Duration::from_millis(500)) {
@@ -207,6 +236,22 @@ fn run_segmenter(
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
             Err(_) => break,
         };
+
+        // While muted (e.g. TTS playing), drop captured audio and reset
+        // segmentation state so we never hand self-speech to Whisper.
+        if muted.load(Ordering::SeqCst) {
+            accum_in.clear();
+            accum_out.clear();
+            preroll.clear();
+            speech_buf.clear();
+            in_speech = false;
+            speech_frames = 0;
+            silence_frames = 0;
+            voiced_prob_sum = 0.0;
+            max_prob = 0.0;
+            continue;
+        }
+
         accum_in.extend_from_slice(&chunk);
 
         // Resample (or pass-through) to TARGET_RATE in fixed input chunks.
@@ -232,6 +277,8 @@ fn run_segmenter(
                     in_speech = true;
                     speech_frames = 1;
                     silence_frames = 0;
+                    voiced_prob_sum = prob;
+                    max_prob = prob;
                     speech_buf.clear();
                     for f in preroll.iter() {
                         speech_buf.extend_from_slice(f);
@@ -248,6 +295,10 @@ fn run_segmenter(
                 if voiced {
                     speech_frames += 1;
                     silence_frames = 0;
+                    voiced_prob_sum += prob;
+                    if prob > max_prob {
+                        max_prob = prob;
+                    }
                 } else {
                     silence_frames += 1;
                 }
@@ -255,11 +306,23 @@ fn run_segmenter(
                 let too_long = speech_frames + silence_frames >= MAX_UTTERANCE_FRAMES;
                 let ended = silence_frames >= SILENCE_FRAMES_TO_END;
                 if ended || too_long {
-                    let usable = speech_frames >= MIN_SPEECH_FRAMES;
+                    let avg_prob = if speech_frames > 0 {
+                        voiced_prob_sum / speech_frames as f32
+                    } else {
+                        0.0
+                    };
+                    // Drop weak / low-confidence segments before paying for
+                    // Whisper inference. These are the main source of
+                    // hallucinated transcripts on near-silence.
+                    let usable = speech_frames >= MIN_SPEECH_FRAMES
+                        && avg_prob >= MIN_AVG_VOICED_PROB
+                        && max_prob >= MIN_PEAK_PROB;
                     let buf = std::mem::take(&mut speech_buf);
                     in_speech = false;
                     speech_frames = 0;
                     silence_frames = 0;
+                    voiced_prob_sum = 0.0;
+                    max_prob = 0.0;
                     preroll.clear();
                     if usable {
                         let app2 = app.clone();

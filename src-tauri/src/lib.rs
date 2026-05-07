@@ -1,6 +1,7 @@
 mod audio;
 mod mic_permission;
 mod model;
+mod openai;
 mod tray;
 
 use once_cell::sync::OnceCell;
@@ -106,6 +107,9 @@ pub fn run() {
             mic_permission::request_microphone_access,
             audio::start_listening,
             audio::stop_listening,
+            audio::pause_listening,
+            audio::resume_listening,
+            openai::chat_complete,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
