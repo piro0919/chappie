@@ -3,9 +3,9 @@
 
   # Chappie
 
-  **「チャッピー」と呼びかけるだけ。あとは声だけで完結する。**
+  **Just say "chappie" — the rest is voice only.**
 
-  メニューバーに常駐する、ハンズフリー音声 AI アシスタント for macOS
+  A hands-free voice AI assistant for macOS that lives in your menu bar.
 
   🌐 [chappie.kkweb.io](https://chappie.kkweb.io) · 📦 [Latest release](https://github.com/piro0919/chappie/releases/latest) · 🦀 Tauri 2 + Rust + React
 
@@ -19,29 +19,29 @@
 
 ## Highlights
 
-- 🎙 **ホットキーもクリックも不要** — 「チャッピー」と呼ぶだけで起動、会話の流れも記憶
-- 🔒 **音声はあなたの Mac の中だけ** — 文字起こしはローカル Whisper、生音声がクラウドに出ない
-- 🍎 **メニューバー常駐 / Dock を汚さない** — 必要な時だけ顔を出すアクセサリ常駐型
-- 🗣 **macOS 標準の声を選べる** — 日本語・英語、男女自由に切り替え
-- ♻ **自動アップデート** — 起動時に通知 → ワンクリックで最新版
+- 🎙 **No hotkeys, no clicks** — just say the wake word; Chappie remembers the flow of the conversation
+- 🔒 **Your voice stays on your Mac** — speech is transcribed locally with Whisper; the raw audio never leaves the device
+- 🍎 **Menu bar resident, no Dock clutter** — shows up only when you need it
+- 🗣 **Pick a macOS system voice** — switch between Japanese / English, male / female
+- ♻ **Auto-update** — new versions surface at launch; one click to update
 
-## できること
+## What it can do
 
-| | できること | 例 |
+| | Capability | Example |
 |---|---|---|
-| 💬 | おしゃべり | 「明日の予定、整理を手伝って」 |
-| ⏲ | タイマー | 「3分タイマーかけて」「全部キャンセル」 |
-| 🕐 | 時刻・日付 | 「今何時？」「今日は何曜日？」 |
-| 👋 | 「またね」で待機モードに戻る | 「ありがとう、またね」 |
+| 💬 | Chat | "Help me plan tomorrow's schedule" |
+| ⏲ | Timers | "Set a 3-minute timer", "Cancel all timers" |
+| 🕐 | Date & time | "What time is it?", "What day is it today?" |
+| 👋 | Goodbye → back to standby | "Thanks, see you later" |
 
-これからも少しずつ増えます。
+More tools coming over time.
 
 <div align="center">
   <table>
     <tr>
-      <td align="center"><img src="lp/public/hero.png" alt="待機中の Chappie" width="120" /><br><b>待機中</b></td>
-      <td align="center"><img src="lp/public/listening.png" alt="聞いている Chappie" width="120" /><br><b>聞いています</b></td>
-      <td align="center"><img src="lp/public/talking.png" alt="喋っている Chappie" width="120" /><br><b>喋っています</b></td>
+      <td align="center"><img src="lp/public/hero.png" alt="Chappie idle" width="120" /><br><b>Idle</b></td>
+      <td align="center"><img src="lp/public/listening.png" alt="Chappie listening" width="120" /><br><b>Listening</b></td>
+      <td align="center"><img src="lp/public/talking.png" alt="Chappie talking" width="120" /><br><b>Talking</b></td>
     </tr>
   </table>
 </div>
@@ -73,7 +73,7 @@ Metal); a Windows port is technically feasible but not on the roadmap.
 
 ### Requirements
 
-- macOS 14+ on Apple Silicon (M1 以降)
+- macOS 14+ on Apple Silicon (M1 or later)
 - [pnpm](https://pnpm.io/)
 - [Rust](https://rustup.rs/) (stable toolchain)
 
@@ -86,8 +86,8 @@ pnpm tauri dev
 
 On first launch the Whisper `small` model (~466MB) is auto-downloaded to
 `~/.chappie/models/ggml-small.bin`. Once it's ready the Chappie icon appears
-in the menu bar; pick **設定を開く** and add your OpenAI API key to start
-talking.
+in the menu bar; open **Settings** from the tray menu and add your OpenAI
+API key to start talking.
 
 The first time the app accesses the mic, macOS will show a system permission
 prompt (driven by `AVCaptureDevice.requestAccess`). After granting,
@@ -112,20 +112,21 @@ unified through `lib/log-bridge.ts`.
 
 ## Usage
 
-1. Click the menu-bar icon → **設定を開く**
+1. Click the menu-bar icon → **Settings**
 2. Enter your OpenAI API key (`sk-...`) → Save
-3. Say "**チャッピー、調子どう？**" — or just "チャッピー", wait for the "はい" ack, then speak your message
+3. Say "**chappie, how are you?**" — or just "chappie", wait for the brief acknowledgement, then speak your message
+   (The Japanese wake word "チャッピー" works too)
 
-The menu-bar icon shows the current state:
+The menu-bar icon reflects the current state:
 
-| State | Tooltip | Notes |
-|-------|---------|-------|
-| initializing | 起動中 | Loading model / starting mic |
-| idle | 待機中 | Listening for the wake word |
-| listening | 聞いています | Capturing your follow-up |
-| thinking | 考え中 | Whisper + OpenAI in flight |
-| speaking | 喋っています | TTS playing the reply |
-| error | エラー | See devtools console |
+| State | Notes |
+|---|---|
+| initializing | Loading model / starting mic |
+| idle | Listening for the wake word |
+| listening | Capturing your follow-up |
+| thinking | Whisper + OpenAI in flight |
+| speaking | TTS playing the reply |
+| error | See devtools console |
 
 ## Build
 
