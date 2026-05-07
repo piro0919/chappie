@@ -1,0 +1,121 @@
+{
+  "meta": {
+    "title": "Chappie — Hands-free voice AI assistant for macOS",
+    "description": "A hands-free voice AI assistant that lives in your menu bar. Just say \"chappie\" — the rest is voice only.",
+    "ogTagline": "Just say \"chappie\".",
+    "ogLead": "A hands-free voice AI assistant that lives in your menu bar."
+  },
+  "hero": {
+    "badge": "Hands-free voice AI for macOS",
+    "title": "Chappie",
+    "taglineLine1": "Just say \"chappie\".",
+    "taglineLine2": "The rest is voice only.",
+    "lead": "A hands-free voice AI assistant that lives in your menu bar. No keyboard, no mouse — just talk.",
+    "downloadButton": "Download for macOS",
+    "githubButton": "GitHub",
+    "footnote": "Apple Silicon (M1 or later) · Open source · Indie made"
+  },
+  "capabilities": {
+    "eyebrow": "WHAT IT CAN DO",
+    "heading": "Things you can say.",
+    "lead": "Wake it with \"chappie\", then just keep talking.",
+    "footer": "More tools coming over time.",
+    "items": {
+      "chat": {
+        "title": "Chat with you",
+        "example1": "\"Help me plan tomorrow's schedule\"",
+        "example2": "\"Pick a recipe for tonight\"",
+        "body": "Casual chat to thoughtful conversations. Chappie remembers the recent flow, so \"about that thing we just talked about\" works."
+      },
+      "timer": {
+        "title": "Set timers",
+        "example1": "\"Set a 3-minute timer\"",
+        "example2": "\"5-minute tea timer\"",
+        "example3": "\"Cancel all timers\"",
+        "body": "Just say the duration. Chappie tells you when time is up. Multiple timers at once, remaining time check, cancel — all by voice."
+      },
+      "time": {
+        "title": "Tell time & dates",
+        "example1": "\"What time is it?\"",
+        "example2": "\"What day is it today?\"",
+        "example3": "\"What's the date today?\"",
+        "body": "Reads your Mac's clock. Math like \"how many hours until 6 PM?\" works too."
+      },
+      "goodbye": {
+        "title": "Politely goes back to standby",
+        "example1": "\"Thanks, see you later\"",
+        "example2": "\"Goodbye\"",
+        "example3": "\"Bye\"",
+        "body": "Chappie picks up on goodbyes by itself and quietly returns to standby. No button to press — just say the next \"chappie\" when you need it again."
+      }
+    }
+  },
+  "menubar": {
+    "eyebrow": "LIVES IN THE MENU BAR",
+    "headingLine1": "Always tucked into the menu bar.",
+    "headingLine2": "Shows up only when you need it.",
+    "body": "No Dock icon, no window. Stays quietly in standby until you call."
+  },
+  "features": {
+    "heading": "An assistant that blends into your day",
+    "lead": "Just the right distance — visible when needed, invisible when not.",
+    "items": {
+      "wake": {
+        "title": "Just say \"chappie\"",
+        "body": "No hotkeys, no clicks. Wake it with your voice, then keep talking naturally."
+      },
+      "local": {
+        "title": "Voice stays local",
+        "body": "Speech is transcribed entirely on your Mac. The raw audio never leaves the device."
+      },
+      "memory": {
+        "title": "Remembers the conversation",
+        "body": "Chappie keeps the last 20 turns of context, so \"about what we just said\" continues naturally."
+      },
+      "menubar": {
+        "title": "Menu bar resident, no Dock clutter",
+        "body": "The app is just a menu bar icon. Settings open only when you need them."
+      },
+      "voices": {
+        "title": "Pick a macOS system voice",
+        "body": "Choose from the voices already installed on macOS — Japanese, English, male, female, all switchable."
+      },
+      "update": {
+        "title": "Auto-update",
+        "body": "New versions surface at launch — one click and you're up to date. No manual download."
+      }
+    }
+  },
+  "states": {
+    "eyebrow": "THREE EXPRESSIONS",
+    "heading": "Status shows on Chappie's face in the menu bar.",
+    "items": {
+      "idle": {
+        "label": "Idle",
+        "body": "Waiting quietly for you to say \"chappie\"."
+      },
+      "listening": {
+        "label": "Listening",
+        "body": "Tuned in and capturing what you're saying."
+      },
+      "talking": {
+        "label": "Talking",
+        "body": "Reading the reply out loud."
+      }
+    }
+  },
+  "privacy": {
+    "heading": "Your voice stays on your Mac",
+    "body": "What the mic picks up is converted to text right on your Mac. The recording itself never goes to the internet. Only the text version of your question is sent to ChatGPT to think up a reply.",
+    "note": "* Requires an OpenAI account and your own API key."
+  },
+  "finalCta": {
+    "heading": "Try saying hello.",
+    "lead": "Download, then look at the Chappie icon in your menu bar and say \"chappie\".",
+    "downloadButton": "Download",
+    "githubButton": "Source code"
+  },
+  "footer": {
+    "credit": "Chappie"
+  }
+}
