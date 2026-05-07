@@ -1,6 +1,6 @@
 [package]
 name = "chappie"
-version = "0.1.8"
+version = "0.1.9"
 description = "Hands-free voice AI assistant"
 authors = ["piro <piro.haniwa@gmail.com>"]
 edition = "2021"
@@ -37,6 +37,7 @@ tauri-plugin-dialog = "2"
 cpal = "0.15"
 rubato = { version = "0.16", features = ["fft_resampler"], default-features = false }
 voice_activity_detector = "0.2"
+chrono = "0.4"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
