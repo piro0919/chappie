@@ -1,0 +1,240 @@
+.root {
+  min-height: 100vh;
+  padding: 16px 24px 24px;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    sans-serif;
+  font-size: 13px;
+  color: #1d1d1f;
+  background: #f5f5f7;
+  -webkit-font-smoothing: antialiased;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
+.card + .card {
+  margin-top: 12px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 30px;
+}
+
+.row + .row {
+  margin-top: 12px;
+}
+
+.rowLabel {
+  font-size: 12px;
+  color: #3a3a3c;
+  text-align: right;
+  font-weight: 500;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.statusLabel {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.badgeGranted {
+  background: rgba(52, 199, 89, 0.12);
+  color: #248a3d;
+}
+
+.badgeGranted .badgeDot {
+  background: #34c759;
+}
+
+.badgeDenied {
+  background: rgba(255, 59, 48, 0.12);
+  color: #c4201a;
+}
+
+.badgeDenied .badgeDot {
+  background: #ff3b30;
+}
+
+.badgeNeutral {
+  background: rgba(99, 99, 102, 0.12);
+  color: #48484a;
+}
+
+.badgeNeutral .badgeDot {
+  background: #8e8e93;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #6e6e73;
+  line-height: 1.5;
+}
+
+.input,
+.select {
+  width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1d1d1f;
+  background: #ffffff;
+  border: 1px solid #d2d2d7;
+  border-radius: 6px;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.input:focus,
+.select:focus {
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.18);
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%2348484a' d='M0 0l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 26px;
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.checkRow input[type="checkbox"] {
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  accent-color: #007aff;
+}
+
+.button {
+  font-size: 12px;
+  font-family: inherit;
+  color: #1d1d1f;
+  background: #ffffff;
+  border: 1px solid #d2d2d7;
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+
+.button:hover:not(:disabled) {
+  background: #f5f5f7;
+}
+
+.button:active:not(:disabled) {
+  background: #ebebed;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.buttonPrimary {
+  background: #007aff;
+  border-color: #007aff;
+  color: #ffffff;
+  font-weight: 500;
+  padding: 5px 18px;
+}
+
+.buttonPrimary:hover:not(:disabled) {
+  background: #0a6cd6;
+  border-color: #0a6cd6;
+}
+
+.buttonPrimary:active:not(:disabled) {
+  background: #0a5fbc;
+  border-color: #0a5fbc;
+}
+
+.saveBar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 0 4px;
+}
+
+.savedFlash {
+  font-size: 12px;
+  color: #248a3d;
+  font-weight: 500;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding: 0 4px;
+  font-size: 10px;
+  color: #8e8e93;
+}
+
+.loading {
+  padding: 24px;
+  font-size: 13px;
+  color: #6e6e73;
+  text-align: center;
+}

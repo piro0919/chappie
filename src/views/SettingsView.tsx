@@ -1,6 +1,7 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   disable as disableAutostart,
   enable as enableAutostart,
@@ -9,6 +10,7 @@ import {
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 import { loadSettings, type Settings, saveSettings } from "../lib/settings";
+import styles from "./SettingsView.module.css";
 
 type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
 
@@ -22,16 +24,19 @@ const MODEL_OPTIONS = [
   { value: "gpt-4.1", label: "gpt-4.1" },
 ];
 
-function micStatusMeta(status: MicStatus): { label: string; color: string } {
+function micStatusBadge(status: MicStatus): {
+  label: string;
+  className: string;
+} {
   switch (status) {
     case "granted":
-      return { label: "許可済み", color: "#10b981" };
+      return { label: "許可済み", className: styles.badgeGranted };
     case "denied":
-      return { label: "拒否されています", color: "#ef4444" };
+      return { label: "拒否されています", className: styles.badgeDenied };
     case "restricted":
-      return { label: "システムにより制限", color: "#ef4444" };
+      return { label: "システムにより制限", className: styles.badgeDenied };
     default:
-      return { label: "未設定", color: "#6b7280" };
+      return { label: "未設定", className: styles.badgeNeutral };
   }
 }
 
@@ -87,54 +92,46 @@ export function SettingsView() {
 
   const onSave = async () => {
     await saveSettings({ openaiApiKey: apiKey, voiceURI, model });
-    if (autostart) await enableAutostart();
-    else await disableAutostart();
+    try {
+      if (autostart) await enableAutostart();
+      else await disableAutostart();
+    } catch (e) {
+      console.warn("[settings] autostart toggle failed", e);
+    }
     await emit("settings:updated");
     setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+    setTimeout(() => {
+      const w = getCurrentWindow();
+      console.info("[settings] closing window", w.label);
+      w.close()
+        .then(() => console.info("[settings] close resolved"))
+        .catch((e) => console.error("[settings] close failed", e));
+    }, 400);
   };
 
   if (!loaded) {
-    return <main style={{ padding: 16 }}>読み込み中…</main>;
+    return <main className={styles.loading}>読み込み中…</main>;
   }
 
-  return (
-    <main style={{ padding: 16, fontFamily: "system-ui, sans-serif" }}>
-      <h1 style={{ fontSize: 18, margin: 0 }}>Chappie 設定</h1>
+  const badge = micStatusBadge(micStatus);
 
-      <section
-        style={{
-          marginTop: 16,
-          padding: 12,
-          border: "1px solid #e5e5ea",
-          borderRadius: 6,
-          background: "#fafafa",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: 13 }}>マイクアクセス</span>
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: micStatusMeta(micStatus).color,
-            }}
-          >
-            {micStatusMeta(micStatus).label}
+  return (
+    <main className={styles.root}>
+      {/* Microphone access */}
+      <section className={styles.card}>
+        <div className={styles.statusRow}>
+          <span className={styles.statusLabel}>マイクアクセス</span>
+          <span className={`${styles.badge} ${badge.className}`}>
+            <span className={styles.badgeDot} />
+            {badge.label}
           </span>
         </div>
         {micStatus !== "granted" && (
-          <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
+          <div className={styles.actions}>
             {micStatus === "not_determined" && (
               <button
                 type="button"
+                className={styles.button}
                 onClick={requestMic}
                 disabled={requestingMic}
               >
@@ -144,6 +141,7 @@ export function SettingsView() {
             {(micStatus === "denied" || micStatus === "restricted") && (
               <button
                 type="button"
+                className={styles.button}
                 onClick={() => {
                   void openUrl(MIC_PRIVACY_URL).catch(() => {});
                 }}
@@ -151,105 +149,105 @@ export function SettingsView() {
                 システム設定を開く
               </button>
             )}
-            <button type="button" onClick={refreshMicStatus}>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={refreshMicStatus}
+            >
               再確認
             </button>
           </div>
         )}
         {micStatus === "denied" && (
-          <p style={{ fontSize: 11, color: "#666", margin: "8px 0 0" }}>
+          <p className={styles.note}>
             一度拒否すると、システム設定からのみ再有効化できます。
           </p>
         )}
       </section>
 
-      <label style={{ display: "block", marginTop: 16 }}>
-        OpenAI API キー
-        <input
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          autoComplete="off"
-          spellCheck={false}
-          style={{ display: "block", width: "100%", marginTop: 4, padding: 6 }}
-        />
-      </label>
+      {/* OpenAI */}
+      <section className={styles.card}>
+        <div className={styles.row}>
+          <label className={styles.rowLabel} htmlFor="api-key">
+            API キー
+          </label>
+          <input
+            id="api-key"
+            type="password"
+            className={styles.input}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="sk-..."
+          />
+        </div>
+        <div className={styles.row}>
+          <label className={styles.rowLabel} htmlFor="model">
+            モデル
+          </label>
+          <select
+            id="model"
+            className={styles.select}
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          >
+            {MODEL_OPTIONS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
 
-      <label style={{ display: "block", marginTop: 16 }}>
-        モデル
-        <select
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          style={{ display: "block", width: "100%", marginTop: 4, padding: 6 }}
+      {/* Voice + autostart */}
+      <section className={styles.card}>
+        <div className={styles.row}>
+          <label className={styles.rowLabel} htmlFor="voice">
+            読み上げ音声
+          </label>
+          <select
+            id="voice"
+            className={styles.select}
+            value={voiceURI ?? ""}
+            onChange={(e) =>
+              setVoiceURI(e.target.value === "" ? null : e.target.value)
+            }
+          >
+            <option value="">（システム既定）</option>
+            {voices.map((v) => (
+              <option key={v.voiceURI} value={v.voiceURI}>
+                {v.name} ({v.lang})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.rowLabel}>起動</span>
+          <label className={styles.checkRow}>
+            <input
+              type="checkbox"
+              checked={autostart}
+              onChange={(e) => setAutostart(e.target.checked)}
+            />
+            ログイン時に自動起動する
+          </label>
+        </div>
+      </section>
+
+      <div className={styles.saveBar}>
+        {saved && <span className={styles.savedFlash}>保存しました</span>}
+        <button
+          type="button"
+          className={`${styles.button} ${styles.buttonPrimary}`}
+          onClick={onSave}
         >
-          {MODEL_OPTIONS.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label style={{ display: "block", marginTop: 16 }}>
-        読み上げ音声
-        <select
-          value={voiceURI ?? ""}
-          onChange={(e) =>
-            setVoiceURI(e.target.value === "" ? null : e.target.value)
-          }
-          style={{ display: "block", width: "100%", marginTop: 4, padding: 6 }}
-        >
-          <option value="">（システム既定）</option>
-          {voices.map((v) => (
-            <option key={v.voiceURI} value={v.voiceURI}>
-              {v.name} ({v.lang})
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginTop: 16,
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={autostart}
-          onChange={(e) => setAutostart(e.target.checked)}
-        />
-        ログイン時に自動起動する
-      </label>
-
-      <div
-        style={{
-          marginTop: 20,
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-        }}
-      >
-        <button type="button" onClick={onSave}>
           保存
         </button>
-        {saved && <span style={{ color: "#10b981" }}>保存しました</span>}
       </div>
 
-      {version && (
-        <div
-          style={{
-            marginTop: 24,
-            color: "#888",
-            fontSize: 11,
-            textAlign: "right",
-          }}
-        >
-          v{version}
-        </div>
-      )}
+      {version && <div className={styles.footer}>v{version}</div>}
     </main>
   );
 }

@@ -1,7 +1,9 @@
 mod audio;
+mod log_event;
 mod mic_permission;
 mod model;
 mod openai;
+mod timer;
 mod tray;
 
 use once_cell::sync::OnceCell;

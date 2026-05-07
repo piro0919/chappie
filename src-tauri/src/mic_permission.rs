@@ -18,12 +18,35 @@ mod imp {
 
     const AV_MEDIA_TYPE_AUDIO: &str = "soun";
 
+    // Wrap every ObjC call in panic::catch_unwind + objc2::exception::catch.
+    // Without this, an NSException from AVFoundation (e.g. due to a broken
+    // entitlement on a dev build) terminates the whole process. Modeled after
+    // galopen/src-tauri/src/calendar.rs.
+    fn guarded_objc<R, F>(f: F) -> Result<R, String>
+    where
+        F: FnOnce() -> R,
+    {
+        let f = std::panic::AssertUnwindSafe(f);
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            objc2::exception::catch(f)
+        })) {
+            Ok(Ok(v)) => Ok(v),
+            Ok(Err(e)) => Err(format!("ObjC exception: {:?}", e)),
+            Err(_) => Err("AVFoundation panic".to_string()),
+        }
+    }
+
     pub fn authorization_status() -> i32 {
-        unsafe {
+        guarded_objc(|| unsafe {
             let cls = class!(AVCaptureDevice);
             let media_type = NSString::from_str(AV_MEDIA_TYPE_AUDIO);
             msg_send![cls, authorizationStatusForMediaType: &*media_type]
-        }
+        })
+        .unwrap_or_else(|e| {
+            eprintln!("[mic] authorizationStatusForMediaType failed: {e}");
+            // Treat as not_determined so the caller still tries requestAccess.
+            0
+        })
     }
 
     pub fn request_access_blocking() -> bool {
@@ -35,7 +58,7 @@ mod imp {
                 let _ = sender.send(granted.as_bool());
             }
         });
-        unsafe {
+        let invoke_result = guarded_objc(|| unsafe {
             let cls = class!(AVCaptureDevice);
             let media_type = NSString::from_str(AV_MEDIA_TYPE_AUDIO);
             let _: () = msg_send![
@@ -43,6 +66,10 @@ mod imp {
                 requestAccessForMediaType: &*media_type,
                 completionHandler: &*block,
             ];
+        });
+        if let Err(e) = invoke_result {
+            eprintln!("[mic] requestAccessForMediaType failed: {e}");
+            return false;
         }
         rx.recv_timeout(Duration::from_secs(120)).unwrap_or(false)
     }

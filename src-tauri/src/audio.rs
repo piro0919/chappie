@@ -8,6 +8,10 @@
 //   3. segmenter resamples to 16kHz, slices into 512-sample (32ms) frames,
 //      runs Silero VAD inference, and segments utterances by speech probability
 //   4. on speech-end, accumulated PCM is handed to whisper and emitted as `speech`
+//
+// Wake-word detection lives in the renderer (string match against the Whisper
+// transcript). An openWakeWord-based pipeline was tried and reverted — see
+// git history if you want it back.
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, SampleFormat, StreamConfig};
@@ -20,23 +24,25 @@ use voice_activity_detector::VoiceActivityDetector;
 const TARGET_RATE: u32 = 16_000;
 // Silero VAD V5 requires exactly 512 samples per chunk at 16kHz (~32ms).
 const FRAME_SAMPLES: usize = 512;
-// Probability threshold above which a frame is considered speech.
-const VAD_THRESHOLD: f32 = 0.5;
+// Probability threshold above which a frame is considered speech. Silero V5
+// recommends 0.5 but real rooms with quieter speakers benefit from a much
+// lower bar — we drop weak segments via MIN_SPEECH_FRAMES instead.
+const VAD_THRESHOLD: f32 = 0.25;
 // Consecutive non-speech frames to terminate an utterance (~700ms at 32ms/frame).
 const SILENCE_FRAMES_TO_END: usize = 22;
-// Minimum speech frames before accepting an utterance (~250ms) — filters clicks.
-const MIN_SPEECH_FRAMES: usize = 8;
+// Minimum speech frames before accepting an utterance (~95ms) — filters
+// clicks but keeps short utterances ("はい", "うん") and quiet talkers.
+const MIN_SPEECH_FRAMES: usize = 3;
 // Maximum utterance length cap (~30s). Whisper's own context is ~30s, so going
 // beyond this is pointless; below 30s avoids clipping reasonable spoken queries.
 const MAX_UTTERANCE_FRAMES: usize = 940;
 // Pre-roll frames prepended so we don't clip the start of the utterance.
 const PREROLL_FRAMES: usize = 5;
-// Minimum average VAD probability across voiced frames in a segment.
-// Filters segments that barely cleared VAD_THRESHOLD — the dominant source
-// of Whisper hallucinations on near-silence.
-const MIN_AVG_VOICED_PROB: f32 = 0.65;
-// Minimum peak VAD probability — at least one frame must be confidently voiced.
-const MIN_PEAK_PROB: f32 = 0.85;
+// Minimum RMS energy of an accepted segment (linear scale, audio normalised
+// to ~[-1, 1]). Below this the segment is treated as background noise and
+// dropped before Whisper inference, since whisper-small Japanese is prone to
+// hallucinating phrases like "ご視聴ありがとうございました" on near-silence.
+const MIN_RMS_ENERGY: f32 = 0.003;
 
 static RUNNING: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
 static MUTED: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
@@ -167,6 +173,14 @@ fn run_capture(
     Ok(())
 }
 
+fn rms(samples: &[f32]) -> f32 {
+    if samples.is_empty() {
+        return 0.0;
+    }
+    let sum_sq: f32 = samples.iter().map(|s| s * s).sum();
+    (sum_sq / samples.len() as f32).sqrt()
+}
+
 fn make_data_callback<T>(
     channels: usize,
     tx: std::sync::mpsc::SyncSender<Vec<f32>>,
@@ -219,6 +233,14 @@ fn run_segmenter(
         .build()
         .map_err(|e| format!("vad init: {e}"))?;
 
+    crate::linfo!(
+        &app,
+        "audio",
+        "segmenter started: in_rate={in_rate} resample={} muted={}",
+        needs_resample,
+        muted.load(Ordering::SeqCst)
+    );
+
     let mut accum_in: Vec<f32> = Vec::new();
     let mut accum_out: Vec<f32> = Vec::new();
     let mut preroll: std::collections::VecDeque<Vec<f32>> =
@@ -227,8 +249,8 @@ fn run_segmenter(
     let mut in_speech = false;
     let mut speech_frames = 0usize;
     let mut silence_frames = 0usize;
-    let mut voiced_prob_sum = 0.0f32;
-    let mut max_prob = 0.0f32;
+    let mut chunks_seen: u64 = 0;
+    let mut last_log = std::time::Instant::now();
 
     while running.load(Ordering::SeqCst) {
         let chunk = match rx.recv_timeout(std::time::Duration::from_millis(500)) {
@@ -236,6 +258,16 @@ fn run_segmenter(
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
             Err(_) => break,
         };
+        chunks_seen += 1;
+        if last_log.elapsed() >= std::time::Duration::from_secs(10) {
+            crate::linfo!(
+                &app,
+                "audio",
+                "heartbeat: chunks={chunks_seen} muted={} in_speech={in_speech}",
+                muted.load(Ordering::SeqCst)
+            );
+            last_log = std::time::Instant::now();
+        }
 
         // While muted (e.g. TTS playing), drop captured audio and reset
         // segmentation state so we never hand self-speech to Whisper.
@@ -247,8 +279,6 @@ fn run_segmenter(
             in_speech = false;
             speech_frames = 0;
             silence_frames = 0;
-            voiced_prob_sum = 0.0;
-            max_prob = 0.0;
             continue;
         }
 
@@ -274,11 +304,10 @@ fn run_segmenter(
 
             if !in_speech {
                 if voiced {
+                    crate::linfo!(&app, "audio", "speech start prob={prob:.2}");
                     in_speech = true;
                     speech_frames = 1;
                     silence_frames = 0;
-                    voiced_prob_sum = prob;
-                    max_prob = prob;
                     speech_buf.clear();
                     for f in preroll.iter() {
                         speech_buf.extend_from_slice(f);
@@ -295,10 +324,6 @@ fn run_segmenter(
                 if voiced {
                     speech_frames += 1;
                     silence_frames = 0;
-                    voiced_prob_sum += prob;
-                    if prob > max_prob {
-                        max_prob = prob;
-                    }
                 } else {
                     silence_frames += 1;
                 }
@@ -306,32 +331,48 @@ fn run_segmenter(
                 let too_long = speech_frames + silence_frames >= MAX_UTTERANCE_FRAMES;
                 let ended = silence_frames >= SILENCE_FRAMES_TO_END;
                 if ended || too_long {
-                    let avg_prob = if speech_frames > 0 {
-                        voiced_prob_sum / speech_frames as f32
-                    } else {
-                        0.0
-                    };
-                    // Drop weak / low-confidence segments before paying for
-                    // Whisper inference. These are the main source of
-                    // hallucinated transcripts on near-silence.
-                    let usable = speech_frames >= MIN_SPEECH_FRAMES
-                        && avg_prob >= MIN_AVG_VOICED_PROB
-                        && max_prob >= MIN_PEAK_PROB;
                     let buf = std::mem::take(&mut speech_buf);
+                    let frame_count_ok = speech_frames >= MIN_SPEECH_FRAMES;
+                    let rms_value = rms(&buf);
+                    let rms_ok = rms_value >= MIN_RMS_ENERGY;
+                    let decision = if frame_count_ok && rms_ok {
+                        "transcribe"
+                    } else if !frame_count_ok {
+                        "skip(too-short)"
+                    } else {
+                        "skip(low-rms)"
+                    };
+                    crate::linfo!(
+                        &app,
+                        "audio",
+                        "segment end: frames={speech_frames} rms={rms_value:.4} samples={} -> {decision}",
+                        buf.len()
+                    );
                     in_speech = false;
                     speech_frames = 0;
                     silence_frames = 0;
-                    voiced_prob_sum = 0.0;
-                    max_prob = 0.0;
                     preroll.clear();
-                    if usable {
+                    if frame_count_ok && rms_ok {
                         let app2 = app.clone();
-                        std::thread::spawn(move || match crate::run_whisper(buf) {
-                            Ok(text) if !text.is_empty() => {
-                                let _ = app2.emit("speech", text);
+                        std::thread::spawn(move || {
+                            let started = std::time::Instant::now();
+                            match crate::run_whisper(buf) {
+                                Ok(text) if !text.is_empty() => {
+                                    crate::linfo!(
+                                        &app2,
+                                        "whisper",
+                                        "ok in {}ms: {text}",
+                                        started.elapsed().as_millis()
+                                    );
+                                    let _ = app2.emit("speech", text);
+                                }
+                                Ok(_) => {
+                                    crate::linfo!(&app2, "whisper", "empty result");
+                                }
+                                Err(e) => {
+                                    crate::lerror!(&app2, "whisper", "error: {e}");
+                                }
                             }
-                            Ok(_) => {}
-                            Err(e) => eprintln!("[audio] transcribe error: {e}"),
                         });
                     }
                 }
@@ -340,4 +381,3 @@ fn run_segmenter(
     }
     Ok(())
 }
-

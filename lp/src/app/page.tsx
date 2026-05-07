@@ -1,18 +1,64 @@
 import {
+  Clock,
   Cpu,
   Download,
   Github,
+  Hand,
   Lock,
   MessageCircle,
   Mic,
   RefreshCw,
   Sparkles,
+  Timer,
 } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 
 const GITHUB_URL = "https://github.com/piro0919/chappie";
 const RELEASE_URL = "https://github.com/piro0919/chappie/releases/latest";
+
+const CAPABILITIES: {
+  icon: typeof Mic;
+  title: string;
+  examples: string[];
+  body: string;
+}[] = [
+  {
+    icon: MessageCircle,
+    title: "おしゃべりする",
+    examples: [
+      "「今日のお昼、何食べるのおすすめ？」",
+      "「明日の予定、整理を手伝って」",
+    ],
+    body: "雑談から相談ごとまで。直前のやり取りを覚えているので、「さっきの続きなんだけど」もそのまま伝わります。",
+  },
+  {
+    icon: Timer,
+    title: "タイマーをセットする",
+    examples: [
+      "「3分タイマーかけて」",
+      "「お茶のタイマー5分」",
+      "「全部キャンセル」",
+    ],
+    body: "「○分タイマー」と言うだけで設定。鳴ったら声で教えてくれます。複数同時セット・残り時間確認・キャンセルもどうぞ。",
+  },
+  {
+    icon: Clock,
+    title: "時刻や日付を答える",
+    examples: [
+      "「今何時？」",
+      "「今日は何曜日？」",
+      "「今日って何月何日だっけ？」",
+    ],
+    body: "Mac の時計を見て答えます。「あと何時間で◯時？」みたいな計算もそのままお任せ。",
+  },
+  {
+    icon: Hand,
+    title: "「またね」で静かに戻る",
+    examples: ["「ありがとう、またね」", "「じゃあね」", "「さようなら」"],
+    body: "会話の終わりは Chappie 自身が察知。次の「チャッピー」を呼ぶまで、そっと待機モードに戻ります。ボタンを押す必要はありません。",
+  },
+];
 
 const FEATURES: { icon: typeof Mic; title: string; body: string }[] = [
   {
@@ -23,7 +69,7 @@ const FEATURES: { icon: typeof Mic; title: string; body: string }[] = [
   {
     icon: Lock,
     title: "音声はローカルで処理",
-    body: "Whisper を Metal で動かす Rust 実装。マイク音声がクラウドに送られることはありません。",
+    body: "声の文字起こしは Mac の中で完結。マイクで拾った音そのものが、インターネットに送られることはありません。",
   },
   {
     icon: MessageCircle,
@@ -38,7 +84,7 @@ const FEATURES: { icon: typeof Mic; title: string; body: string }[] = [
   {
     icon: Sparkles,
     title: "macOS 標準の声で読み上げ",
-    body: "Web Speech API 経由で macOS の高品質な音声を選べます。声の好みで使い分けOK。",
+    body: "macOS に入っている読み上げ音声から、好きな声を選べます。日本語・英語、男性・女性の切り替えも自由です。",
   },
   {
     icon: RefreshCw,
@@ -100,7 +146,60 @@ export default function Page(): ReactNode {
           </div>
 
           <p className="text-(--color-cocoa-400) mt-6 text-xs">
-            Apple Silicon (arm64) 対応 / オープンソース / 個人開発
+            M1 以降の Mac で動きます / オープンソース / 個人開発
+          </p>
+        </div>
+      </section>
+
+      {/* Capabilities */}
+      <section className="bg-(--color-cream-100) px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-(--color-cocoa-500) mb-3 text-center text-xs font-bold tracking-[0.25em]">
+            CHAPPIE でできること
+          </h2>
+          <p className="text-(--color-cocoa-700) mx-auto mb-4 max-w-xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
+            こんな声がけ、できます。
+          </p>
+          <p className="text-(--color-cocoa-500) mx-auto mb-14 max-w-xl text-center text-base">
+            まずは「チャッピー」と呼びかけて、続けて話しかけるだけ。
+          </p>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {CAPABILITIES.map(({ icon: Icon, title, examples, body }) => (
+              <div
+                key={title}
+                className="border-(--color-cream-200) flex flex-col rounded-2xl border bg-white p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-12px_rgba(74,56,38,0.25)]"
+              >
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="bg-(--color-blush-200) inline-flex rounded-2xl p-3">
+                    <Icon
+                      size={20}
+                      strokeWidth={2}
+                      className="text-(--color-cocoa-600)"
+                      aria-hidden
+                    />
+                  </div>
+                  <h3 className="text-(--color-cocoa-700) text-base font-bold">
+                    {title}
+                  </h3>
+                </div>
+                <ul className="mb-4 flex flex-col gap-2">
+                  {examples.map((ex) => (
+                    <li
+                      key={ex}
+                      className="bg-(--color-cream-100) text-(--color-cocoa-700) rounded-xl px-4 py-2 text-sm"
+                    >
+                      {ex}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-(--color-cocoa-500) text-sm leading-relaxed">
+                  {body}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="text-(--color-cocoa-400) mx-auto mt-10 max-w-xl text-center text-xs">
+            できることはこれから少しずつ増えていきます。
           </p>
         </div>
       </section>
@@ -239,10 +338,13 @@ export default function Page(): ReactNode {
             音声はあなたの Mac の中だけ
           </h2>
           <p className="text-(--color-cocoa-500) mx-auto max-w-xl text-base leading-relaxed">
-            マイクで拾った音声は <b>Whisper</b>{" "}
-            をローカルで動かして文字に起こします。
-            生の音声がインターネットに出ることはありません。返答生成のテキストだけを
-            OpenAI API に送ります（API キーはあなた自身のもの）。
+            マイクで拾った音は、Mac
+            の中で文字に変換します。録音そのものがインターネットに出ることはありません。返事を考えてもらうために、文字に変えた質問だけを{" "}
+            <b>ChatGPT</b> に送ります。
+            <br />
+            <span className="text-(--color-cocoa-400) mt-2 inline-block text-sm">
+              ※ ご利用には OpenAI のアカウントとお手元の API キーが必要です。
+            </span>
           </p>
         </div>
       </section>

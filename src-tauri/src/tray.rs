@@ -54,13 +54,6 @@ pub fn init_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             "open_settings" => {
                 let _ = open_settings_window(app);
             }
-            "show_debug" => {
-                use tauri::Manager;
-                if let Some(win) = app.get_webview_window("main") {
-                    let _ = win.show();
-                    let _ = win.set_focus();
-                }
-            }
             "quit" => {
                 // Stop cpal cleanly so Core Audio releases the input device
                 // before the process exits. Without this the tray exit can
@@ -83,13 +76,11 @@ fn build_menu<R: Runtime>(
         .enabled(false)
         .build(app)?;
     let settings = MenuItemBuilder::with_id("open_settings", "設定を開く").build(app)?;
-    let debug = MenuItemBuilder::with_id("show_debug", "デバッグウィンドウを開く").build(app)?;
     let quit = MenuItemBuilder::with_id("quit", "終了").build(app)?;
     MenuBuilder::new(app)
         .item(&status)
         .item(&PredefinedMenuItem::separator(app)?)
         .item(&settings)
-        .item(&debug)
         .item(&quit)
         .build()
 }
@@ -112,7 +103,7 @@ pub fn open_settings_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()>
         let _ = win.set_focus();
         return Ok(());
     }
-    WebviewWindowBuilder::new(
+    let win = WebviewWindowBuilder::new(
         app,
         "settings",
         WebviewUrl::App("index.html?view=settings".into()),
@@ -121,5 +112,8 @@ pub fn open_settings_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()>
     .inner_size(480.0, 360.0)
     .resizable(false)
     .build()?;
+    #[cfg(debug_assertions)]
+    win.open_devtools();
+    let _ = win;
     Ok(())
 }

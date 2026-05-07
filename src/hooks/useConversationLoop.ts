@@ -10,7 +10,11 @@ import {
 } from "../lib/conversation-history";
 import { type ChatClient, createChatClient } from "../lib/openai-client";
 import { loadSettings } from "../lib/settings";
-import { speak } from "../lib/speech-synthesis";
+import {
+  createStreamingSpeaker,
+  speak,
+  speakQueued,
+} from "../lib/speech-synthesis";
 import {
   createMachine,
   type Machine,
@@ -36,22 +40,38 @@ const POST_TTS_COOLDOWN_MS = 350;
 // Common Whisper Japanese hallucinations on silence/noise. Drop these utterances
 // instead of letting them flow to wake-word detection.
 const HALLUCINATION_PATTERNS = [
-  /^ご(視聴|清聴)(いただき)?ありがとうございました/,
+  /^ご(視聴|清聴)(いただき|くださり)?(誠に)?ありがとうございました?/,
   /^ご視聴ありがとうございます/,
   /^チャンネル登録/,
+  /^高評価/,
+  /^[\s\S]*[Ss]ubscrib/,
   /^字幕\s*by/i,
-  /^Thank(s| you)( so much)? for watching/i,
-  /^Subscribe/i,
+  /^字幕[製作製作]/,
+  /^翻訳/,
+  /^Thank(s| you)( so (much|very))? for watching/i,
+  /^Bye[\s.!]?$/i,
   /^おやすみなさい[。!]?$/,
-  /^ありがとうございました[。!]?$/,
-  /^見てくださってありがとうございました/,
+  /^ありがとう(ございました|ございます)?[。!]?$/,
+  /^見てくださって/,
+  /^見ていただき/,
   /^お疲れ様でした[。!]?$/,
   /^バイバイ[。!]?$/,
+  /^じゃあ?ね[。!]?$/,
   /^んー[。!]?$/,
+  /^ん+[。!]?$/,
+  /^[ぁ-ん][。!]?$/, // single hiragana
+  /^[、。!?\s]+$/, // punctuation only
+  /^\(.*\)$/, // parenthetical only e.g. "(音楽)" "(笑)" "(拍手)"
+  /^\[.*\]$/,
+  /^[\d\s,.,。、]+$/, // digits + punctuation only
 ];
 
 function isHallucination(text: string): boolean {
   const t = text.trim();
+  // Anything 2 chars or less is almost certainly garbage from a half-second
+  // VAD blip — except for legit short responses that could only follow a
+  // wake-word, which the awaitingBody branch handles separately.
+  if (t.length <= 2) return true;
   return HALLUCINATION_PATTERNS.some((p) => p.test(t));
 }
 
@@ -111,7 +131,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
   }
 
   async function runTurn(userText: string) {
+    console.info(`[loop] runTurn: "${userText}"`);
     if (!apiKeyRef.current || !chatClientRef.current) {
+      console.warn("[loop] no api key — speaking error message");
       try {
         await withMutedCapture(() =>
           speak(
@@ -126,13 +148,50 @@ export function useConversationLoop(): { state: State; error: string | null } {
 
     historyRef.current = addUser(historyRef.current, userText);
 
+    // Streaming path: kick off the chat completion and start TTS on the
+    // first sentence as soon as it arrives, so the user hears Chappie
+    // before the full reply has been assembled. The `withMutedCapture`
+    // wrapper holds the mic muted from the moment the first chunk lands
+    // until all queued sentences have finished speaking.
+    type Speaker = {
+      feed: (chunk: string) => void;
+      flush: () => Promise<void>;
+    };
+
     let reply: string;
+    let endConversation = false;
+    let firstChunkSeen = false;
+    let speaker: Speaker | null = null;
+
+    const ensureSpeaker = () => {
+      if (speaker) return;
+      ttsActiveRef.current = true;
+      void invoke("pause_listening").catch(() => {});
+      dispatch({ type: "responseReady", reply: "" });
+      speaker = createStreamingSpeaker(voiceURIRef.current);
+    };
+
     try {
-      reply = await chatClientRef.current.complete(
+      const result = await chatClientRef.current.complete(
         messagesForRequest(historyRef.current),
+        (chunk) => {
+          if (!firstChunkSeen) {
+            firstChunkSeen = true;
+            ensureSpeaker();
+          }
+          speaker?.feed(chunk);
+        },
       );
+      reply = result.text;
+      endConversation = result.endConversation;
     } catch (e) {
       console.error("openai failed", e);
+      // Tear down a partial speaker if we got chunks before the error.
+      if (speaker) {
+        try {
+          await (speaker as Speaker).flush();
+        } catch {}
+      }
       try {
         await withMutedCapture(() =>
           speak("うまく繋がりませんでした。", voiceURIRef.current),
@@ -143,15 +202,33 @@ export function useConversationLoop(): { state: State; error: string | null } {
     }
 
     historyRef.current = addAssistant(historyRef.current, reply);
-    dispatch({ type: "responseReady", reply });
-
-    try {
-      await withMutedCapture(() => speak(reply, voiceURIRef.current));
-    } catch (e) {
-      console.error("tts failed", e);
+    if (!firstChunkSeen) {
+      // Non-streaming fallback: model returned everything before any chunks
+      // landed (rare; possible if the round triggered tools and the final
+      // answer was short). Speak the whole thing at once.
+      try {
+        await withMutedCapture(() => speak(reply, voiceURIRef.current));
+      } catch (e) {
+        console.error("tts failed", e);
+      }
+    } else if (speaker) {
+      try {
+        await (speaker as Speaker).flush();
+      } catch (e) {
+        console.error("tts flush failed", e);
+      }
+      // Cooldown + resume — match the contract of `withMutedCapture`.
+      await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
+      await invoke("resume_listening").catch(() => {});
+      ttsActiveRef.current = false;
     }
     dispatch({ type: "speechDone" });
-    startContinuationWindow();
+    // The model can call end_conversation when the user signaled goodbye;
+    // in that case skip the continuation window and require a fresh wake-word
+    // for the next turn.
+    if (!endConversation) {
+      startContinuationWindow();
+    }
   }
 
   function startContinuationWindow() {
@@ -166,18 +243,26 @@ export function useConversationLoop(): { state: State; error: string | null } {
   }
 
   async function handleSpeech(text: string) {
-    if (ttsActiveRef.current) return;
+    console.info(
+      `[loop] speech recv: "${text}" tts=${ttsActiveRef.current} state=${machineRef.current.state} awaiting=${awaitingBodyRef.current}`,
+    );
+    if (ttsActiveRef.current) {
+      console.info("[loop] dropped: tts active");
+      return;
+    }
     const cur = machineRef.current.state;
-    if (cur === "thinking" || cur === "speaking" || cur === "error") return;
-
-    console.log("[whisper]", text);
+    if (cur === "thinking" || cur === "speaking" || cur === "error") {
+      console.info(`[loop] dropped: state=${cur}`);
+      return;
+    }
 
     if (isHallucination(text)) {
-      console.log("[whisper] hallucination filtered");
+      console.info(`[loop] dropped: hallucination`);
       return;
     }
 
     if (awaitingBodyRef.current) {
+      console.info(`[loop] body received: "${text}"`);
       awaitingBodyRef.current = false;
       clearFollowupTimer();
       const body = text.trim();
@@ -191,6 +276,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
     }
 
     const m = detectWake(text);
+    console.info(
+      `[loop] wake match: matched=${m.matched} body="${m.matched ? m.body : ""}"`,
+    );
     if (!m.matched) return;
 
     if (m.body === "") {
@@ -201,6 +289,13 @@ export function useConversationLoop(): { state: State; error: string | null } {
         followupTimerRef.current = null;
         dispatch({ type: "speechTimeout" });
       }, FOLLOWUP_TIMEOUT_MS);
+      // Quick "はい" acknowledgement so the user knows we're listening.
+      // Fire-and-forget — we don't await it because the user may start
+      // speaking immediately, and `withMutedCapture` would block the
+      // pipeline for the cooldown duration.
+      void withMutedCapture(() => speak("はい", voiceURIRef.current)).catch(
+        () => {},
+      );
       return;
     }
 
@@ -260,9 +355,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
         }
         setError(null);
 
-        speechOff = await listen<string>("speech", (e) => {
+        const off = await listen<string>("speech", (e) => {
           void handleSpeech(e.payload);
         });
+        if (cancelled) {
+          off();
+          return;
+        }
+        speechOff = off;
 
         try {
           await invoke("start_listening");
@@ -273,6 +373,18 @@ export function useConversationLoop(): { state: State; error: string | null } {
         }
 
         if (cancelled) return;
+
+        // Once init finishes, surface a missing API key explicitly: a red
+        // tray + warning banner is far more discoverable than letting the
+        // user wake Chappie and then hear an audio error.
+        if (!apiKeyRef.current) {
+          setError(
+            "OpenAI API キーが設定されていません。tray メニュー → 設定を開く から登録してください。",
+          );
+          void invoke("set_tray_state", { state: "error" }).catch(() => {});
+          return;
+        }
+
         void invoke("set_tray_state", { state: "idle" }).catch(() => {});
       } catch (e) {
         console.error("conversation loop init failed", e);
@@ -293,19 +405,74 @@ export function useConversationLoop(): { state: State; error: string | null } {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     let unlisten: (() => void) | undefined;
     void (async () => {
-      unlisten = await listen("settings:updated", async () => {
+      const off = await listen("settings:updated", async () => {
         const s = await loadSettings();
+        const wasMissingKey = !apiKeyRef.current;
         apiKeyRef.current = s.openaiApiKey;
         voiceURIRef.current = s.voiceURI;
         modelRef.current = s.model || DEFAULT_MODEL;
         chatClientRef.current = s.openaiApiKey
           ? createChatClient(s.openaiApiKey, modelRef.current)
           : null;
+        // Recover from the "no API key" startup error once the user fills
+        // it in via Settings → 保存.
+        if (wasMissingKey && s.openaiApiKey) {
+          setError(null);
+          void invoke("set_tray_state", { state: "idle" }).catch(() => {});
+        }
       });
+      if (cancelled) {
+        off();
+        return;
+      }
+      unlisten = off;
     })();
     return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+
+  // Timer fired announcement. Uses `speakQueued` so we don't cancel an
+  // ongoing TTS turn — the announcement appends after whatever is currently
+  // being spoken. Mic capture is paused while we speak so the announcement
+  // doesn't loop back into Whisper.
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      const off = await listen<{ id: number; label: string }>(
+        "timer:fired",
+        async (e) => {
+          const { label } = e.payload;
+          const message = label
+            ? `${label}のタイマーです。時間です。`
+            : "タイマーです。時間です。";
+          console.info(`[timer] fired: id=${e.payload.id} label="${label}"`);
+          ttsActiveRef.current = true;
+          await invoke("pause_listening").catch(() => {});
+          try {
+            await speakQueued(message, voiceURIRef.current);
+          } catch (err) {
+            console.error("[timer] tts failed", err);
+          } finally {
+            await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
+            await invoke("resume_listening").catch(() => {});
+            ttsActiveRef.current = false;
+          }
+        },
+      );
+      if (cancelled) {
+        off();
+        return;
+      }
+      unlisten = off;
+    })();
+    return () => {
+      cancelled = true;
       unlisten?.();
     };
   }, []);
