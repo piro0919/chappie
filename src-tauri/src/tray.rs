@@ -98,6 +98,16 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
             "open_settings" => {
                 let _ = open_settings_window(app);
             }
+            "check_update" => {
+                let app_clone = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    crate::updater::check_for_updates(
+                        app_clone,
+                        crate::updater::CheckTrigger::Manual,
+                    )
+                    .await;
+                });
+            }
             "quit" => {
                 // Stop cpal cleanly so Core Audio releases the input device
                 // before the process exits. Without this the tray exit can
@@ -128,6 +138,8 @@ fn build_menu(
         .checked(listening)
         .build(app)?;
     let settings = MenuItemBuilder::with_id("open_settings", "設定を開く").build(app)?;
+    let check_update =
+        MenuItemBuilder::with_id("check_update", "アップデートを確認").build(app)?;
     let quit = MenuItemBuilder::with_id("quit", "終了").build(app)?;
     MenuBuilder::new(app)
         .item(&status)
@@ -135,6 +147,7 @@ fn build_menu(
         .item(&mic)
         .item(&PredefinedMenuItem::separator(app)?)
         .item(&settings)
+        .item(&check_update)
         .item(&quit)
         .build()
 }

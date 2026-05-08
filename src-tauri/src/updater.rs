@@ -1,16 +1,37 @@
+use std::time::Duration;
 use tauri::AppHandle;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_updater::UpdaterExt;
 
-/// Check for an update, prompt the user via a window-independent dialog,
-/// and download/install if confirmed. Mirrors Galopen's pattern: doing this
-/// in Rust avoids the JS `ask()` API forcing the hidden main window visible
-/// (it attaches to `getCurrentWindow()` as a sheet on macOS).
-pub async fn check_for_updates(app: AppHandle) {
+/// How often the background ticker re-checks for updates while the app is running.
+const PERIODIC_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
+
+/// Trigger context for an update check. Decides whether a "no update" /
+/// "found one" result should produce a dialog or just a tray badge.
+#[derive(Clone, Copy)]
+pub enum CheckTrigger {
+    /// App startup. If an update exists, show the prompt immediately.
+    /// If none, stay silent.
+    Launch,
+    /// 6h background timer. Never interrupts with a dialog — only flips the
+    /// 🔔 tray badge so the user can act on their own time.
+    Periodic,
+    /// User clicked "アップデートを確認" in the tray menu. Always shows a
+    /// dialog (including a "you're up to date" toast) since they asked.
+    Manual,
+}
+
+pub async fn check_for_updates(app: AppHandle, trigger: CheckTrigger) {
     let updater = match app.updater() {
         Ok(u) => u,
         Err(e) => {
             eprintln!("[updater] init failed: {e}");
+            if matches!(trigger, CheckTrigger::Manual) {
+                app.dialog()
+                    .message(format!("アップデーターを初期化できませんでした。\n{e}"))
+                    .title("アップデート")
+                    .blocking_show();
+            }
             return;
         }
     };
@@ -19,13 +40,31 @@ pub async fn check_for_updates(app: AppHandle) {
         Ok(Some(u)) => u,
         Ok(None) => {
             crate::tray::set_update_available(false);
+            if matches!(trigger, CheckTrigger::Manual) {
+                app.dialog()
+                    .message("お使いのバージョンは最新です。")
+                    .title("アップデート")
+                    .blocking_show();
+            }
             return;
         }
         Err(e) => {
             eprintln!("[updater] check failed: {e}");
+            if matches!(trigger, CheckTrigger::Manual) {
+                app.dialog()
+                    .message(format!("確認に失敗しました。\n{e}"))
+                    .title("アップデート")
+                    .blocking_show();
+            }
             return;
         }
     };
+
+    // Periodic ticks should never interrupt — just flag the tray and bail.
+    if matches!(trigger, CheckTrigger::Periodic) {
+        crate::tray::set_update_available(true);
+        return;
+    }
 
     let title = "アップデート";
     let msg = format!(
@@ -44,7 +83,6 @@ pub async fn check_for_updates(app: AppHandle) {
         .blocking_show();
 
     if !confirmed {
-        // Leave a 🔔 in the tray title so the user doesn't lose track of it.
         crate::tray::set_update_available(true);
         return;
     }
@@ -88,4 +126,16 @@ pub async fn check_for_updates(app: AppHandle) {
                 .blocking_show();
         }
     }
+}
+
+/// Spawn a background task that re-checks for updates every `PERIODIC_INTERVAL`.
+/// Found updates only set the tray badge; they never auto-prompt mid-session.
+pub fn start_periodic_checker(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(PERIODIC_INTERVAL).await;
+            check_for_updates(app.clone(), CheckTrigger::Periodic).await;
+        }
+    });
 }

@@ -146,11 +146,15 @@ pub fn run() {
             // Auto-update check in Rust so the dialog is window-independent
             // (the JS `ask()` API attaches to the current window as a sheet,
             // which would force the hidden main/debug window to become visible).
+            // Launch check shows a dialog immediately; a separate periodic
+            // ticker only flips the tray badge so it never interrupts.
             {
                 let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    updater::check_for_updates(app_handle).await;
+                    updater::check_for_updates(app_handle, updater::CheckTrigger::Launch)
+                        .await;
                 });
+                updater::start_periodic_checker(app.handle());
             }
 
             // Fire-and-forget IP-based location lookup so by the time the
