@@ -20,39 +20,66 @@
     "heading": "Things you can say.",
     "lead": "Wake it with \"chappie\", then just keep talking.",
     "footer": "More tools coming over time.",
+    "viewAll": "See everything Chappie can do",
+    "backHome": "Back to home",
+    "allEyebrow": "EVERYTHING IT CAN DO",
+    "allHeading": "The full list of things you can say.",
+    "allLead": "Every voice command Chappie understands today, in one place.",
     "items": {
       "chat": {
         "title": "Chat with you",
-        "example1": "\"Help me plan tomorrow's schedule\"",
-        "example2": "\"Pick a recipe for tonight\"",
+        "example1": "\"Summarize today's news\"",
+        "example2": "\"How do I say 'good job' in Japanese?\"",
         "body": "Casual chat to thoughtful conversations. Chappie remembers the recent flow, so \"about that thing we just talked about\" works."
       },
       "timer": {
         "title": "Set timers",
         "example1": "\"Set a 3-minute timer\"",
-        "example2": "\"5-minute tea timer\"",
+        "example2": "\"Set a 5-minute timer for tea\"",
         "example3": "\"Cancel all timers\"",
         "body": "Just say the duration. Chappie tells you when time is up. Multiple timers at once, remaining time check, cancel — all by voice."
       },
       "time": {
         "title": "Tell time & dates",
         "example1": "\"What time is it?\"",
-        "example2": "\"What day is it today?\"",
-        "example3": "\"What's the date today?\"",
+        "example2": "\"What day is today?\"",
+        "example3": "\"How many hours until 6 PM?\"",
         "body": "Reads your Mac's clock. Math like \"how many hours until 6 PM?\" works too."
       },
       "weather": {
         "title": "Tell the weather",
-        "example1": "\"What's the weather in Tokyo?\"",
-        "example2": "\"How's tomorrow's weather in Osaka?\"",
-        "body": "Tells you the current weather and temperature, plus today and tomorrow's highs, lows, and chance of rain — a quick check before heading out."
+        "example1": "\"What's the weather like?\"",
+        "example2": "\"Will I need an umbrella tomorrow?\"",
+        "example3": "\"How's the weather in Tokyo?\"",
+        "body": "Skip the location and Chappie defaults to your area; name a city and you get that one instead. Current temp, plus today and tomorrow's highs, lows, and chance of rain."
       },
       "web": {
         "title": "Open websites & search",
         "example1": "\"Open YouTube\"",
-        "example2": "\"Look up the weather tomorrow\"",
+        "example2": "\"Open the Apple website\"",
         "example3": "\"Google how to make ramen\"",
         "body": "Launches your default browser to open a URL or run a web search. Great for kicking off research when your hands are full."
+      },
+      "volume": {
+        "title": "Control system volume",
+        "example1": "\"Set the volume to 30\"",
+        "example2": "\"Turn it down a bit\"",
+        "example3": "\"Mute\"",
+        "body": "Adjusts macOS output volume by voice. Absolute levels and relative \"a bit louder / quieter\" both work — perfect when your hands are full."
+      },
+      "apps": {
+        "title": "Launch Mac apps",
+        "example1": "\"Open Slack\"",
+        "example2": "\"Launch Spotify\"",
+        "example3": "\"Open Notes\"",
+        "body": "Launches any installed Mac app by name. Pairs naturally with \"open YouTube\" — the menu bar becomes your voice launcher."
+      },
+      "clipboard": {
+        "title": "Read & write the clipboard",
+        "example1": "\"Read what's on my clipboard\"",
+        "example2": "\"What did I just copy?\"",
+        "example3": "\"Write a short thank-you email and copy it\"",
+        "body": "Reads aloud what's on your clipboard, or drops the text Chappie just produced into it so you can paste straight into the next app."
       },
       "goodbye": {
         "title": "Politely goes back to standby",

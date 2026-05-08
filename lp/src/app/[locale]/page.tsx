@@ -1,52 +1,23 @@
 import {
-  Clock,
-  CloudSun,
+  ArrowRight,
   Cpu,
   Download,
   Github,
-  Globe,
-  Hand,
   Lock,
   MessageCircle,
   Mic,
   RefreshCw,
   Sparkles,
-  Timer,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
+import { CapabilityCard } from "@/components/capability-card";
+import { HERO_CAPABILITY_IDS } from "@/lib/capabilities";
 
 const GITHUB_URL = "https://github.com/piro0919/chappie";
 const RELEASE_URL = "https://github.com/piro0919/chappie/releases/latest";
-
-const CAPABILITY_IDS = [
-  "chat",
-  "timer",
-  "time",
-  "weather",
-  "web",
-  "goodbye",
-] as const;
-const CAPABILITY_ICONS: Record<(typeof CAPABILITY_IDS)[number], typeof Mic> = {
-  chat: MessageCircle,
-  timer: Timer,
-  time: Clock,
-  weather: CloudSun,
-  web: Globe,
-  goodbye: Hand,
-};
-const CAPABILITY_EXAMPLE_KEYS: Record<
-  (typeof CAPABILITY_IDS)[number],
-  string[]
-> = {
-  chat: ["example1", "example2"],
-  timer: ["example1", "example2", "example3"],
-  time: ["example1", "example2", "example3"],
-  weather: ["example1", "example2"],
-  web: ["example1", "example2", "example3"],
-  goodbye: ["example1", "example2", "example3"],
-};
 
 const FEATURE_IDS = [
   "wake",
@@ -150,46 +121,21 @@ export default async function Page({
             {t("capabilities.lead")}
           </p>
           <div className="grid gap-5 sm:grid-cols-2">
-            {CAPABILITY_IDS.map((id) => {
-              const Icon = CAPABILITY_ICONS[id];
-              return (
-                <div
-                  key={id}
-                  className="border-(--color-cream-200) flex flex-col rounded-2xl border bg-white p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-12px_rgba(74,56,38,0.25)]"
-                >
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="bg-(--color-blush-200) inline-flex rounded-2xl p-3">
-                      <Icon
-                        size={20}
-                        strokeWidth={2}
-                        className="text-(--color-cocoa-600)"
-                        aria-hidden
-                      />
-                    </div>
-                    <h3 className="text-(--color-cocoa-700) text-base font-bold">
-                      {t(`capabilities.items.${id}.title`)}
-                    </h3>
-                  </div>
-                  <ul className="mb-4 flex flex-col gap-2">
-                    {CAPABILITY_EXAMPLE_KEYS[id].map((k) => (
-                      <li
-                        key={k}
-                        className="bg-(--color-cream-100) text-(--color-cocoa-700) rounded-xl px-4 py-2 text-sm"
-                      >
-                        {t(`capabilities.items.${id}.${k}`)}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-(--color-cocoa-500) text-sm leading-relaxed">
-                    {t(`capabilities.items.${id}.body`)}
-                  </p>
-                </div>
-              );
-            })}
+            {HERO_CAPABILITY_IDS.map((id) => (
+              <CapabilityCard key={id} id={id} />
+            ))}
           </div>
-          <p className="text-(--color-cocoa-400) mx-auto mt-10 max-w-xl text-center text-xs">
-            {t("capabilities.footer")}
-          </p>
+          <div className="mt-10 flex justify-center">
+            <Link
+              href={
+                locale === "en" ? "/capabilities" : `/${locale}/capabilities`
+              }
+              className="border-(--color-cream-300) text-(--color-cocoa-700) hover:bg-(--color-cream-100) inline-flex items-center gap-2 rounded-2xl border bg-white/80 px-6 py-3 text-sm font-semibold backdrop-blur transition-all hover:-translate-y-0.5"
+            >
+              {t("capabilities.viewAll")}
+              <ArrowRight size={16} strokeWidth={2.25} />
+            </Link>
+          </div>
         </div>
       </section>
 

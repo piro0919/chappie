@@ -1,4 +1,5 @@
 mod audio;
+mod clipboard;
 mod log_event;
 mod mic_permission;
 mod model;
@@ -6,6 +7,7 @@ mod location;
 mod openai;
 mod timer;
 mod tray;
+mod volume;
 mod weather;
 
 use once_cell::sync::OnceCell;
@@ -114,6 +116,7 @@ pub fn run() {
             audio::pause_listening,
             audio::resume_listening,
             openai::chat_complete,
+            volume::is_muted,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

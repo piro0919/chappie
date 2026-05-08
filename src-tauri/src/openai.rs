@@ -194,6 +194,104 @@ fn all_tools() -> Value {
         {
             "type": "function",
             "function": {
+                "name": "get_volume",
+                "description": "現在のシステム音量とミュート状態を取得します。「いま音量いくつ？」のような質問や、「音量上げて」「もう少し下げて」のような相対指示で **set_volume を呼ぶ前に必ずこれを呼んで現在値を確認**してください。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "set_volume",
+                "description": "システムの出力音量を 0〜100 で設定します。「音量30%」「音量50にして」のような絶対指示で呼び出してください。「上げて」「下げて」のような相対指示の場合は **先に get_volume で現在値を取り、適切な絶対値を計算してから呼ぶ**こと（目安: 1段階 = ±10）。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "level": {
+                            "type": "integer",
+                            "description": "音量レベル（0=無音, 100=最大）。",
+                            "minimum": 0,
+                            "maximum": 100
+                        }
+                    },
+                    "required": ["level"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "set_mute",
+                "description": "システム出力のミュートを切り替えます。「ミュート」「消音」→ muted=true、「ミュート解除」「音戻して」→ muted=false。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "muted": {
+                            "type": "boolean",
+                            "description": "true=ミュート, false=ミュート解除。"
+                        }
+                    },
+                    "required": ["muted"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "open_app",
+                "description": "macOS の指定アプリを起動します。「Slack 開いて」「Spotify 起動して」「メモ開いて」「VSCode 立ち上げて」のような指示で呼び出してください。name にはユーザーが言ったアプリ名をそのまま渡します（例: 'Slack', 'Spotify', 'メモ', 'Visual Studio Code'）。`open -a` 経由で起動するので、Applications にインストールされていれば見つかります。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "起動するアプリ名（macOS の Application 名）。"
+                        }
+                    },
+                    "required": ["name"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "read_clipboard",
+                "description": "ユーザーのクリップボード（コピー履歴の最新）の内容を取得します。「クリップボード読み上げて」「コピーしたやつ何だっけ」「これ何て書いてある？」（直前にコピーした想定）のような指示で呼び出してください。テキスト以外（画像など）が入っている場合はエラーが返ります。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "write_clipboard",
+                "description": "指定したテキストをユーザーのクリップボードに書き込みます。「○○をコピーしといて」「それコピーして」「クリップボードに入れて」のような指示で呼び出してください。会話で生成した文章・コード・要約などを他のアプリに貼り付けたい場合に使います。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "クリップボードに書き込むテキスト。"
+                        }
+                    },
+                    "required": ["text"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "cancel_timer",
                 "description": "タイマーを取り消します。id を指定すると該当タイマー、未指定なら全件取り消し。「タイマー消して」「全部キャンセル」などで呼び出してください。",
                 "parameters": {
@@ -321,6 +419,74 @@ async fn execute_tool(
             match tauri_plugin_opener::OpenerExt::opener(app).open_url(&url, None::<&str>) {
                 Ok(()) => json!({ "ok": true, "query": query }).to_string(),
                 Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
+            }
+        }
+        "get_volume" => match crate::volume::get() {
+            Ok(v) => json!({ "ok": true, "level": v.level, "muted": v.muted }).to_string(),
+            Err(e) => json!({ "ok": false, "error": e }).to_string(),
+        },
+        "set_volume" => {
+            let level = args.get("level").and_then(|v| v.as_i64());
+            let Some(level) = level else {
+                return json!({ "ok": false, "error": "level is required" }).to_string();
+            };
+            let level = level.clamp(0, 100) as u8;
+            match crate::volume::set_level(level) {
+                Ok(()) => json!({ "ok": true, "level": level }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "set_mute" => {
+            let muted = args.get("muted").and_then(|v| v.as_bool());
+            let Some(muted) = muted else {
+                return json!({ "ok": false, "error": "muted is required" }).to_string();
+            };
+            match crate::volume::set_muted(muted) {
+                Ok(()) => json!({ "ok": true, "muted": muted }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "open_app" => {
+            let name = args
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim();
+            if name.is_empty() {
+                return json!({ "ok": false, "error": "name is empty" }).to_string();
+            }
+            match std::process::Command::new("open")
+                .arg("-a")
+                .arg(name)
+                .status()
+            {
+                Ok(s) if s.success() => json!({ "ok": true, "name": name }).to_string(),
+                Ok(s) => json!({
+                    "ok": false,
+                    "error": format!("`open -a` exited with status {s}; the app may not be installed")
+                })
+                .to_string(),
+                Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
+            }
+        }
+        "read_clipboard" => match crate::clipboard::read() {
+            Ok(text) => {
+                if text.is_empty() {
+                    json!({ "ok": false, "error": "clipboard is empty" }).to_string()
+                } else {
+                    json!({ "ok": true, "text": text }).to_string()
+                }
+            }
+            Err(e) => json!({ "ok": false, "error": e }).to_string(),
+        },
+        "write_clipboard" => {
+            let text = args.get("text").and_then(|v| v.as_str()).unwrap_or("");
+            if text.is_empty() {
+                return json!({ "ok": false, "error": "text is empty" }).to_string();
+            }
+            match crate::clipboard::write(text) {
+                Ok(()) => json!({ "ok": true, "chars": text.chars().count() }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
             }
         }
         "cancel_timer" => {

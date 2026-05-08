@@ -39,6 +39,7 @@ rubato = { version = "0.16", features = ["fft_resampler"], default-features = fa
 voice_activity_detector = "0.2"
 chrono = "0.4"
 urlencoding = "2"
+arboard = "3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
