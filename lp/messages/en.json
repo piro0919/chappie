@@ -60,6 +60,13 @@
         "example3": "\"How's the weather in Tokyo?\"",
         "body": "Skip the location and Chappie defaults to your area; name a city and you get that one instead. Current temp, plus today and tomorrow's highs, lows, and chance of rain."
       },
+      "calendar": {
+        "title": "Read your schedule",
+        "example1": "\"What's on my calendar today?\"",
+        "example2": "\"Tomorrow's schedule?\"",
+        "example3": "\"What's next?\"",
+        "body": "Reads from your Mac's Calendar (read-only). Today, tomorrow, or the next 7 days — Chappie picks up titles, times, and locations and reads them out loud."
+      },
       "web": {
         "title": "Open websites & search",
         "example1": "\"Open YouTube\"",

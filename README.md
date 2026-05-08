@@ -35,6 +35,7 @@
 | ⏰ | Reminders | "Wake me up at 7 tomorrow", "8 PM, take my meds" (persisted) |
 | 🕐 | Date & time | "What time is it?", "What day is it today?" |
 | ⛅ | Weather | "What's the weather in Tokyo?" |
+| 📅 | Calendar | "What's on my calendar today?", "Tomorrow's schedule?", "What's next?" (read-only) |
 | 🌐 | Open sites & web search | "Open YouTube", "Google how to make ramen" |
 | 🚀 | Launch apps & folders | "Open Slack", "Open my Downloads folder" |
 | 🔊 | System volume | "Set the volume to 30", "Mute", "Turn it down a bit" |
