@@ -92,7 +92,6 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const historyRef = useRef<History>(createHistory(buildSystemPrompt("auto")));
   const apiKeyRef = useRef<string>("");
   const chatClientRef = useRef<ChatClient | null>(null);
-  const voiceURIRef = useRef<string | null>(null);
   const langRef = useRef<Language>("auto");
   const awaitingBodyRef = useRef(false);
   const followupTimerRef = useRef<number | null>(null);
@@ -170,7 +169,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
       const msg = tRaw(langRef.current, "conversation.apiKeyMissingShort");
       try {
         if (await isSystemMuted()) await showOnHud(msg);
-        else await withMutedCapture(() => speak(msg, voiceURIRef.current));
+        else
+          await withMutedCapture(() =>
+            speak(msg, resolveLanguage(langRef.current)),
+          );
       } catch {}
       scheduleErrorRecovery("no api key");
       return;
@@ -216,7 +218,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       ttsActiveRef.current = true;
       void invoke("pause_listening").catch(() => {});
       dispatch({ type: "responseReady", reply: "" });
-      speaker = createStreamingSpeaker(voiceURIRef.current);
+      speaker = createStreamingSpeaker(resolveLanguage(langRef.current));
     };
 
     const flushPendingToSpeaker = () => {
@@ -264,7 +266,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
       const errMuted = await isSystemMuted();
       try {
         if (errMuted) await showOnHud(errMsg);
-        else await withMutedCapture(() => speak(errMsg, voiceURIRef.current));
+        else
+          await withMutedCapture(() =>
+            speak(errMsg, resolveLanguage(langRef.current)),
+          );
       } catch {}
       scheduleErrorRecovery(String(e));
       return;
@@ -289,7 +294,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // landed (rare; possible if the round triggered tools and the final
       // answer was short). Speak the whole thing at once.
       try {
-        await withMutedCapture(() => speak(reply, voiceURIRef.current));
+        await withMutedCapture(() =>
+          speak(reply, resolveLanguage(langRef.current)),
+        );
       } catch (e) {
         console.error("tts failed", e);
       }
@@ -383,9 +390,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
             durationMs: 2200,
           }).catch(() => {});
         } else {
-          await withMutedCapture(() => speak(ack, voiceURIRef.current)).catch(
-            () => {},
-          );
+          await withMutedCapture(() =>
+            speak(ack, resolveLanguage(langRef.current)),
+          ).catch(() => {});
         }
       })();
       return;
@@ -405,7 +412,6 @@ export function useConversationLoop(): { state: State; error: string | null } {
       try {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
-        voiceURIRef.current = s.voiceURI;
         langRef.current = s.language;
         historyRef.current = createHistory(buildSystemPrompt(s.language));
         const resolvedLang = resolveLanguage(s.language);
@@ -517,7 +523,6 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const wasMissingKey = !apiKeyRef.current;
         const langChanged = langRef.current !== s.language;
         apiKeyRef.current = s.openaiApiKey;
-        voiceURIRef.current = s.voiceURI;
         langRef.current = s.language;
         if (langChanged) {
           historyRef.current = {
@@ -590,7 +595,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
           ttsActiveRef.current = true;
           await invoke("pause_listening").catch(() => {});
           try {
-            await speakQueued(message, voiceURIRef.current);
+            await speakQueued(message, resolveLanguage(langRef.current));
           } catch (err) {
             console.error("[timer] tts failed", err);
           } finally {
@@ -644,7 +649,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
           ttsActiveRef.current = true;
           await invoke("pause_listening").catch(() => {});
           try {
-            await speakQueued(message, voiceURIRef.current);
+            await speakQueued(message, resolveLanguage(langRef.current));
           } catch (err) {
             console.error("[reminder] tts failed", err);
           } finally {

@@ -29,11 +29,11 @@ beforeEach(() => {
 
 describe("speak", () => {
   it("resolves when utterance ends", async () => {
-    await expect(speak("hello", null)).resolves.toBeUndefined();
+    await expect(speak("hello", "en")).resolves.toBeUndefined();
   });
 
   it("calls cancel() before speaking to clear any wedged queue", async () => {
-    await speak("hello", null);
+    await speak("hello", "en");
     expect(cancelMock).toHaveBeenCalled();
   });
 
@@ -45,7 +45,7 @@ describe("speak", () => {
       cancel: cancelMock,
       getVoices: () => [],
     });
-    await expect(speak("hello", null)).resolves.toBeUndefined();
+    await expect(speak("hello", "en")).resolves.toBeUndefined();
   });
 
   it("rejects on real errors", async () => {
@@ -59,7 +59,7 @@ describe("speak", () => {
       cancel: cancelMock,
       getVoices: () => [],
     });
-    await expect(speak("hello", null)).rejects.toThrow();
+    await expect(speak("hello", "en")).rejects.toThrow();
   });
 });
 

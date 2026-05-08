@@ -26,9 +26,7 @@ const MIC_PRIVACY_URL =
 export function SettingsView() {
   const { t } = useT();
   const [apiKey, setApiKey] = useState("");
-  const [voiceURI, setVoiceURI] = useState<string | null>(null);
   const [language, setLanguage] = useState<Language>("auto");
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [autostart, setAutostart] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -86,7 +84,6 @@ export function SettingsView() {
     void (async () => {
       const s: Settings = await loadSettings();
       setApiKey(s.openaiApiKey);
-      setVoiceURI(s.voiceURI);
       setLanguage(s.language);
       setAutostart(await isAutostartEnabled());
       await refreshMicStatus();
@@ -95,15 +92,10 @@ export function SettingsView() {
     getVersion()
       .then(setVersion)
       .catch(() => {});
-    const refresh = () => setVoices(window.speechSynthesis.getVoices());
-    refresh();
-    window.speechSynthesis.addEventListener("voiceschanged", refresh);
-    return () =>
-      window.speechSynthesis.removeEventListener("voiceschanged", refresh);
   }, []);
 
   const onSave = async () => {
-    await saveSettings({ openaiApiKey: apiKey, voiceURI, language });
+    await saveSettings({ openaiApiKey: apiKey, language });
     try {
       if (autostart) await enableAutostart();
       else await disableAutostart();
@@ -223,28 +215,8 @@ export function SettingsView() {
         </div>
       </section>
 
-      {/* Voice + autostart */}
+      {/* Autostart */}
       <section className={styles.card}>
-        <div className={styles.row}>
-          <label className={styles.rowLabel} htmlFor="voice">
-            {t("settings.voice")}
-          </label>
-          <select
-            id="voice"
-            className={styles.select}
-            value={voiceURI ?? ""}
-            onChange={(e) =>
-              setVoiceURI(e.target.value === "" ? null : e.target.value)
-            }
-          >
-            <option value="">{t("settings.voiceSystemDefault")}</option>
-            {voices.map((v) => (
-              <option key={v.voiceURI} value={v.voiceURI}>
-                {v.name} ({v.lang})
-              </option>
-            ))}
-          </select>
-        </div>
         <div className={styles.row}>
           <span className={styles.rowLabel}>
             {t("settings.autostartLabel")}

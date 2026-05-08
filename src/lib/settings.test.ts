@@ -25,19 +25,16 @@ describe("settings", () => {
   it("returns defaults when store is empty", async () => {
     expect(await loadSettings()).toEqual({
       openaiApiKey: "",
-      voiceURI: null,
-      model: "gpt-4o-mini",
+      language: "auto",
     });
   });
 
   it("returns persisted values when present", async () => {
     fakeStoreState.set("openaiApiKey", "sk-test");
-    fakeStoreState.set("voiceURI", "com.apple.voice.Kyoko");
-    fakeStoreState.set("model", "gpt-4o");
+    fakeStoreState.set("language", "en");
     expect(await loadSettings()).toEqual({
       openaiApiKey: "sk-test",
-      voiceURI: "com.apple.voice.Kyoko",
-      model: "gpt-4o",
+      language: "en",
     });
   });
 
@@ -47,24 +44,22 @@ describe("settings", () => {
     expect(fakeStore.save).toHaveBeenCalled();
     expect(await loadSettings()).toEqual({
       openaiApiKey: "sk-new",
-      voiceURI: null,
-      model: "gpt-4o-mini",
+      language: "auto",
     });
   });
 
-  it("allows clearing voiceURI to null", async () => {
-    fakeStoreState.set("voiceURI", "abc");
-    await saveSettings({ voiceURI: null });
-    expect(fakeStore.set).toHaveBeenCalledWith("voiceURI", null);
-    expect((await loadSettings()).voiceURI).toBeNull();
+  it("persists language changes", async () => {
+    await saveSettings({ language: "ja" });
+    expect(fakeStore.set).toHaveBeenCalledWith("language", "ja");
+    expect((await loadSettings()).language).toBe("ja");
   });
 
   it("ignores undefined fields in patch", async () => {
-    await saveSettings({ openaiApiKey: undefined, voiceURI: "v1" });
+    await saveSettings({ openaiApiKey: undefined, language: "fr" });
     expect(fakeStore.set).not.toHaveBeenCalledWith(
       "openaiApiKey",
       expect.anything(),
     );
-    expect(fakeStore.set).toHaveBeenCalledWith("voiceURI", "v1");
+    expect(fakeStore.set).toHaveBeenCalledWith("language", "fr");
   });
 });

@@ -1,23 +1,34 @@
+/** Pick a voice that matches `lang` (e.g. "ja", "en", "es"). Prefers
+ *  voices flagged `localService` (system-installed, usually higher
+ *  quality) over remote ones. Falls back to whatever voice WebKit picks
+ *  if nothing matches. */
+function pickVoice(lang: string): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  const matches = voices.filter((v) =>
+    v.lang.toLowerCase().startsWith(lang.toLowerCase()),
+  );
+  if (matches.length === 0) return null;
+  const local = matches.find((v) => v.localService);
+  return local ?? matches[0];
+}
+
 /** Speak a single utterance and resolve when it ends. Calls cancel() first
  *  so a previously wedged synthesis queue doesn't hold this one back.
  *  Use `speakQueued` for streaming where you want sentences to play
  *  back-to-back without canceling each other. */
-export function speak(text: string, voiceURI: string | null): Promise<void> {
+export function speak(text: string, lang: string): Promise<void> {
   return new Promise((resolve, reject) => {
     window.speechSynthesis.cancel();
-    speakInternal(text, voiceURI, resolve, reject);
+    speakInternal(text, lang, resolve, reject);
   });
 }
 
 /** Like `speak`, but does NOT cancel any in-flight speech. Multiple calls
  *  in sequence form a continuous read-out — the WebKit synthesis queue
  *  itself plays them back-to-back. */
-export function speakQueued(
-  text: string,
-  voiceURI: string | null,
-): Promise<void> {
+export function speakQueued(text: string, lang: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    speakInternal(text, voiceURI, resolve, reject);
+    speakInternal(text, lang, resolve, reject);
   });
 }
 
@@ -28,20 +39,18 @@ const TTS_RATE = 1.05;
 
 function speakInternal(
   text: string,
-  voiceURI: string | null,
+  lang: string,
   resolve: () => void,
   reject: (err: Error) => void,
 ): void {
   const utter = new SpeechSynthesisUtterance(text);
   utter.rate = TTS_RATE;
-  if (voiceURI) {
-    const voice = window.speechSynthesis
-      .getVoices()
-      .find((v) => v.voiceURI === voiceURI);
-    if (voice) {
-      utter.voice = voice;
-      utter.lang = voice.lang;
-    }
+  const voice = pickVoice(lang);
+  if (voice) {
+    utter.voice = voice;
+    utter.lang = voice.lang;
+  } else {
+    utter.lang = lang;
   }
   utter.onend = () => resolve();
   utter.onerror = (e) => {
@@ -77,7 +86,7 @@ const SENTENCE_TERMINATORS = /[。！？.!?]+/g;
  *  `utter.onend` fires 1-3 s late on macOS Japanese voices (Kyoko / Otoya),
  *  which used to leave the tray stuck in "speaking" after audio actually
  *  ended. */
-export function createStreamingSpeaker(voiceURI: string | null): {
+export function createStreamingSpeaker(lang: string): {
   feed: (chunk: string) => void;
   flush: () => Promise<void>;
 } {
@@ -85,11 +94,7 @@ export function createStreamingSpeaker(voiceURI: string | null): {
   window.speechSynthesis.cancel();
 
   let buffer = "";
-  const cachedVoice = voiceURI
-    ? (window.speechSynthesis
-        .getVoices()
-        .find((v) => v.voiceURI === voiceURI) ?? null)
-    : null;
+  const cachedVoice = pickVoice(lang);
 
   const speakOne = (sentence: string) => {
     const utter = new SpeechSynthesisUtterance(sentence);
@@ -97,6 +102,8 @@ export function createStreamingSpeaker(voiceURI: string | null): {
     if (cachedVoice) {
       utter.voice = cachedVoice;
       utter.lang = cachedVoice.lang;
+    } else {
+      utter.lang = lang;
     }
     utter.onerror = (e) => {
       if (e.error !== "interrupted" && e.error !== "canceled") {

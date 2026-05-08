@@ -22,8 +22,6 @@ type Messages = {
     apiKey: string;
     apiKeyPlaceholder: string;
     apiKeyNote: string;
-    voice: string;
-    voiceSystemDefault: string;
     autostartLabel: string;
     autostartCheckbox: string;
     languageLabel: string;
@@ -82,8 +80,6 @@ const ja: Messages = {
     apiKey: "API キー",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini に対応。",
-    voice: "読み上げ音声",
-    voiceSystemDefault: "（システム既定）",
     autostartLabel: "起動",
     autostartCheckbox: "ログイン時に自動起動する",
     languageLabel: "言語",
@@ -149,8 +145,6 @@ const en: Messages = {
     apiKey: "API Key",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Supports OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
-    voice: "Voice",
-    voiceSystemDefault: "(System default)",
     autostartLabel: "Startup",
     autostartCheckbox: "Launch at login",
     languageLabel: "Language",
@@ -217,8 +211,6 @@ const es: Messages = {
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
       "Compatible con OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
-    voice: "Voz",
-    voiceSystemDefault: "(Predeterminada del sistema)",
     autostartLabel: "Inicio",
     autostartCheckbox: "Iniciar al iniciar sesión",
     languageLabel: "Idioma",
@@ -284,8 +276,6 @@ const fr: Messages = {
     apiKey: "Clé d'API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatible OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
-    voice: "Voix",
-    voiceSystemDefault: "(Par défaut du système)",
     autostartLabel: "Démarrage",
     autostartCheckbox: "Lancer à l'ouverture de session",
     languageLabel: "Langue",
@@ -351,8 +341,6 @@ const de: Messages = {
     apiKey: "API-Schlüssel",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Unterstützt OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
-    voice: "Stimme",
-    voiceSystemDefault: "(Systemstandard)",
     autostartLabel: "Start",
     autostartCheckbox: "Beim Anmelden automatisch starten",
     languageLabel: "Sprache",
@@ -417,8 +405,6 @@ const zh: Messages = {
     apiKey: "API 密钥",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "支持 OpenAI / xAI / OpenRouter / Anthropic / Gemini。",
-    voice: "语音",
-    voiceSystemDefault: "(系统默认)",
     autostartLabel: "启动",
     autostartCheckbox: "登录时自动启动",
     languageLabel: "语言",
@@ -483,8 +469,6 @@ const pt: Messages = {
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
       "Compatível com OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
-    voice: "Voz",
-    voiceSystemDefault: "(Padrão do sistema)",
     autostartLabel: "Início",
     autostartCheckbox: "Iniciar ao fazer login",
     languageLabel: "Idioma",
@@ -550,8 +534,6 @@ const ko: Messages = {
     apiKey: "API 키",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini 지원.",
-    voice: "음성",
-    voiceSystemDefault: "(시스템 기본값)",
     autostartLabel: "시작",
     autostartCheckbox: "로그인할 때 자동 실행",
     languageLabel: "언어",
@@ -618,8 +600,6 @@ const it: Messages = {
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
       "Compatibile con OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
-    voice: "Voce",
-    voiceSystemDefault: "(Predefinita di sistema)",
     autostartLabel: "Avvio",
     autostartCheckbox: "Avvia all'accesso",
     languageLabel: "Lingua",
