@@ -45,21 +45,22 @@ impl Provider {
     /// Sensible default model for each provider. Picked to be the cheapest
     /// "real" model that does tool calling well.
     ///
-    /// Gemini caveat: `gemini-2.5-flash-lite` looked tempting because its
-    /// free-tier daily quota is 1000/day vs flash's 20/day, but in practice
-    /// flash-lite isn't reliable enough to handle Chappie's 12-tool prompt —
-    /// it sometimes returns an empty `parts` block with `finishReason=STOP`
-    /// (i.e. "gives up") on complex function-calling requests. flash is
-    /// strict about quota but actually answers, so we default to it. Power
-    /// users with billing enabled (or willing to live with flash-lite's
-    /// flakiness) can override via `CHAPPIE_MODEL`.
+    /// Gemini caveat: we use `gemini-2.5-flash-lite` instead of `flash`
+    /// because flash's free-tier quota is just 20/day — heavy enough to
+    /// hit on a normal day's testing. flash-lite gives ~1000/day. The
+    /// trade-off is that flash-lite is weaker at function calling and
+    /// occasionally returns an empty `parts` block with `finishReason=STOP`
+    /// on Chappie's 12-tool prompt (i.e. "gives up"). For now we accept
+    /// the occasional silent turn in exchange for an actually-usable free
+    /// tier; revisit if reliability becomes a real complaint. Power users
+    /// can pin to flash via `CHAPPIE_MODEL=gemini-2.5-flash`.
     pub fn default_model(self) -> &'static str {
         match self {
             Self::OpenAI => "gpt-4o-mini",
             Self::XAI => "grok-2-latest",
             Self::OpenRouter => "openai/gpt-4o-mini",
             Self::Anthropic => "claude-3-5-haiku-latest",
-            Self::Gemini => "gemini-2.5-flash",
+            Self::Gemini => "gemini-2.5-flash-lite",
         }
     }
 
