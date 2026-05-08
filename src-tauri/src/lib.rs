@@ -31,6 +31,22 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 
 static WHISPER_CTX: OnceCell<Mutex<WhisperContext>> = OnceCell::new();
 
+/// Language hint for Whisper. `None` means auto-detect.
+/// Settings on the renderer side push updates via `set_whisper_language`.
+static WHISPER_LANG: Mutex<Option<&'static str>> = Mutex::new(Some("ja"));
+
+#[tauri::command]
+fn set_whisper_language(lang: Option<String>) {
+    let mapped: Option<&'static str> = match lang.as_deref() {
+        Some("ja") => Some("ja"),
+        Some("en") => Some("en"),
+        _ => None,
+    };
+    if let Ok(mut g) = WHISPER_LANG.lock() {
+        *g = mapped;
+    }
+}
+
 fn model_path() -> std::path::PathBuf {
     model::model_path()
 }
@@ -54,7 +70,8 @@ pub(crate) fn run_whisper(audio: Vec<f32>) -> Result<String, String> {
     let mut state = ctx.create_state().map_err(|e| format!("create_state: {e}"))?;
 
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-    params.set_language(Some("ja"));
+    let lang = WHISPER_LANG.lock().ok().and_then(|g| *g);
+    params.set_language(lang);
     params.set_translate(false);
     params.set_print_progress(false);
     params.set_print_realtime(false);
@@ -123,6 +140,7 @@ pub fn run() {
             set_tray_state,
             open_settings,
             ensure_model,
+            set_whisper_language,
             mic_permission::check_microphone_permission,
             mic_permission::request_microphone_access,
             audio::start_listening,

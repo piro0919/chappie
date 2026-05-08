@@ -41,6 +41,14 @@ type Messages = {
     timerFiredNoLabel: string;
     reminderFiredWithLabel: string;
     reminderFiredNoLabel: string;
+    timerHudWithLabel: string;
+    timerHudNoLabel: string;
+    reminderHudWithLabel: string;
+    reminderHudNoLabel: string;
+    fallbackError: string;
+    modelProgress: string;
+    modelFetchFailed: string;
+    micStartFailed: string;
   };
   systemPrompt: {
     persona: string;
@@ -89,6 +97,14 @@ const ja: Messages = {
     timerFiredNoLabel: "タイマーです。時間です。",
     reminderFiredWithLabel: "{label}の時間です。",
     reminderFiredNoLabel: "リマインダーの時間です。",
+    timerHudWithLabel: "⏲ {label} タイマー",
+    timerHudNoLabel: "⏲ タイマー",
+    reminderHudWithLabel: "⏰ {label}",
+    reminderHudNoLabel: "⏰ リマインダー",
+    fallbackError: "うまく繋がりませんでした。",
+    modelProgress: "Whisper モデルを取得中… {pct}%",
+    modelFetchFailed: "モデル取得に失敗: {err}",
+    micStartFailed: "マイク開始に失敗: {err}",
   },
   systemPrompt: {
     persona:
@@ -141,6 +157,14 @@ const en: Messages = {
     timerFiredNoLabel: "Timer's up.",
     reminderFiredWithLabel: "Reminder: {label}.",
     reminderFiredNoLabel: "Reminder.",
+    timerHudWithLabel: "⏲ {label} timer",
+    timerHudNoLabel: "⏲ Timer",
+    reminderHudWithLabel: "⏰ {label}",
+    reminderHudNoLabel: "⏰ Reminder",
+    fallbackError: "Couldn't connect.",
+    modelProgress: "Downloading Whisper model… {pct}%",
+    modelFetchFailed: "Model fetch failed: {err}",
+    micStartFailed: "Failed to start microphone: {err}",
   },
   systemPrompt: {
     persona:
@@ -153,6 +177,23 @@ const en: Messages = {
 };
 
 const CATALOGS: Record<Exclude<Language, "auto">, Messages> = { ja, en };
+
+const WAKE_ACKS: Record<Exclude<Language, "auto">, string[]> = {
+  ja: [
+    "はい",
+    "はーい",
+    "はい、なに？",
+    "なーに？",
+    "どうしたの？",
+    "呼んだ？",
+    "なになに？",
+  ],
+  en: ["Yes?", "Yeah?", "What's up?", "Hmm?", "Mhm?", "Go ahead.", "I'm here."],
+};
+
+export function getWakeAcks(lang: Language): string[] {
+  return WAKE_ACKS[resolveLanguage(lang)];
+}
 
 export function resolveLanguage(lang: Language): Exclude<Language, "auto"> {
   if (lang !== "auto") return lang;

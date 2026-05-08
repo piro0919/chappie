@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
+import { getWakeAcks, resolveLanguage, t as tRaw } from "../i18n/messages";
 import {
   addAssistant,
   addUser,
@@ -9,7 +10,7 @@ import {
   messagesForRequest,
 } from "../lib/conversation-history";
 import { type ChatClient, createChatClient } from "../lib/openai-client";
-import { loadSettings } from "../lib/settings";
+import { type Language, loadSettings } from "../lib/settings";
 import {
   createStreamingSpeaker,
   speak,
@@ -25,29 +26,21 @@ import {
 import { detectWake } from "../lib/wake-word";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
-const SYSTEM_PROMPT = [
-  "あなたはチャッピー、ハンズフリー音声アシスタントです。返答は読み上げられるので、短く自然な会話調の日本語で答えてください。",
-  "数値は読み上げで自然に聞こえる表記にしてください。小数点は『点』と書きます（例: 17.3度 → 17点3度、35% → 35パーセント）。「:」「/」など記号は読み上げると不自然になるので、時刻は「14時30分」、日付は「5月8日」のような表記にしてください。",
-].join(" ");
+function buildSystemPrompt(lang: Language): string {
+  return [
+    tRaw(lang, "systemPrompt.persona"),
+    tRaw(lang, "systemPrompt.formatTts"),
+  ].join(" ");
+}
 const FOLLOWUP_TIMEOUT_MS = 6000;
 // After Chappie finishes speaking, accept follow-up without requiring a fresh
 // "チャッピー" wake-word for this window. Lets a multi-turn conversation flow.
 const CONTINUE_WINDOW_MS = 6000;
 // Time the tray "error" state stays visible before auto-recovering.
 const ERROR_DISPLAY_MS = 1800;
-// Friendly variants for the wake-word acknowledgement. Picked at random so
-// Chappie doesn't feel like it's playing the same canned response on loop.
-const WAKE_ACKS = [
-  "はい",
-  "はーい",
-  "はい、なに？",
-  "なーに？",
-  "どうしたの？",
-  "呼んだ？",
-  "なになに？",
-];
-function pickWakeAck(): string {
-  return WAKE_ACKS[Math.floor(Math.random() * WAKE_ACKS.length)];
+function pickWakeAck(lang: Language): string {
+  const acks = getWakeAcks(lang);
+  return acks[Math.floor(Math.random() * acks.length)];
 }
 // Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
 // room for speaker reverb and ensures Chappie doesn't re-trigger on its tail.
@@ -96,10 +89,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const [error, setError] = useState<string | null>(null);
 
   const machineRef = useRef<Machine>(createMachine());
-  const historyRef = useRef<History>(createHistory(SYSTEM_PROMPT));
+  const historyRef = useRef<History>(createHistory(buildSystemPrompt("auto")));
   const apiKeyRef = useRef<string>("");
   const chatClientRef = useRef<ChatClient | null>(null);
   const voiceURIRef = useRef<string | null>(null);
+  const langRef = useRef<Language>("auto");
   const awaitingBodyRef = useRef(false);
   const followupTimerRef = useRef<number | null>(null);
   const ttsActiveRef = useRef(false);
@@ -173,7 +167,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     console.info(`[loop] runTurn: "${userText}"`);
     if (!apiKeyRef.current || !chatClientRef.current) {
       console.warn("[loop] no api key — speaking error message");
-      const msg = "OpenAI APIキーが未設定です。設定画面から登録してください。";
+      const msg = tRaw(langRef.current, "conversation.apiKeyMissingShort");
       try {
         if (await isSystemMuted()) await showOnHud(msg);
         else await withMutedCapture(() => speak(msg, voiceURIRef.current));
@@ -194,8 +188,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     if (mutedAtTurnStart) {
       requestMessages.splice(1, 0, {
         role: "system",
-        content:
-          "今回の返答は音声ではなく画面に文字で表示されます。数字・記号は通常の表記で書いてください（例: 17.3度、39%、14:30、5/8）。「点」「パーセント」「時◯分」のような読み上げ向け表記は使わないでください。",
+        content: tRaw(langRef.current, "systemPrompt.formatHud"),
       });
     }
 
@@ -267,7 +260,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
           await (speaker as Speaker).flush();
         } catch {}
       }
-      const errMsg = "うまく繋がりませんでした。";
+      const errMsg = tRaw(langRef.current, "conversation.fallbackError");
       const errMuted = await isSystemMuted();
       try {
         if (errMuted) await showOnHud(errMsg);
@@ -383,7 +376,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // speaking immediately, and `withMutedCapture` would block the
       // pipeline for the cooldown duration.
       void (async () => {
-        const ack = pickWakeAck();
+        const ack = pickWakeAck(langRef.current);
         if (await isSystemMuted()) {
           await invoke("hud_show", {
             text: `👂 ${ack}`,
@@ -413,6 +406,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
         voiceURIRef.current = s.voiceURI;
+        langRef.current = s.language;
+        historyRef.current = createHistory(buildSystemPrompt(s.language));
+        void invoke("set_whisper_language", {
+          lang: resolveLanguage(s.language),
+        }).catch(() => {});
         chatClientRef.current = s.openaiApiKey
           ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)
           : null;
@@ -426,7 +424,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
             const pct = e.payload.total
               ? Math.floor((e.payload.received / e.payload.total) * 100)
               : 0;
-            setError(`Whisper モデルを取得中… ${pct}%`);
+            setError(
+              tRaw(langRef.current, "conversation.modelProgress", { pct }),
+            );
           },
         );
         try {
@@ -436,15 +436,17 @@ export function useConversationLoop(): { state: State; error: string | null } {
             "request_microphone_access",
           ).catch(() => false);
           if (!granted) {
-            setError(
-              "マイクの使用が許可されていません。システム設定 → プライバシーとセキュリティ → マイク で Chappie を有効にしてください。",
-            );
+            setError(tRaw(langRef.current, "conversation.micDenied"));
             void invoke("set_tray_state", { state: "error" }).catch(() => {});
             return;
           }
           await invoke<string>("ensure_model");
         } catch (e) {
-          setError(`モデル取得に失敗: ${String(e)}`);
+          setError(
+            tRaw(langRef.current, "conversation.modelFetchFailed", {
+              err: String(e),
+            }),
+          );
           void invoke("set_tray_state", { state: "error" }).catch(() => {});
           return;
         } finally {
@@ -465,7 +467,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
         try {
           await invoke("start_listening");
         } catch (e) {
-          setError(`マイク開始に失敗: ${String(e)}`);
+          setError(
+            tRaw(langRef.current, "conversation.micStartFailed", {
+              err: String(e),
+            }),
+          );
           void invoke("set_tray_state", { state: "error" }).catch(() => {});
           return;
         }
@@ -476,9 +482,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // tray + warning banner is far more discoverable than letting the
         // user wake Chappie and then hear an audio error.
         if (!apiKeyRef.current) {
-          setError(
-            "OpenAI API キーが設定されていません。tray メニュー → 設定を開く から登録してください。",
-          );
+          setError(tRaw(langRef.current, "conversation.apiKeyMissingLong"));
           void invoke("set_tray_state", { state: "error" }).catch(() => {});
           return;
         }
@@ -509,8 +513,19 @@ export function useConversationLoop(): { state: State; error: string | null } {
       const off = await listen("settings:updated", async () => {
         const s = await loadSettings();
         const wasMissingKey = !apiKeyRef.current;
+        const langChanged = langRef.current !== s.language;
         apiKeyRef.current = s.openaiApiKey;
         voiceURIRef.current = s.voiceURI;
+        langRef.current = s.language;
+        if (langChanged) {
+          historyRef.current = {
+            ...historyRef.current,
+            systemPrompt: buildSystemPrompt(s.language),
+          };
+          void invoke("set_whisper_language", {
+            lang: resolveLanguage(s.language),
+          }).catch(() => {});
+        }
         chatClientRef.current = s.openaiApiKey
           ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)
           : null;
@@ -546,14 +561,20 @@ export function useConversationLoop(): { state: State; error: string | null } {
         async (e) => {
           const { label } = e.payload;
           const message = label
-            ? `${label}のタイマーです。時間です。`
-            : "タイマーです。時間です。";
+            ? tRaw(langRef.current, "conversation.timerFiredWithLabel", {
+                label,
+              })
+            : tRaw(langRef.current, "conversation.timerFiredNoLabel");
           console.info(`[timer] fired: id=${e.payload.id} label="${label}"`);
           // When muted, the spoken alarm would be silent — surface it on
           // the HUD instead so the user actually notices the timer fired.
           const muted = await invoke<boolean>("is_muted").catch(() => false);
           if (muted) {
-            const hudText = label ? `⏲ ${label} タイマー` : "⏲ タイマー";
+            const hudText = label
+              ? tRaw(langRef.current, "conversation.timerHudWithLabel", {
+                  label,
+                })
+              : tRaw(langRef.current, "conversation.timerHudNoLabel");
             await invoke("hud_show", {
               text: hudText,
               durationMs: 8000,
@@ -596,12 +617,18 @@ export function useConversationLoop(): { state: State; error: string | null } {
         async (e) => {
           const { label } = e.payload;
           const message = label
-            ? `${label}の時間です。`
-            : "リマインダーの時間です。";
+            ? tRaw(langRef.current, "conversation.reminderFiredWithLabel", {
+                label,
+              })
+            : tRaw(langRef.current, "conversation.reminderFiredNoLabel");
           console.info(`[reminder] fired: id=${e.payload.id} label="${label}"`);
           const muted = await invoke<boolean>("is_muted").catch(() => false);
           if (muted) {
-            const hudText = label ? `⏰ ${label}` : "⏰ リマインダー";
+            const hudText = label
+              ? tRaw(langRef.current, "conversation.reminderHudWithLabel", {
+                  label,
+                })
+              : tRaw(langRef.current, "conversation.reminderHudNoLabel");
             await invoke("hud_show", {
               text: hudText,
               durationMs: 8000,
