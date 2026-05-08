@@ -9,6 +9,7 @@
 // because they are executed locally before the model continues; the next
 // round's text, however, streams again.
 
+use chrono::TimeZone;
 use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -292,6 +293,193 @@ fn all_tools() -> Value {
         {
             "type": "function",
             "function": {
+                "name": "get_battery_status",
+                "description": "Mac のバッテリー残量・充電状態・残り時間を取得します。「バッテリー何％？」「充電あとどれくらい？」「電源繋いでる？」のような質問で呼び出してください。デスクトップ Mac などバッテリーがない場合は has_battery=false で返ります。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "add_note",
+                "description": "ユーザーの声でメモを残します。「これメモしといて: ○○」「○○を覚えておいて」「○○ってメモして」のような指示で呼び出してください。text にはユーザーがメモしたい内容そのもの（補足や前置きは付けない）。アプリ再起動後も保持されます。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "メモ本文。"
+                        }
+                    },
+                    "required": ["text"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "list_notes",
+                "description": "保存済みメモを取得します。「メモ何ある？」「最近のメモ読んで」「○○のメモ探して」のような指示で呼び出してください。query を渡すと部分一致（大文字小文字無視）でフィルタ、未指定なら直近 limit 件（既定 10）を新しい順で返します。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "検索語。空または未指定なら全件。"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "最大件数（既定 10）。",
+                            "minimum": 1,
+                            "maximum": 50
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "delete_note",
+                "description": "メモを削除します。「○○のメモ消して」のような指示で呼び出してください。id が分からない場合は **先に list_notes で該当 id を特定**してから呼びます。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "description": "削除するメモの ID。"
+                        }
+                    },
+                    "required": ["id"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "control_music",
+                "description": "起動中の Spotify または Apple Music を再生 / 停止 / 次の曲 / 前の曲に切り替えます。「音楽流して」「再生して」→ action='play'、「止めて」「ポーズ」→ 'pause'、「次の曲」「スキップ」→ 'next'、「前の曲」「戻して」→ 'previous'、「再生・停止切り替えて」→ 'toggle'。app は通常省略（auto = Spotify が起動していれば優先、なければ Music）。アプリが両方とも起動していない場合はエラーになります。**勝手にアプリを起動はしません。**",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "enum": ["play", "pause", "toggle", "next", "previous"],
+                            "description": "操作。"
+                        },
+                        "app": {
+                            "type": "string",
+                            "enum": ["auto", "spotify", "music"],
+                            "description": "対象アプリ。省略すると auto。"
+                        }
+                    },
+                    "required": ["action"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_now_playing",
+                "description": "Spotify / Apple Music で再生中の曲情報（曲名・アーティスト・アルバム・再生状態）を取得します。「いま何の曲？」「これ誰の歌？」「再生中？」のような質問で呼び出してください。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "app": {
+                            "type": "string",
+                            "enum": ["auto", "spotify", "music"],
+                            "description": "対象アプリ。省略すると auto。"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "add_reminder_at",
+                "description": "指定した絶対時刻にリマインダーを設定します。「明日7時に起こして」「20時に薬」「日曜日10時に会議って言って」のような **絶対時刻指定** で呼び出してください。秒単位の相対指定（「3分後」など）は set_timer を使ってください。**必ず先に get_current_time を呼んで現在の年月日と時刻を確認してから** at に未来の絶対時刻を組み立てて渡します。at は **ユーザーのローカルタイム** で `YYYY-MM-DD HH:MM` 形式（例: 2026-05-10 07:00）。「明日」「来週」などは現在時刻を基準に解決してください。リマインダーはアプリを再起動しても保持されます。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "at": {
+                            "type": "string",
+                            "description": "発火時刻。ユーザーのローカルタイムで `YYYY-MM-DD HH:MM`（例: 2026-05-10 07:00）。"
+                        },
+                        "label": {
+                            "type": "string",
+                            "description": "リマインダーの内容（例: 起床、薬、会議）。発火時に「○○の時間です」と読み上げられます。"
+                        }
+                    },
+                    "required": ["at", "label"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "list_reminders",
+                "description": "登録済みのリマインダー一覧（時刻順）を取得します。「リマインダー何ある？」「予定教えて」のような指示で呼び出してください。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "cancel_reminder",
+                "description": "リマインダーを取り消します。id を指定すると該当のみ、未指定なら全件キャンセル。「明日の起床リマインダー消して」「リマインダー全部消して」などで使います。id が分からない場合は **先に list_reminders を呼んで該当 id を特定**してください。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "description": "取り消すリマインダーの ID。未指定なら全件。"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "take_screenshot",
+                "description": "macOS の `screencapture` でスクリーンショットを撮ります。「スクショ撮って」「キャプチャお願い」「画面コピーして」のような指示で呼び出してください。mode='selection'（既定）はユーザーがマウスで範囲をドラッグ選択、mode='fullscreen' は全画面。destination='clipboard'（既定）はクリップボードに入れて貼り付けられる状態に、destination='file' は ~/Desktop に PNG で保存します。「デスクトップに保存して」「画像ファイルにして」のような指示なら destination='file'。範囲選択中にユーザーが Esc でキャンセルした場合は cancelled=true で返ります。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "enum": ["selection", "fullscreen"],
+                            "description": "selection=範囲選択（既定）, fullscreen=全画面。"
+                        },
+                        "destination": {
+                            "type": "string",
+                            "enum": ["clipboard", "file"],
+                            "description": "clipboard=クリップボードに入れる（既定）, file=~/Desktop に PNG 保存。"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "cancel_timer",
                 "description": "タイマーを取り消します。id を指定すると該当タイマー、未指定なら全件取り消し。「タイマー消して」「全部キャンセル」などで呼び出してください。",
                 "parameters": {
@@ -493,6 +681,177 @@ async fn execute_tool(
             }
             match crate::clipboard::write(text) {
                 Ok(()) => json!({ "ok": true, "chars": text.chars().count() }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "get_battery_status" => match crate::battery::status() {
+            Ok(b) => json!({
+                "ok": true,
+                "has_battery": b.has_battery,
+                "percent": b.percent,
+                "state": b.state,
+                "time_remaining": b.time_remaining,
+                "power_source": b.power_source
+            })
+            .to_string(),
+            Err(e) => json!({ "ok": false, "error": e }).to_string(),
+        },
+        "add_note" => {
+            let text = args
+                .get("text")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            match crate::notes::add(text) {
+                Ok(n) => json!({
+                    "ok": true,
+                    "id": n.id,
+                    "text": n.text,
+                    "created_at_unix_ms": n.created_at_unix_ms
+                })
+                .to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "list_notes" => {
+            let query = args.get("query").and_then(|v| v.as_str());
+            let limit = args
+                .get("limit")
+                .and_then(|v| v.as_u64())
+                .map(|n| n as usize)
+                .unwrap_or(10);
+            let notes = crate::notes::list(query, limit);
+            let entries: Vec<Value> = notes
+                .into_iter()
+                .map(|n| {
+                    let local = chrono::Local
+                        .timestamp_millis_opt(n.created_at_unix_ms)
+                        .single()
+                        .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
+                        .unwrap_or_default();
+                    json!({
+                        "id": n.id,
+                        "text": n.text,
+                        "created_at": local
+                    })
+                })
+                .collect();
+            json!({ "notes": entries }).to_string()
+        }
+        "delete_note" => {
+            let Some(id) = args.get("id").and_then(|v| v.as_u64()) else {
+                return json!({ "ok": false, "error": "id is required" }).to_string();
+            };
+            let deleted = crate::notes::delete(id as u32);
+            json!({ "ok": deleted, "id": id }).to_string()
+        }
+        "control_music" => {
+            let action = args.get("action").and_then(|v| v.as_str()).unwrap_or("");
+            let app_arg = args.get("app").and_then(|v| v.as_str());
+            if action.is_empty() {
+                return json!({ "ok": false, "error": "action is required" }).to_string();
+            }
+            match crate::music::control(action, app_arg) {
+                Ok(r) => json!({
+                    "ok": true,
+                    "player": r.player,
+                    "action": r.action
+                })
+                .to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "get_now_playing" => {
+            let app_arg = args.get("app").and_then(|v| v.as_str());
+            match crate::music::now_playing(app_arg) {
+                Ok(np) => json!({
+                    "ok": true,
+                    "player": np.player,
+                    "state": np.state,
+                    "track": np.track,
+                    "artist": np.artist,
+                    "album": np.album
+                })
+                .to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "add_reminder_at" => {
+            let at = args.get("at").and_then(|v| v.as_str()).unwrap_or("");
+            let label = args
+                .get("label")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if at.is_empty() {
+                return json!({ "ok": false, "error": "at is required" }).to_string();
+            }
+            let fires_at_unix_ms = match crate::reminder::parse_local_at(at) {
+                Ok(v) => v,
+                Err(e) => return json!({ "ok": false, "error": e }).to_string(),
+            };
+            match crate::reminder::add(app, fires_at_unix_ms, label) {
+                Ok(r) => json!({
+                    "ok": true,
+                    "id": r.id,
+                    "label": r.label,
+                    "fires_at_unix_ms": r.fires_at_unix_ms,
+                    "fires_at_local": chrono::Local
+                        .timestamp_millis_opt(r.fires_at_unix_ms)
+                        .single()
+                        .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
+                        .unwrap_or_default()
+                })
+                .to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "list_reminders" => {
+            let entries: Vec<Value> = crate::reminder::list()
+                .into_iter()
+                .map(|r| {
+                    let local = chrono::Local
+                        .timestamp_millis_opt(r.fires_at_unix_ms)
+                        .single()
+                        .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
+                        .unwrap_or_default();
+                    json!({
+                        "id": r.id,
+                        "label": r.label,
+                        "fires_at_local": local
+                    })
+                })
+                .collect();
+            json!({ "reminders": entries }).to_string()
+        }
+        "cancel_reminder" => {
+            if let Some(id) = args.get("id").and_then(|v| v.as_u64()) {
+                let ok = crate::reminder::cancel(id as u32);
+                json!({ "cancelled": ok, "id": id }).to_string()
+            } else {
+                let n = crate::reminder::cancel_all();
+                json!({ "cancelled_all": n }).to_string()
+            }
+        }
+        "take_screenshot" => {
+            let mode = args
+                .get("mode")
+                .and_then(|v| v.as_str())
+                .unwrap_or("selection");
+            let destination = args
+                .get("destination")
+                .and_then(|v| v.as_str())
+                .unwrap_or("clipboard");
+            match crate::screenshot::capture(mode, destination).await {
+                Ok(r) => json!({
+                    "ok": true,
+                    "mode": mode,
+                    "destination": destination,
+                    "path": r.path,
+                    "copied_to_clipboard": r.copied_to_clipboard,
+                    "cancelled": r.cancelled
+                })
+                .to_string(),
                 Err(e) => json!({ "ok": false, "error": e }).to_string(),
             }
         }

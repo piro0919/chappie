@@ -39,6 +39,13 @@
         "example3": "\"Cancel all timers\"",
         "body": "Just say the duration. Chappie tells you when time is up. Multiple timers at once, remaining time check, cancel — all by voice."
       },
+      "reminder": {
+        "title": "Schedule reminders",
+        "example1": "\"Wake me up at 7 tomorrow\"",
+        "example2": "\"Remind me about my meds at 8 PM\"",
+        "example3": "\"Saturday 10 AM, the meeting\"",
+        "body": "Absolute-time reminders like \"7 AM tomorrow\" or \"8 PM\". Reminders survive an app restart, so morning wake-ups still fire."
+      },
       "time": {
         "title": "Tell time & dates",
         "example1": "\"What time is it?\"",
@@ -74,12 +81,40 @@
         "example3": "\"Open Notes\"",
         "body": "Launches any installed Mac app by name. Pairs naturally with \"open YouTube\" — the menu bar becomes your voice launcher."
       },
+      "battery": {
+        "title": "Check the battery",
+        "example1": "\"What's my battery at?\"",
+        "example2": "\"How much charge is left?\"",
+        "example3": "\"Am I plugged in?\"",
+        "body": "Percent, charging state, and time remaining in one answer — handy for \"can I make it through this meeting?\" calls without flipping to the menu bar."
+      },
+      "notes": {
+        "title": "Take voice notes",
+        "example1": "\"Note this down: parking spot B3\"",
+        "example2": "\"Read my recent notes\"",
+        "example3": "\"Find the Wi-Fi note\"",
+        "body": "Capture quick thoughts by voice. Ask later — \"find the X note\" — and Chappie pulls just the matching ones. They stick around even after you quit the app."
+      },
+      "music": {
+        "title": "Control your music",
+        "example1": "\"Next track\"",
+        "example2": "\"Pause for a sec\"",
+        "example3": "\"What song is this?\"",
+        "body": "Voice control for whichever of Spotify or Apple Music is already running. Play / pause / skip, plus \"what song is this?\" gets you the title and artist."
+      },
       "clipboard": {
         "title": "Read & write the clipboard",
         "example1": "\"Read what's on my clipboard\"",
         "example2": "\"What did I just copy?\"",
         "example3": "\"Write a short thank-you email and copy it\"",
         "body": "Reads aloud what's on your clipboard, or drops the text Chappie just produced into it so you can paste straight into the next app."
+      },
+      "screenshot": {
+        "title": "Take a screenshot",
+        "example1": "\"Take a screenshot\"",
+        "example2": "\"Capture the whole screen\"",
+        "example3": "\"Save a screenshot to my desktop\"",
+        "body": "Selection or full screen, all by voice. The image goes straight to your clipboard so you can paste into the next app — or save it as a PNG on the Desktop."
       },
       "goodbye": {
         "title": "Politely goes back to standby",

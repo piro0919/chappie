@@ -1,11 +1,16 @@
 mod audio;
+mod battery;
 mod clipboard;
 mod hud;
 mod log_event;
 mod mic_permission;
 mod model;
 mod location;
+mod music;
+mod notes;
 mod openai;
+mod reminder;
+mod screenshot;
 mod timer;
 mod tray;
 mod volume;
@@ -128,6 +133,7 @@ pub fn run() {
 
             init_tray(&app.handle())?;
             timer::start_tray_title_ticker(&app.handle());
+            reminder::init(&app.handle());
 
             // Fire-and-forget IP-based location lookup so by the time the
             // user starts talking we already have a city to ground replies in.

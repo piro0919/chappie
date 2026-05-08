@@ -1,5 +1,8 @@
 import {
+  AlarmClock,
   AppWindow,
+  BatteryMedium,
+  Camera,
   ClipboardCopy,
   Clock,
   CloudSun,
@@ -7,6 +10,8 @@ import {
   Hand,
   MessageCircle,
   type Mic,
+  Music,
+  NotebookPen,
   Timer,
   Volume2,
 } from "lucide-react";
@@ -14,12 +19,17 @@ import {
 export const CAPABILITY_IDS = [
   "chat",
   "timer",
+  "reminder",
   "time",
   "weather",
   "web",
   "apps",
   "volume",
+  "music",
   "clipboard",
+  "screenshot",
+  "notes",
+  "battery",
   "goodbye",
 ] as const;
 
@@ -40,7 +50,12 @@ export const CAPABILITY_ICONS: Record<CapabilityId, typeof Mic> = {
   web: Globe,
   apps: AppWindow,
   volume: Volume2,
+  music: Music,
   clipboard: ClipboardCopy,
+  screenshot: Camera,
+  reminder: AlarmClock,
+  notes: NotebookPen,
+  battery: BatteryMedium,
   goodbye: Hand,
 };
 
@@ -53,5 +68,10 @@ export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
   apps: ["example1", "example2", "example3"],
   volume: ["example1", "example2", "example3"],
   clipboard: ["example1", "example2", "example3"],
+  screenshot: ["example1", "example2", "example3"],
+  reminder: ["example1", "example2", "example3"],
+  music: ["example1", "example2", "example3"],
+  notes: ["example1", "example2", "example3"],
+  battery: ["example1", "example2", "example3"],
   goodbye: ["example1", "example2", "example3"],
 };

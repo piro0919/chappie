@@ -588,5 +588,53 @@ export function useConversationLoop(): { state: State; error: string | null } {
     };
   }, []);
 
+  // reminder:fired (absolute-time reminders, persisted across restart).
+  // Phrased as "○○の時間です" instead of timer's "○○のタイマーです".
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      const off = await listen<{ id: number; label: string }>(
+        "reminder:fired",
+        async (e) => {
+          const { label } = e.payload;
+          const message = label
+            ? `${label}の時間です。`
+            : "リマインダーの時間です。";
+          console.info(`[reminder] fired: id=${e.payload.id} label="${label}"`);
+          const muted = await invoke<boolean>("is_muted").catch(() => false);
+          if (muted) {
+            const hudText = label ? `⏰ ${label}` : "⏰ リマインダー";
+            await invoke("hud_show", {
+              text: hudText,
+              durationMs: 8000,
+            }).catch(() => {});
+            return;
+          }
+          ttsActiveRef.current = true;
+          await invoke("pause_listening").catch(() => {});
+          try {
+            await speakQueued(message, voiceURIRef.current);
+          } catch (err) {
+            console.error("[reminder] tts failed", err);
+          } finally {
+            await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
+            await invoke("resume_listening").catch(() => {});
+            ttsActiveRef.current = false;
+          }
+        },
+      );
+      if (cancelled) {
+        off();
+        return;
+      }
+      unlisten = off;
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+
   return { state, error };
 }
