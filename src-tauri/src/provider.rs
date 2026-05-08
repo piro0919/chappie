@@ -45,15 +45,18 @@ impl Provider {
     /// Sensible default model for each provider. Picked to be the cheapest
     /// "real" model that does tool calling well.
     ///
-    /// Gemini: tried flipping to `flash-lite` chasing a "higher free-tier
-    /// quota" claim that turned out to be wrong — both `flash` and
-    /// `flash-lite` are capped at 20 RPD on the free tier for new
-    /// projects. Given identical quotas, flash is the right pick because
+    /// Gemini: per Google's published rate limits (post Dec-2025 cuts),
+    /// the free-tier daily ceiling is 250 RPD on `gemini-2.5-flash` and
+    /// 1000 RPD on `gemini-2.5-flash-lite`. We pick flash because
     /// flash-lite is markedly weaker at function calling on Chappie's
     /// 12-tool prompt (sometimes returns an empty `parts` block with
-    /// `finishReason=STOP`). For users who hit the quota wall, the real
-    /// answer is enabling billing on the Google Cloud project or
-    /// switching to OpenAI / Anthropic — not picking a worse model.
+    /// `finishReason=STOP`), and 250 RPD is plenty for casual daily use.
+    /// Note: actual delivered quota varies by account — some users see
+    /// throttling well below the official ceiling (down to ~20 RPD).
+    /// Users who hit a hard wall need to enable billing on the Google
+    /// Cloud project or switch providers; pinning to flash-lite via
+    /// `CHAPPIE_MODEL` trades reliability for headroom that may not even
+    /// materialize on a throttled account.
     pub fn default_model(self) -> &'static str {
         match self {
             Self::OpenAI => "gpt-4o-mini",
