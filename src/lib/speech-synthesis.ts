@@ -1,3 +1,18 @@
+/** Massage text just before it goes to the synthesizer so cosmetic glitches
+ *  in model output don't bleed into the spoken reply. Currently only the
+ *  Japanese path needs help: weaker models (flash-lite, in particular)
+ *  don't reliably follow the system prompt's "write 17.3 as 17点3" rule,
+ *  so we substitute decimals → 点 here as a belt-and-braces fallback.
+ *  Punctuation forms like 14:30 also read poorly in Japanese voices but
+ *  triggering on `\d+:\d+` risks false positives (URLs, ratios), so we
+ *  leave that to the prompt. */
+function sanitizeForTTS(text: string, lang: string): string {
+  if (lang.toLowerCase().startsWith("ja")) {
+    return text.replace(/(\d+)\.(\d+)/g, "$1点$2");
+  }
+  return text;
+}
+
 /** Pick a voice that matches `lang` (e.g. "ja", "en", "es"). Prefers
  *  voices flagged `localService` (system-installed, usually higher
  *  quality) over remote ones. Falls back to whatever voice WebKit picks
@@ -43,7 +58,7 @@ function speakInternal(
   resolve: () => void,
   reject: (err: Error) => void,
 ): void {
-  const utter = new SpeechSynthesisUtterance(text);
+  const utter = new SpeechSynthesisUtterance(sanitizeForTTS(text, lang));
   utter.rate = TTS_RATE;
   const voice = pickVoice(lang);
   if (voice) {
@@ -71,8 +86,11 @@ export function cancelSpeech(): void {
 }
 
 /** Sentence terminators we split streaming output on. Includes Japanese
- *  full-stop, exclamation, question, and ASCII variants. */
-const SENTENCE_TERMINATORS = /[。！？.!?]+/g;
+ *  full-stop, exclamation, question, and ASCII variants. The ASCII period
+ *  is only treated as a terminator when it isn't between digits — this
+ *  keeps decimals like `39.6` intact so the streaming TTS doesn't
+ *  helpfully split them into "39." and "6". */
+const SENTENCE_TERMINATORS = /[。！？!?]+|(?<!\d)\.(?!\d)/g;
 
 /** Streaming speaker. Feed it text chunks as they arrive; it accumulates
  *  until a sentence terminator is seen, then queues the sentence for TTS.
@@ -97,7 +115,7 @@ export function createStreamingSpeaker(lang: string): {
   const cachedVoice = pickVoice(lang);
 
   const speakOne = (sentence: string) => {
-    const utter = new SpeechSynthesisUtterance(sentence);
+    const utter = new SpeechSynthesisUtterance(sanitizeForTTS(sentence, lang));
     utter.rate = TTS_RATE;
     if (cachedVoice) {
       utter.voice = cachedVoice;
