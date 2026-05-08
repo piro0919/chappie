@@ -174,8 +174,7 @@ export function SettingsView() {
           />
         </div>
         <p className={styles.note}>
-          OpenAI / xAI / OpenRouter / Anthropic / Gemini に対応。貼り付けた
-          キーから自動でプロバイダーを判別します。
+          OpenAI / xAI / OpenRouter / Anthropic / Gemini に対応。
         </p>
       </section>
 

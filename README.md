@@ -63,7 +63,7 @@ More tools coming over time.
 - **Mic capture & VAD in Rust**: [`cpal`](https://github.com/RustAudio/cpal) for input, [`voice_activity_detector`](https://crates.io/crates/voice_activity_detector) (Silero VAD V5) for utterance segmentation
 - **Speech-to-text**: [`whisper-rs`](https://github.com/tazz4843/whisper-rs) (Rust, Metal-accelerated on macOS) using `ggml-small.bin`
 - **Wake-word matching**: renderer-side string match (NFKC normalization + Whisper homophone variants)
-- **AI**: OpenAI Chat Completions (default `gpt-4o-mini`, switchable in Settings; HTTP call lives in Rust so the API key never enters the renderer)
+- **AI**: bring-your-own API key from OpenAI / xAI / OpenRouter / Anthropic / Gemini. Provider auto-detected from the key prefix (no UI choice). HTTP call lives in Rust so the key never enters the renderer. Default models are each provider's cheapest tool-capable tier; override with `CHAPPIE_MODEL` env var.
 - **Tools**: `set_timer` / `list_timers` / `cancel_timer` / `add_reminder_at` / `list_reminders` / `cancel_reminder` / `get_current_time` / `get_weather` / `open_url` / `web_search` / `open_app` / `open_finder` / `get_volume` / `set_volume` / `set_mute` / `control_music` / `get_now_playing` / `get_battery_status` / `read_clipboard` / `write_clipboard` / `take_screenshot` / `add_note` / `list_notes` / `delete_note` / `lock_screen` / `set_sleep_prevention` / `get_sleep_prevention` / `list_capabilities` / `end_conversation` (multi-round tool calling in `openai.rs`)
 - **Text-to-speech**: Web Speech API `SpeechSynthesis` (macOS native voices), streamed sentence-by-sentence as the model produces tokens
 - **Visual HUD**: a transparent always-on-top overlay window. Confirms volume / mute toggles, surfaces timer fires, and — when the system is muted — renders Chappie's full reply as text since TTS would be inaudible
@@ -99,14 +99,15 @@ pnpm tauri dev
 
 On first launch the Whisper `small` model (~466MB) is auto-downloaded to
 `~/.chappie/models/ggml-small.bin`. Once it's ready the Chappie icon appears
-in the menu bar; open **Settings** from the tray menu and add your OpenAI
-API key to start talking.
+in the menu bar; open **Settings** from the tray menu and paste an API key
+from any supported provider (OpenAI / xAI / OpenRouter / Anthropic / Gemini)
+to start talking.
 
 The first time the app accesses the mic, macOS will show a system permission
 prompt (driven by `AVCaptureDevice.requestAccess`). After granting,
 `Chappie` appears in System Settings → Privacy & Security → Microphone.
 
-Settings changes (API key, model, voice) hot-reload via the
+Settings changes (API key, voice) hot-reload via the
 `settings:updated` event — no restart needed. Autostart only applies on next
 launch (handled by macOS).
 
@@ -126,7 +127,7 @@ unified through `lib/log-bridge.ts`.
 ## Usage
 
 1. Click the menu-bar icon → **Settings**
-2. Enter your OpenAI API key (`sk-...`) → Save
+2. Enter an API key (any of `sk-...` / `xai-...` / `sk-or-...` / `sk-ant-...` / `AIza...`) → Save
 3. Say "**chappie, how are you?**" — or just "chappie", wait for the brief acknowledgement, then speak your message
    (The Japanese wake word "チャッピー" works too)
 
@@ -137,7 +138,7 @@ The menu-bar icon reflects the current state:
 | initializing | Loading model / starting mic |
 | idle | Listening for the wake word |
 | listening | Capturing your follow-up |
-| thinking | Whisper + OpenAI in flight |
+| thinking | Whisper + LLM in flight |
 | speaking | TTS playing the reply |
 | error | See devtools console |
 
@@ -192,7 +193,7 @@ pnpm test:run    # one-shot
 pnpm test        # watch mode
 ```
 
-Pure logic (state machine, conversation history, OpenAI client wrapper,
+Pure logic (state machine, conversation history, chat client wrapper,
 wake-word detection, settings) is covered by Vitest unit tests. The audio
 pipeline (cpal capture / Silero VAD / Whisper) and Tauri command bridges are
 verified manually.

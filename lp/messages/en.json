@@ -188,8 +188,8 @@
   },
   "privacy": {
     "heading": "Your voice stays on your Mac",
-    "body": "What the mic picks up is converted to text right on your Mac. The recording itself never goes to the internet. Only the text version of your question is sent to ChatGPT to think up a reply.",
-    "note": "* Requires an OpenAI account and your own API key."
+    "body": "What the mic picks up is converted to text right on your Mac. The recording itself never goes to the internet. Only the text version of your question is sent to an AI service to think up a reply.",
+    "note": "* Requires an API key from one of OpenAI, Gemini, Anthropic, xAI, or OpenRouter."
   },
   "finalCta": {
     "heading": "Try saying hello.",

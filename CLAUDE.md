@@ -9,7 +9,7 @@ A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チ�
 - **pnpm** (package manager)
 - **whisper-rs** (local STT, Metal-accelerated on macOS) — uses `ggml-small.bin`
 - **cpal** (mic capture in Rust) + **rubato** (resampling) + **voice_activity_detector** (Silero VAD V5)
-- **OpenAI Chat Completions** (default `gpt-4o-mini`; user-selectable in Settings; HTTP call lives in Rust via `reqwest` so the API key never enters the renderer)
+- **Multi-provider LLM** (OpenAI / xAI / OpenRouter / Anthropic / Gemini). Provider auto-detected from the API key prefix; settings UI has no provider/model picker. HTTP call lives in Rust via `reqwest` so the key never enters the renderer. Each provider's cheapest tool-capable model is the default; `CHAPPIE_MODEL` env var overrides for power users.
 - **Web Speech API `SpeechSynthesis`** (TTS)
 
 ## Architecture
@@ -45,12 +45,12 @@ A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チ�
 
 - `main.tsx` — routes `?view=settings` → SettingsView, `?view=hud` → HudView, anything else → ConversationView.
 - `views/ConversationWorker.tsx` — headless component for the hidden main window. Mounts `useConversationLoop` and renders nothing visible; all diagnostics flow into the Web Inspector console via `lib/log-bridge.ts`.
-- `views/SettingsView.tsx` — on-demand settings window opened from the tray menu (OpenAI API key + model + voice + autostart). Mic permission status is also surfaced here.
+- `views/SettingsView.tsx` — on-demand settings window opened from the tray menu (API key + voice + autostart). Mic permission status is also surfaced here.
 - `views/HudView.tsx` + `HudView.module.css` + `HudView.global.css` — Raycast-style transparent overlay. Listens for `hud:show` events and fades a cream-pill card in/out (Chappie portrait + text). Avatar swaps based on text content (listening pose for mute / 👂 / errors, talking pose otherwise).
 - `hooks/useConversationLoop.ts` — calls `request_microphone_access` → `ensure_model` → `start_listening`, then listens for `speech` events from Rust and dispatches wake-word detection → `chat_complete` (Rust IPC) → TTS-or-HUD → tray sync. The output channel is decided **at the first text chunk** by querying `is_muted`: muted → buffer chunks and call `hud_show` with the full reply at the end (skips streaming TTS); not muted → normal streaming `createStreamingSpeaker`. The same branch covers wake-word ack ("👂 はい" on HUD when muted), API-key-missing errors, the `openai` failure fallback, and the timer-fired announcement. Wraps every `speak()` in `withMutedCapture()` (pause_listening + 350ms cooldown) so the mic pipeline doesn't process Chappie's own voice. After a successful turn, opens a 6s "continuation window" where the next utterance is treated as the body without requiring the wake-word again. Wake ack rotates a randomized list of soft/casual phrases (`はーい` / `なーに？` / `どうしたの？` etc.) so it doesn't sound canned.
 - `lib/state-machine.ts` — pure state machine (idle/listening/thinking/speaking/error).
 - `lib/conversation-history.ts` — sliding window of the last 20 messages.
-- `lib/openai-client.ts` — thin wrapper that calls the Rust `chat_complete` Tauri command (no OpenAI SDK in the renderer).
+- `lib/openai-client.ts` — thin wrapper that calls the Rust `chat_complete` Tauri command (no provider SDK in the renderer; the Rust side picks the right client based on the API key prefix).
 - `lib/wake-word.ts` — normalized matching for `chappie` / `チャッピー` plus Whisper homophone variants (`チョッピー` / `Juppie` / etc.).
 - `lib/speech-synthesis.ts` — Promise wrapper over `speechSynthesis.speak()`. Default `rate = 1.15` (the macOS Japanese voices feel slow at the spec default).
 - `lib/auto-update.ts` — runs at startup. If an update is found and the user dismisses the prompt, calls `set_update_available(true)` so the tray title shows a persistent `🔔` badge until the next successful update + relaunch.
@@ -64,8 +64,8 @@ A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チ�
 - **Mic capture is paused at the Rust layer during TTS**: a `MUTED` AtomicBool gates the segmenter, so we never feed Chappie's own voice to Whisper *and* save the inference cost. A 350ms cooldown after `speak()` returns covers speaker reverb. `speechSynthesis.cancel()` is called before each `speak()` to clear any wedged WebKit synthesis queue, and `cancelSpeech()` is exposed for future barge-in.
 - **Conversation end is decided by the model, not a timer**: the `end_conversation` tool definition is included with every chat_complete request. When the user says goodbye and the model calls the tool, the loop skips the continuation window and waits for a fresh wake-word. The 6s continuation window remains as a fallback for normal turns.
 - **macOS ObjC interop is panic + exception guarded**: `mic_permission.rs` wraps every AVCaptureDevice call in `panic::catch_unwind` + `objc2::exception::catch`, modeled after galopen's calendar.rs. An NSException from a broken entitlement no longer takes the whole process down.
-- **OpenAI lives in Rust**: the renderer no longer ships the OpenAI SDK or holds the API key in HTTP code; the key is passed from the Tauri store into the `chat_complete` command and forwarded as a Bearer token.
-- **Settings hot-reload via `settings:updated`**: API key, model, and voice are reflected in the running loop without restart. Autostart still applies on next launch (handled by the OS).
+- **LLM HTTP lives in Rust**: the renderer doesn't ship any provider SDK or hold the API key in HTTP code. The key is passed from the Tauri store into the `chat_complete` command, the prefix determines the provider, and Rust forwards the request to the right endpoint with the right auth scheme (Bearer for OpenAI-compatible, `x-api-key` for Anthropic, `?key=` query param for Gemini).
+- **Settings hot-reload via `settings:updated`**: API key and voice are reflected in the running loop without restart. Autostart still applies on next launch (handled by the OS).
 - **Whisper initial prompt biases toward "チャッピー"**: `set_initial_prompt("チャッピー、はい、チャッピーです。")` improves wake-word recognition.
 - **Color-state icons, not template icons**: state is conveyed by hue (template-style would only convey state by shape).
 - **Main window is hidden / debug-only**: the conversation worker runs there but it has no user-facing UI in the normal flow. Open it via tray → "デバッグウィンドウを開く" to see the live transcription log.
