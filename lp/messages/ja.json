@@ -196,7 +196,7 @@
   "privacy": {
     "heading": "音声はあなたの Mac の中だけ",
     "body": "マイクで拾った音は、Mac の中で文字に変換します。録音そのものがインターネットに出ることはありません。返事を考えてもらうために、文字に変えた質問だけを AI サービスに送ります。",
-    "note": "※ ご利用には AI サービス（OpenAI / Gemini / Anthropic / xAI / OpenRouter）のいずれかの API キーが必要です。"
+    "note": "※ ご利用には AI サービス（OpenAI / Gemini / Anthropic）のいずれかの API キーが必要です。"
   },
   "finalCta": {
     "heading": "さっそく話しかけてみよう。",

@@ -102,8 +102,8 @@ const ja: Messages = {
     calendarDeniedNote:
       "macOS のシステム設定 → プライバシーとセキュリティ → カレンダー で Chappie を有効化してください。",
     apiKey: "API キー",
-    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
-    apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini に対応。",
+    apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
+    apiKeyNote: "OpenAI / Anthropic / Gemini に対応。",
     apiKeyDetected: "検出: {provider}",
     apiKeyUnknown: "形式を判別できませんでした",
     autostartLabel: "起動",
@@ -181,8 +181,8 @@ const en: Messages = {
     calendarDeniedNote:
       "Open System Settings → Privacy & Security → Calendars and enable Chappie.",
     apiKey: "API Key",
-    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
-    apiKeyNote: "Supports OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
+    apiKeyNote: "Supports OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Detected: {provider}",
     apiKeyUnknown: "Unrecognized key format",
     autostartLabel: "Startup",
@@ -260,9 +260,8 @@ const es: Messages = {
     calendarDeniedNote:
       "Abre Configuración → Privacidad y seguridad → Calendarios y habilita Chappie.",
     apiKey: "Clave de API",
-    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
-    apiKeyNote:
-      "Compatible con OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
+    apiKeyNote: "Compatible con OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Detectado: {provider}",
     apiKeyUnknown: "Formato de clave no reconocido",
     autostartLabel: "Inicio",
@@ -340,8 +339,8 @@ const fr: Messages = {
     calendarDeniedNote:
       "Ouvre Réglages → Confidentialité et sécurité → Calendriers et active Chappie.",
     apiKey: "Clé d'API",
-    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
-    apiKeyNote: "Compatible OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
+    apiKeyNote: "Compatible OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Détecté : {provider}",
     apiKeyUnknown: "Format de clé non reconnu",
     autostartLabel: "Démarrage",
@@ -419,8 +418,8 @@ const de: Messages = {
     calendarDeniedNote:
       "Öffne Systemeinstellungen → Datenschutz & Sicherheit → Kalender und aktiviere Chappie.",
     apiKey: "API-Schlüssel",
-    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
-    apiKeyNote: "Unterstützt OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
+    apiKeyNote: "Unterstützt OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Erkannt: {provider}",
     apiKeyUnknown: "Schlüsselformat nicht erkannt",
     autostartLabel: "Start",
@@ -495,8 +494,8 @@ const zh: Messages = {
     calendarRequest: "授权访问日历",
     calendarDeniedNote: "打开系统设置 → 隐私与安全性 → 日历，启用 Chappie。",
     apiKey: "API 密钥",
-    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
-    apiKeyNote: "支持 OpenAI / xAI / OpenRouter / Anthropic / Gemini。",
+    apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
+    apiKeyNote: "支持 OpenAI / Anthropic / Gemini。",
     apiKeyDetected: "已识别:{provider}",
     apiKeyUnknown: "无法识别密钥格式",
     autostartLabel: "启动",
@@ -572,9 +571,8 @@ const pt: Messages = {
     calendarDeniedNote:
       "Abra Ajustes → Privacidade e Segurança → Calendários e ative Chappie.",
     apiKey: "Chave de API",
-    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
-    apiKeyNote:
-      "Compatível com OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
+    apiKeyNote: "Compatível com OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Detectado: {provider}",
     apiKeyUnknown: "Formato de chave não reconhecido",
     autostartLabel: "Início",
@@ -652,8 +650,8 @@ const ko: Messages = {
     calendarDeniedNote:
       "시스템 설정 → 개인정보 보호 및 보안 → 캘린더에서 Chappie를 활성화하세요.",
     apiKey: "API 키",
-    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
-    apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini 지원.",
+    apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
+    apiKeyNote: "OpenAI / Anthropic / Gemini 지원.",
     apiKeyDetected: "감지됨: {provider}",
     apiKeyUnknown: "키 형식을 확인할 수 없습니다",
     autostartLabel: "시작",
@@ -731,9 +729,8 @@ const it: Messages = {
     calendarDeniedNote:
       "Apri Impostazioni → Privacy e sicurezza → Calendari e abilita Chappie.",
     apiKey: "Chiave API",
-    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
-    apiKeyNote:
-      "Compatibile con OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
+    apiKeyNote: "Compatibile con OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Rilevato: {provider}",
     apiKeyUnknown: "Formato chiave non riconosciuto",
     autostartLabel: "Avvio",

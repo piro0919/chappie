@@ -1091,11 +1091,17 @@ pub async fn chat_complete(
         return Err("missing api key".into());
     }
 
-    // Auto-detect provider from key prefix. OpenAI / xAI / OpenRouter speak
-    // the same chat/completions wire format and only differ in base URL,
-    // so they flow through this function. Gemini and Anthropic each have
-    // their own API and are delegated to dedicated modules.
-    let provider = crate::provider::detect_from_key(&api_key);
+    // Auto-detect provider from key prefix. Three providers supported:
+    // OpenAI (chat/completions), Anthropic (Messages API), Gemini
+    // (generativelanguage). Anthropic and Gemini have their own modules.
+    let provider = match crate::provider::detect_from_key(&api_key) {
+        Some(p) => p,
+        None => {
+            return Err(
+                "Unrecognized API key format. Use OpenAI (sk-...), Anthropic (sk-ant-...), or Gemini (AIza...).".into(),
+            );
+        }
+    };
     let env_override = std::env::var("CHAPPIE_MODEL")
         .ok()
         .filter(|s| !s.trim().is_empty());
@@ -1111,24 +1117,10 @@ pub async fn chat_complete(
             .unwrap_or_else(|| provider.default_model().to_string());
         return crate::anthropic::chat_complete(app, api_key, model, messages, on_chunk).await;
     }
-    if !provider.is_openai_compatible() {
-        return Err(format!(
-            "{} provider is not yet supported.",
-            provider.label()
-        ));
-    }
+    // OpenAI from here on. CHAPPIE_MODEL env var wins over the renderer-
+    // supplied default.
     let endpoint = format!("{}/chat/completions", provider.base_url());
-
-    // For OpenAI-compatible (xAI / OpenRouter): if the renderer sent us
-    // an OpenAI-style default but the key isn't OpenAI, swap in the
-    // provider's recommended model. CHAPPIE_MODEL env var wins over both.
-    let model = env_override.unwrap_or_else(|| {
-        if provider == crate::provider::Provider::OpenAI {
-            model
-        } else {
-            provider.default_model().to_string()
-        }
-    });
+    let model = env_override.unwrap_or(model);
 
     crate::linfo!(
         &app,

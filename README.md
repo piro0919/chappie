@@ -23,7 +23,7 @@
 - 🔒 **Your voice stays on your Mac** — speech is transcribed locally with Whisper; the raw audio never leaves the device
 - 🍎 **Menu bar resident, no Dock clutter** — shows up only when you need it
 - 🌍 **9 languages** — Japanese / English plus Spanish / French / German / Italian / Portuguese / Korean / Simplified Chinese (Beta). Picks a matching macOS voice automatically.
-- 🔁 **Multi-provider, BYO API key** — OpenAI / xAI / OpenRouter / Anthropic / Gemini. Provider auto-detected from the key prefix.
+- 🔁 **Multi-provider, BYO API key** — OpenAI / Anthropic / Gemini. Provider auto-detected from the key prefix.
 - ♻ **Auto-update** — checks at launch and every 6 hours; tray badge for new versions; manual check from the menu
 
 ## What it can do
@@ -65,7 +65,7 @@ More tools coming over time.
 - **Mic capture & VAD in Rust**: [`cpal`](https://github.com/RustAudio/cpal) for input, [`voice_activity_detector`](https://crates.io/crates/voice_activity_detector) (Silero VAD V5) for utterance segmentation
 - **Speech-to-text**: [`whisper-rs`](https://github.com/tazz4843/whisper-rs) (Rust, Metal-accelerated on macOS) using `ggml-small.bin`
 - **Wake-word matching**: renderer-side string match (NFKC normalization + Whisper homophone variants)
-- **AI**: bring-your-own API key from OpenAI / xAI / OpenRouter / Anthropic / Gemini. Provider auto-detected from the key prefix (no UI choice). HTTP call lives in Rust so the key never enters the renderer. Default models are each provider's cheapest tool-capable tier; override with `CHAPPIE_MODEL` env var.
+- **AI**: bring-your-own API key from OpenAI / Anthropic / Gemini. Provider auto-detected from the key prefix (no UI choice). HTTP call lives in Rust so the key never enters the renderer. Default models are each provider's cheapest tool-capable tier; override with `CHAPPIE_MODEL` env var.
 - **Tools**: `set_timer` / `list_timers` / `cancel_timer` / `add_reminder_at` / `list_reminders` / `cancel_reminder` / `get_current_time` / `get_weather` / `open_url` / `web_search` / `open_app` / `open_finder` / `get_volume` / `set_volume` / `set_mute` / `control_music` / `get_now_playing` / `get_battery_status` / `read_clipboard` / `write_clipboard` / `take_screenshot` / `add_note` / `list_notes` / `delete_note` / `lock_screen` / `set_sleep_prevention` / `get_sleep_prevention` / `list_capabilities` / `end_conversation` (multi-round tool calling in `openai.rs`)
 - **Text-to-speech**: Web Speech API `SpeechSynthesis` (macOS native voices), streamed sentence-by-sentence as the model produces tokens. Voice is auto-selected to match the chosen language — no picker.
 - **i18n**: 9 languages cover the UI, system prompt, wake-word ack, timer/reminder readouts, tray menu, updater dialog, and the `list_capabilities` self-introduction. Whisper's language hint is set to the resolved locale.
@@ -104,7 +104,7 @@ pnpm tauri dev
 On first launch the Whisper `small` model (~466MB) is auto-downloaded to
 `~/.chappie/models/ggml-small.bin`. Once it's ready the Chappie icon appears
 in the menu bar; open **Settings** from the tray menu and paste an API key
-from any supported provider (OpenAI / xAI / OpenRouter / Anthropic / Gemini)
+from any supported provider (OpenAI / Anthropic / Gemini)
 to start talking.
 
 The first time the app accesses the mic, macOS will show a system permission
@@ -141,7 +141,7 @@ dev — verify with a `pnpm tauri build` if it matters.)
 ## Usage
 
 1. Click the menu-bar icon → **Settings**
-2. Enter an API key (any of `sk-...` / `xai-...` / `sk-or-...` / `sk-ant-...` / `AIza...`); the detected provider name appears under the field
+2. Enter an API key (any of `sk-...` / `sk-ant-...` / `AIza...`); the detected provider name appears under the field
 3. Pick a language (Auto = system locale)
 4. Save
 5. Say "**chappie, how are you?**" — or just "chappie", wait for the brief acknowledgement, then speak your message
