@@ -13,6 +13,7 @@ mod music;
 mod notes;
 mod openai;
 mod power;
+mod provider;
 mod reminder;
 mod screenshot;
 mod timer;

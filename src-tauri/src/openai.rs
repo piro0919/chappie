@@ -1039,6 +1039,45 @@ pub async fn chat_complete(
         return Err("missing api key".into());
     }
 
+    // Auto-detect provider from key prefix. OpenAI / xAI / OpenRouter speak
+    // the same chat/completions wire format and only differ in base URL,
+    // so they all flow through this function. Anthropic / Gemini have
+    // separate APIs and aren't routed here yet.
+    let provider = crate::provider::detect_from_key(&api_key);
+    if !provider.is_openai_compatible() {
+        return Err(format!(
+            "{} provider is not yet supported. Use an OpenAI / xAI / OpenRouter key for now.",
+            provider.label()
+        ));
+    }
+    let endpoint = format!("{}/chat/completions", provider.base_url());
+
+    // Hidden override for power users / development. The settings UI no
+    // longer exposes a model picker — set CHAPPIE_MODEL=gpt-4.1-mini etc.
+    // when launching to use something other than the default the renderer
+    // sent us. If the renderer sent an OpenAI-style default ("gpt-4o-mini")
+    // but the key is for a different provider, prefer that provider's
+    // default unless the env var is explicitly set.
+    let env_override = std::env::var("CHAPPIE_MODEL")
+        .ok()
+        .filter(|s| !s.trim().is_empty());
+    let model = env_override.unwrap_or_else(|| {
+        if provider == crate::provider::Provider::OpenAI {
+            model
+        } else {
+            provider.default_model().to_string()
+        }
+    });
+
+    crate::linfo!(
+        &app,
+        "openai",
+        "provider={} endpoint={} model={}",
+        provider.label(),
+        endpoint,
+        model
+    );
+
     let mut working: Vec<Value> = messages
         .into_iter()
         .map(|m| json!({"role": m.role, "content": m.content}))
@@ -1081,7 +1120,7 @@ pub async fn chat_complete(
             n = working.len()
         );
         let resp = HTTP
-            .post("https://api.openai.com/v1/chat/completions")
+            .post(&endpoint)
             .bearer_auth(&api_key)
             .json(&body)
             .send()

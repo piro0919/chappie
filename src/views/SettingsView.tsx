@@ -17,13 +17,6 @@ type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
 const MIC_PRIVACY_URL =
   "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
 
-const MODEL_OPTIONS = [
-  { value: "gpt-4o-mini", label: "gpt-4o-mini（高速・低コスト）" },
-  { value: "gpt-4o", label: "gpt-4o（高品質）" },
-  { value: "gpt-4.1-mini", label: "gpt-4.1-mini" },
-  { value: "gpt-4.1", label: "gpt-4.1" },
-];
-
 function micStatusBadge(status: MicStatus): {
   label: string;
   className: string;
@@ -43,7 +36,6 @@ function micStatusBadge(status: MicStatus): {
 export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
   const [voiceURI, setVoiceURI] = useState<string | null>(null);
-  const [model, setModel] = useState("gpt-4o-mini");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [autostart, setAutostart] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -75,7 +67,6 @@ export function SettingsView() {
       const s: Settings = await loadSettings();
       setApiKey(s.openaiApiKey);
       setVoiceURI(s.voiceURI);
-      setModel(s.model);
       setAutostart(await isAutostartEnabled());
       await refreshMicStatus();
       setLoaded(true);
@@ -91,7 +82,7 @@ export function SettingsView() {
   }, []);
 
   const onSave = async () => {
-    await saveSettings({ openaiApiKey: apiKey, voiceURI, model });
+    await saveSettings({ openaiApiKey: apiKey, voiceURI });
     try {
       if (autostart) await enableAutostart();
       else await disableAutostart();
@@ -165,7 +156,7 @@ export function SettingsView() {
         )}
       </section>
 
-      {/* OpenAI */}
+      {/* API key */}
       <section className={styles.card}>
         <div className={styles.row}>
           <label className={styles.rowLabel} htmlFor="api-key">
@@ -179,26 +170,13 @@ export function SettingsView() {
             onChange={(e) => setApiKey(e.target.value)}
             autoComplete="off"
             spellCheck={false}
-            placeholder="sk-..."
+            placeholder="sk-... / xai-... / sk-or-... / sk-ant-... / AIza..."
           />
         </div>
-        <div className={styles.row}>
-          <label className={styles.rowLabel} htmlFor="model">
-            モデル
-          </label>
-          <select
-            id="model"
-            className={styles.select}
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-          >
-            {MODEL_OPTIONS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <p className={styles.note}>
+          OpenAI / xAI / OpenRouter / Anthropic / Gemini に対応。貼り付けた
+          キーから自動でプロバイダーを判別します。
+        </p>
       </section>
 
       {/* Voice + autostart */}

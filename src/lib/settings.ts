@@ -3,13 +3,11 @@ import { load, type Store } from "@tauri-apps/plugin-store";
 export type Settings = {
   openaiApiKey: string;
   voiceURI: string | null;
-  model: string;
 };
 
 const DEFAULTS: Settings = {
   openaiApiKey: "",
   voiceURI: null,
-  model: "gpt-4o-mini",
 };
 const FILE = "settings.json";
 
@@ -25,8 +23,7 @@ export async function loadSettings(): Promise<Settings> {
     (await store.get<string>("openaiApiKey")) ?? DEFAULTS.openaiApiKey;
   const voiceURI =
     (await store.get<string | null>("voiceURI")) ?? DEFAULTS.voiceURI;
-  const model = (await store.get<string>("model")) ?? DEFAULTS.model;
-  return { openaiApiKey: apiKey, voiceURI, model };
+  return { openaiApiKey: apiKey, voiceURI };
 }
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
@@ -36,9 +33,6 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.voiceURI !== undefined) {
     await store.set("voiceURI", patch.voiceURI);
-  }
-  if (patch.model !== undefined) {
-    await store.set("model", patch.model);
   }
   await store.save();
 }

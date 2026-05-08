@@ -98,7 +98,6 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const machineRef = useRef<Machine>(createMachine());
   const historyRef = useRef<History>(createHistory(SYSTEM_PROMPT));
   const apiKeyRef = useRef<string>("");
-  const modelRef = useRef<string>(DEFAULT_MODEL);
   const chatClientRef = useRef<ChatClient | null>(null);
   const voiceURIRef = useRef<string | null>(null);
   const awaitingBodyRef = useRef(false);
@@ -414,9 +413,8 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
         voiceURIRef.current = s.voiceURI;
-        modelRef.current = s.model || DEFAULT_MODEL;
         chatClientRef.current = s.openaiApiKey
-          ? createChatClient(s.openaiApiKey, modelRef.current)
+          ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)
           : null;
 
         void invoke("set_tray_state", { state: "initializing" }).catch(
@@ -513,9 +511,8 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const wasMissingKey = !apiKeyRef.current;
         apiKeyRef.current = s.openaiApiKey;
         voiceURIRef.current = s.voiceURI;
-        modelRef.current = s.model || DEFAULT_MODEL;
         chatClientRef.current = s.openaiApiKey
-          ? createChatClient(s.openaiApiKey, modelRef.current)
+          ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)
           : null;
         // Recover from the "no API key" startup error once the user fills
         // it in via Settings → 保存.
