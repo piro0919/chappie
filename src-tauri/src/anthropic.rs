@@ -91,7 +91,7 @@ fn translate_messages(messages: Vec<ChatMessage>) -> (Vec<Value>, Option<String>
 #[serde(tag = "type")]
 enum StreamEvent {
     #[serde(rename = "message_start")]
-    MessageStart {},
+    MessageStart { message: Value },
     #[serde(rename = "content_block_start")]
     ContentBlockStart { index: u32, content_block: Value },
     #[serde(rename = "content_block_delta")]
@@ -148,7 +148,26 @@ pub async fn chat_complete(
     }
 
     let (mut working, system) = translate_messages(messages);
-    let tools = translate_tools(&crate::openai::all_tools());
+    // Mark the last tool with cache_control so Anthropic caches the entire
+    // tools array (and everything before it: system, model). Cache hits
+    // are billed at ~10% of normal input — a 90% discount on this prefix.
+    // 5-minute TTL is fine: voice turns within a conversation are seconds
+    // apart, well inside the window.
+    let tools = {
+        let mut arr = match translate_tools(&crate::openai::all_tools()) {
+            Value::Array(a) => a,
+            _ => Vec::new(),
+        };
+        if let Some(last) = arr.last_mut() {
+            if let Some(obj) = last.as_object_mut() {
+                obj.insert(
+                    "cache_control".to_string(),
+                    json!({ "type": "ephemeral" }),
+                );
+            }
+        }
+        Value::Array(arr)
+    };
 
     let mut end_conversation = false;
     let mut full_text = String::new();
@@ -162,7 +181,16 @@ pub async fn chat_complete(
             "stream": true,
         });
         if let Some(sys) = &system {
-            body["system"] = json!(sys);
+            // Send system as a single-block array so we can attach
+            // cache_control. With this marker Anthropic caches system +
+            // tools as one prefix.
+            body["system"] = json!([
+                {
+                    "type": "text",
+                    "text": sys,
+                    "cache_control": { "type": "ephemeral" }
+                }
+            ]);
         }
 
         crate::linfo!(
@@ -287,9 +315,28 @@ pub async fn chat_complete(
                                 stop_reason = Some(reason.to_string());
                             }
                         }
-                        StreamEvent::MessageStart {}
-                        | StreamEvent::MessageStop {}
-                        | StreamEvent::Other => {}
+                        StreamEvent::MessageStart { message } => {
+                            if let Some(usage) = message.get("usage") {
+                                let input = usage
+                                    .get("input_tokens")
+                                    .and_then(|v| v.as_u64())
+                                    .unwrap_or(0);
+                                let cache_create = usage
+                                    .get("cache_creation_input_tokens")
+                                    .and_then(|v| v.as_u64())
+                                    .unwrap_or(0);
+                                let cache_read = usage
+                                    .get("cache_read_input_tokens")
+                                    .and_then(|v| v.as_u64())
+                                    .unwrap_or(0);
+                                crate::linfo!(
+                                    &app,
+                                    "anthropic",
+                                    "usage: input={input} cache_create={cache_create} cache_read={cache_read}"
+                                );
+                            }
+                        }
+                        StreamEvent::MessageStop {} | StreamEvent::Other => {}
                     }
                 }
             }
