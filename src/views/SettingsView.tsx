@@ -21,6 +21,7 @@ import styles from "./SettingsView.module.css";
 
 type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
 type ScreenStatus = "granted" | "denied";
+type CalendarStatus = "granted" | "denied" | "restricted" | "not_determined";
 
 const MIC_PRIVACY_URL =
   "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
@@ -37,6 +38,9 @@ export function SettingsView() {
   const [requestingMic, setRequestingMic] = useState(false);
   const [screenStatus, setScreenStatus] = useState<ScreenStatus>("denied");
   const [requestingScreen, setRequestingScreen] = useState(false);
+  const [calendarStatus, setCalendarStatus] =
+    useState<CalendarStatus>("not_determined");
+  const [requestingCalendar, setRequestingCalendar] = useState(false);
 
   function micStatusBadge(status: MicStatus): {
     label: string;
@@ -86,6 +90,28 @@ export function SettingsView() {
     }
   }
 
+  async function refreshCalendarStatus() {
+    try {
+      const status = await invoke<CalendarStatus>("calendar_status");
+      setCalendarStatus(status);
+    } catch (e) {
+      console.error("[settings] calendar_status failed", e);
+    }
+  }
+
+  async function requestCalendar() {
+    setRequestingCalendar(true);
+    try {
+      const granted = await invoke<boolean>("request_calendar_access");
+      console.info("[settings] request_calendar_access ->", granted);
+      await refreshCalendarStatus();
+    } catch (e) {
+      console.error("[settings] request_calendar_access failed", e);
+    } finally {
+      setRequestingCalendar(false);
+    }
+  }
+
   async function requestScreen() {
     console.info("[settings] requestScreen clicked");
     setRequestingScreen(true);
@@ -119,6 +145,7 @@ export function SettingsView() {
       setAutostart(await isAutostartEnabled());
       await refreshMicStatus();
       await refreshScreenStatus();
+      await refreshCalendarStatus();
       setLoaded(true);
     })();
     getVersion()
@@ -248,6 +275,45 @@ export function SettingsView() {
         )}
         {screenStatus === "denied" && (
           <p className={styles.note}>{t("settings.screenDeniedNote")}</p>
+        )}
+      </section>
+
+      {/* Calendar access */}
+      <section className={styles.card}>
+        <div className={styles.statusRow}>
+          <span className={styles.statusLabel}>
+            {t("settings.calendarAccess")}
+          </span>
+          <span
+            className={`${styles.badge} ${calendarStatus === "granted" ? styles.badgeGranted : styles.badgeDenied}`}
+          >
+            <span className={styles.badgeDot} />
+            {calendarStatus === "granted"
+              ? t("settings.calendarGranted")
+              : t("settings.calendarDenied")}
+          </span>
+        </div>
+        {calendarStatus !== "granted" && (
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={requestCalendar}
+              disabled={requestingCalendar}
+            >
+              {t("settings.calendarRequest")}
+            </button>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={refreshCalendarStatus}
+            >
+              {t("settings.micRecheck")}
+            </button>
+          </div>
+        )}
+        {calendarStatus === "denied" && (
+          <p className={styles.note}>{t("settings.calendarDeniedNote")}</p>
         )}
       </section>
 
