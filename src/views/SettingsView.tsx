@@ -10,6 +10,7 @@ import {
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 import { useT } from "../i18n/useT";
+import { detectProvider, providerLabel } from "../lib/provider";
 import {
   type Language,
   loadSettings,
@@ -186,7 +187,23 @@ export function SettingsView() {
             placeholder={t("settings.apiKeyPlaceholder")}
           />
         </div>
-        <p className={styles.note}>{t("settings.apiKeyNote")}</p>
+        {(() => {
+          const trimmed = apiKey.trim();
+          if (!trimmed) {
+            return <p className={styles.note}>{t("settings.apiKeyNote")}</p>;
+          }
+          const provider = detectProvider(trimmed);
+          if (provider) {
+            return (
+              <p className={styles.note}>
+                {t("settings.apiKeyDetected", {
+                  provider: providerLabel(provider),
+                })}
+              </p>
+            );
+          }
+          return <p className={styles.note}>{t("settings.apiKeyUnknown")}</p>;
+        })()}
       </section>
 
       {/* Language */}

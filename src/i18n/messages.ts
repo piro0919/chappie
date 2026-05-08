@@ -22,6 +22,8 @@ type Messages = {
     apiKey: string;
     apiKeyPlaceholder: string;
     apiKeyNote: string;
+    apiKeyDetected: string;
+    apiKeyUnknown: string;
     autostartLabel: string;
     autostartCheckbox: string;
     languageLabel: string;
@@ -80,6 +82,8 @@ const ja: Messages = {
     apiKey: "API キー",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini に対応。",
+    apiKeyDetected: "検出: {provider}",
+    apiKeyUnknown: "形式を判別できませんでした",
     autostartLabel: "起動",
     autostartCheckbox: "ログイン時に自動起動する",
     languageLabel: "言語",
@@ -145,6 +149,8 @@ const en: Messages = {
     apiKey: "API Key",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Supports OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyDetected: "Detected: {provider}",
+    apiKeyUnknown: "Unrecognized key format",
     autostartLabel: "Startup",
     autostartCheckbox: "Launch at login",
     languageLabel: "Language",
@@ -211,6 +217,8 @@ const es: Messages = {
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
       "Compatible con OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyDetected: "Detectado: {provider}",
+    apiKeyUnknown: "Formato de clave no reconocido",
     autostartLabel: "Inicio",
     autostartCheckbox: "Iniciar al iniciar sesión",
     languageLabel: "Idioma",
@@ -276,6 +284,8 @@ const fr: Messages = {
     apiKey: "Clé d'API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatible OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyDetected: "Détecté : {provider}",
+    apiKeyUnknown: "Format de clé non reconnu",
     autostartLabel: "Démarrage",
     autostartCheckbox: "Lancer à l'ouverture de session",
     languageLabel: "Langue",
@@ -341,6 +351,8 @@ const de: Messages = {
     apiKey: "API-Schlüssel",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Unterstützt OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyDetected: "Erkannt: {provider}",
+    apiKeyUnknown: "Schlüsselformat nicht erkannt",
     autostartLabel: "Start",
     autostartCheckbox: "Beim Anmelden automatisch starten",
     languageLabel: "Sprache",
@@ -405,6 +417,8 @@ const zh: Messages = {
     apiKey: "API 密钥",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "支持 OpenAI / xAI / OpenRouter / Anthropic / Gemini。",
+    apiKeyDetected: "已识别:{provider}",
+    apiKeyUnknown: "无法识别密钥格式",
     autostartLabel: "启动",
     autostartCheckbox: "登录时自动启动",
     languageLabel: "语言",
@@ -469,6 +483,8 @@ const pt: Messages = {
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
       "Compatível com OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyDetected: "Detectado: {provider}",
+    apiKeyUnknown: "Formato de chave não reconhecido",
     autostartLabel: "Início",
     autostartCheckbox: "Iniciar ao fazer login",
     languageLabel: "Idioma",
@@ -534,6 +550,8 @@ const ko: Messages = {
     apiKey: "API 키",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini 지원.",
+    apiKeyDetected: "감지됨: {provider}",
+    apiKeyUnknown: "키 형식을 확인할 수 없습니다",
     autostartLabel: "시작",
     autostartCheckbox: "로그인할 때 자동 실행",
     languageLabel: "언어",
@@ -600,6 +618,8 @@ const it: Messages = {
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
       "Compatibile con OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    apiKeyDetected: "Rilevato: {provider}",
+    apiKeyUnknown: "Formato chiave non riconosciuto",
     autostartLabel: "Avvio",
     autostartCheckbox: "Avvia all'accesso",
     languageLabel: "Lingua",
