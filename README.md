@@ -22,8 +22,9 @@
 - 🎙 **No hotkeys, no clicks** — just say the wake word; Chappie remembers the flow of the conversation
 - 🔒 **Your voice stays on your Mac** — speech is transcribed locally with Whisper; the raw audio never leaves the device
 - 🍎 **Menu bar resident, no Dock clutter** — shows up only when you need it
-- 🗣 **Pick a macOS system voice** — switch between Japanese / English, male / female
-- ♻ **Auto-update** — new versions surface at launch; one click to update
+- 🌍 **9 languages** — Japanese / English plus Spanish / French / German / Italian / Portuguese / Korean / Simplified Chinese (Beta). Picks a matching macOS voice automatically.
+- 🔁 **Multi-provider, BYO API key** — OpenAI / xAI / OpenRouter / Anthropic / Gemini. Provider auto-detected from the key prefix.
+- ♻ **Auto-update** — checks at launch and every 6 hours; tray badge for new versions; manual check from the menu
 
 ## What it can do
 
@@ -65,12 +66,14 @@ More tools coming over time.
 - **Wake-word matching**: renderer-side string match (NFKC normalization + Whisper homophone variants)
 - **AI**: bring-your-own API key from OpenAI / xAI / OpenRouter / Anthropic / Gemini. Provider auto-detected from the key prefix (no UI choice). HTTP call lives in Rust so the key never enters the renderer. Default models are each provider's cheapest tool-capable tier; override with `CHAPPIE_MODEL` env var.
 - **Tools**: `set_timer` / `list_timers` / `cancel_timer` / `add_reminder_at` / `list_reminders` / `cancel_reminder` / `get_current_time` / `get_weather` / `open_url` / `web_search` / `open_app` / `open_finder` / `get_volume` / `set_volume` / `set_mute` / `control_music` / `get_now_playing` / `get_battery_status` / `read_clipboard` / `write_clipboard` / `take_screenshot` / `add_note` / `list_notes` / `delete_note` / `lock_screen` / `set_sleep_prevention` / `get_sleep_prevention` / `list_capabilities` / `end_conversation` (multi-round tool calling in `openai.rs`)
-- **Text-to-speech**: Web Speech API `SpeechSynthesis` (macOS native voices), streamed sentence-by-sentence as the model produces tokens
+- **Text-to-speech**: Web Speech API `SpeechSynthesis` (macOS native voices), streamed sentence-by-sentence as the model produces tokens. Voice is auto-selected to match the chosen language — no picker.
+- **i18n**: 9 languages cover the UI, system prompt, wake-word ack, timer/reminder readouts, tray menu, updater dialog, and the `list_capabilities` self-introduction. Whisper's language hint is set to the resolved locale.
 - **Visual HUD**: a transparent always-on-top overlay window. Confirms volume / mute toggles, surfaces timer fires, and — when the system is muted — renders Chappie's full reply as text since TTS would be inaudible
 - **Menu bar countdown**: when a timer is running, the tray title shows `M:SS` next to the icon (Galopen pattern). Combined with `🔔` when an update is pending
 - **Mic permission**: `AVCaptureDevice.requestAccessForMediaType:` via objc2 + block2
-- **Settings persistence**: `tauri-plugin-store`
-- **Auto-update**: `tauri-plugin-updater` with confirmation dialog (`tauri-plugin-dialog`)
+- **Screen recording permission**: `SCShareableContent.getShareableContentWithCompletionHandler:` from ScreenCaptureKit. Required for `take_screenshot`'s fullscreen mode (selection mode works without).
+- **Settings persistence**: `tauri-plugin-store` (API key + language)
+- **Auto-update**: `tauri-plugin-updater`. Checks at launch (prompts) and every 6 hours (silent badge); manual "Check for updates" item in the tray menu.
 
 > WKWebView's `getUserMedia` hangs forever for hidden, accessory-mode windows
 > without a user gesture, so audio is captured at the OS layer in Rust and
@@ -107,9 +110,10 @@ The first time the app accesses the mic, macOS will show a system permission
 prompt (driven by `AVCaptureDevice.requestAccess`). After granting,
 `Chappie` appears in System Settings → Privacy & Security → Microphone.
 
-Settings changes (API key, voice) hot-reload via the
-`settings:updated` event — no restart needed. Autostart only applies on next
-launch (handled by macOS).
+Settings changes (API key, language) hot-reload via the `settings:updated`
+event — no restart needed. The conversation loop, Whisper language hint,
+tray menu, and update dialog all re-render in the new language without
+relaunching. Autostart only applies on next launch (handled by macOS).
 
 ### Manual model fetch
 
@@ -124,11 +128,22 @@ debug builds. The Web Inspector's Console shows logs from both the renderer
 (`[loop]` / `[timer]`) and Rust side (`[audio]` / `[whisper]` / `[openai]`),
 unified through `lib/log-bridge.ts`.
 
+### Dev binary signing
+
+A Cargo runner at [`scripts/dev-codesign-run.sh`](./scripts/dev-codesign-run.sh)
+re-signs the dev binary with the stable identifier `io.kkweb.chappie` before
+launch (~0.4 s overhead). Without this, every rebuild produces a fresh random
+signing identifier and macOS TCC can't track granted permissions across
+rebuilds. (Even with this, screen-recording permission is still flaky in
+dev — verify with a `pnpm tauri build` if it matters.)
+
 ## Usage
 
 1. Click the menu-bar icon → **Settings**
-2. Enter an API key (any of `sk-...` / `xai-...` / `sk-or-...` / `sk-ant-...` / `AIza...`) → Save
-3. Say "**chappie, how are you?**" — or just "chappie", wait for the brief acknowledgement, then speak your message
+2. Enter an API key (any of `sk-...` / `xai-...` / `sk-or-...` / `sk-ant-...` / `AIza...`); the detected provider name appears under the field
+3. Pick a language (Auto = system locale)
+4. Save
+5. Say "**chappie, how are you?**" — or just "chappie", wait for the brief acknowledgement, then speak your message
    (The Japanese wake word "チャッピー" works too)
 
 The menu-bar icon reflects the current state:

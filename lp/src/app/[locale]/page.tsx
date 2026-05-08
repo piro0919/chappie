@@ -3,11 +3,11 @@ import {
   Cpu,
   Download,
   Github,
+  Globe,
   Lock,
   MessageCircle,
   Mic,
   RefreshCw,
-  Sparkles,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,7 +24,7 @@ const FEATURE_IDS = [
   "local",
   "memory",
   "menubar",
-  "voices",
+  "languages",
   "update",
 ] as const;
 const FEATURE_ICONS: Record<(typeof FEATURE_IDS)[number], typeof Mic> = {
@@ -32,7 +32,7 @@ const FEATURE_ICONS: Record<(typeof FEATURE_IDS)[number], typeof Mic> = {
   local: Lock,
   memory: MessageCircle,
   menubar: Cpu,
-  voices: Sparkles,
+  languages: Globe,
   update: RefreshCw,
 };
 

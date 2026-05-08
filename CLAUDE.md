@@ -10,7 +10,8 @@ A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チ�
 - **whisper-rs** (local STT, Metal-accelerated on macOS) — uses `ggml-small.bin`
 - **cpal** (mic capture in Rust) + **rubato** (resampling) + **voice_activity_detector** (Silero VAD V5)
 - **Multi-provider LLM** (OpenAI / xAI / OpenRouter / Anthropic / Gemini). Provider auto-detected from the API key prefix; settings UI has no provider/model picker. HTTP call lives in Rust via `reqwest` so the key never enters the renderer. Each provider's cheapest tool-capable model is the default; `CHAPPIE_MODEL` env var overrides for power users.
-- **Web Speech API `SpeechSynthesis`** (TTS)
+- **Web Speech API `SpeechSynthesis`** (TTS) — voice auto-picked to match the resolved language; no UI picker.
+- **i18n**: 9 languages (ja / en / es / fr / de / it / pt / ko / zh). Renderer-side catalog in `src/i18n/messages.ts`; Rust-side `i18n.rs` holds the app-wide language for tray / updater / capabilities.
 
 ## Architecture
 
@@ -40,13 +41,18 @@ A hands-free voice AI assistant. Wake it with "**chappie**" (English) or "**チ�
 - `reminder.rs` — absolute-time reminders persisted to `~/.chappie/reminders.json`. Distinct from `timer.rs` because reminders ("明日7時") must survive app restart while timers ("3分後") are intentionally ephemeral. `init` on startup drops past-due entries and re-schedules the rest. Fires `reminder:fired` (separate event) so the renderer can phrase it as "○○の時間です" rather than the timer's "○○のタイマーです".
 - `log_event.rs` — `linfo!` / `lwarn!` / `lerror!` macros that both eprintln and emit a `log` event so the renderer's `lib/log-bridge.ts` can mirror Rust logs into the Web Inspector console.
 - `mic_permission.rs` — `AVCaptureDevice.requestAccessForMediaType:` via objc2 + block2. **Always invokes requestAccess regardless of cached status** (cached status can be wrong for ad-hoc signed apps). Mirrors Galopen's calendar permission pattern.
-- The Whisper context lives globally in `OnceCell<Mutex<WhisperContext>>`.
+- `screen_permission.rs` — `SCShareableContent.getShareableContentWithCompletionHandler:` from ScreenCaptureKit. Used because `CGRequestScreenCaptureAccess()` is synchronous and frequently never shows the dialog for ad-hoc signed apps. The async completion-handler pattern matches mic_permission and reliably triggers the system TCC prompt. Required for `take_screenshot`'s fullscreen mode (selection mode `-i` works without).
+- `i18n.rs` — global `Lang` enum (ja/en/es/fr/de/zh/pt/ko/it) backed by a `Mutex<Lang>`. `set_app_language` Tauri command updates it and re-applies the tray; `tray.rs` / `updater.rs` / `capabilities.rs` branch on `current()`.
+- The Whisper context lives globally in `OnceCell<Mutex<WhisperContext>>`. Whisper's language hint is held in a separate `Mutex<Option<&'static str>>` and is updated by the renderer via `set_whisper_language` whenever the user changes language in Settings.
 
 ### Frontend (`src/`)
 
 - `main.tsx` — routes `?view=settings` → SettingsView, `?view=hud` → HudView, anything else → ConversationView.
 - `views/ConversationWorker.tsx` — headless component for the hidden main window. Mounts `useConversationLoop` and renders nothing visible; all diagnostics flow into the Web Inspector console via `lib/log-bridge.ts`.
-- `views/SettingsView.tsx` — on-demand settings window opened from the tray menu (API key + voice + autostart). Mic permission status is also surfaced here.
+- `views/SettingsView.tsx` — on-demand settings window opened from the tray menu (mic permission, screen-recording permission, API key + provider detection, language picker, autostart). The voice picker was removed — voice now follows the language setting automatically.
+- `i18n/messages.ts` — typed message catalogs for 9 languages plus a `WAKE_ACKS` table for randomized wake-word acknowledgements. `t(lang, key, params?)` does dotted-path lookup with `{name}` substitution. `resolveLanguage("auto")` sniffs `navigator.language`.
+- `i18n/useT.ts` — React hook that loads the language from settings, listens for `settings:updated`, and returns a bound `t()`.
+- `lib/provider.ts` — renderer-side mirror of `provider.rs::detect_from_key` (prefix → provider). Powers the "Detected: {provider}" hint under the API key field.
 - `views/HudView.tsx` + `HudView.module.css` + `HudView.global.css` — Raycast-style transparent overlay. Listens for `hud:show` events and fades a cream-pill card in/out (Chappie portrait + text). Avatar swaps based on text content (listening pose for mute / 👂 / errors, talking pose otherwise).
 - `hooks/useConversationLoop.ts` — calls `request_microphone_access` → `ensure_model` → `start_listening`, then listens for `speech` events from Rust and dispatches wake-word detection → `chat_complete` (Rust IPC) → TTS-or-HUD → tray sync. The output channel is decided **at the first text chunk** by querying `is_muted`: muted → buffer chunks and call `hud_show` with the full reply at the end (skips streaming TTS); not muted → normal streaming `createStreamingSpeaker`. The same branch covers wake-word ack ("👂 はい" on HUD when muted), API-key-missing errors, the `openai` failure fallback, and the timer-fired announcement. Wraps every `speak()` in `withMutedCapture()` (pause_listening + 350ms cooldown) so the mic pipeline doesn't process Chappie's own voice. After a successful turn, opens a 6s "continuation window" where the next utterance is treated as the body without requiring the wake-word again. Wake ack rotates a randomized list of soft/casual phrases (`はーい` / `なーに？` / `どうしたの？` etc.) so it doesn't sound canned.
 - `lib/state-machine.ts` — pure state machine (idle/listening/thinking/speaking/error).

@@ -158,13 +158,13 @@
         "title": "Menu bar resident, no Dock clutter",
         "body": "The app is just a menu bar icon. Settings open only when you need them."
       },
-      "voices": {
-        "title": "Pick a macOS system voice",
-        "body": "Choose from the voices already installed on macOS — Japanese, English, male, female, all switchable."
+      "languages": {
+        "title": "Speaks 9 languages",
+        "body": "Japanese, English, plus Spanish, French, German, Italian, Portuguese, Korean, and Simplified Chinese (Beta). Pick one and Chappie automatically uses a matching macOS system voice."
       },
       "update": {
         "title": "Auto-update",
-        "body": "New versions surface at launch — one click and you're up to date. No manual download."
+        "body": "Checks at launch and quietly every 6 hours. New versions show a tray badge so you can update on your time."
       }
     }
   },
