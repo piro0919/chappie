@@ -99,6 +99,52 @@ pub fn cancel_all() -> usize {
     n
 }
 
+// Periodically refresh the menu-bar tray title with the shortest remaining
+// timer (format: "M:SS"). When no timers are running, clears the title so
+// only the icon shows. Runs forever — call once from app setup.
+pub fn start_tray_title_ticker(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(1));
+        let mut last_title = String::new();
+        loop {
+            interval.tick().await;
+
+            let now_ms = chrono::Local::now().timestamp_millis();
+            let next_remaining_secs = TIMERS
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|t| ((t.info.fires_at_unix_ms - now_ms).max(0) / 1000) as u64)
+                .min();
+
+            let timer_part = match next_remaining_secs {
+                Some(secs) if secs > 0 => {
+                    let m = secs / 60;
+                    let s = secs % 60;
+                    format!("{m}:{s:02}")
+                }
+                _ => String::new(),
+            };
+            let update_pending = crate::tray::UPDATE_AVAILABLE
+                .load(std::sync::atomic::Ordering::Relaxed);
+            let title = match (update_pending, timer_part.is_empty()) {
+                (true, true) => "🔔".to_string(),
+                (true, false) => format!("🔔 {timer_part}"),
+                (false, _) => timer_part,
+            };
+
+            if title == last_title {
+                continue;
+            }
+            if let Some(tray) = app.tray_by_id("main") {
+                let _ = tray.set_title(Some(title.as_str()));
+            }
+            last_title = title;
+        }
+    });
+}
+
 pub fn format_duration(seconds: u64) -> String {
     let h = seconds / 3600;
     let m = (seconds % 3600) / 60;

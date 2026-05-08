@@ -34,6 +34,9 @@
 | 🕐 | Date & time | "What time is it?", "What day is it today?" |
 | ⛅ | Weather | "What's the weather in Tokyo?" |
 | 🌐 | Open sites & web search | "Open YouTube", "Google how to make ramen" |
+| 🚀 | Launch Mac apps | "Open Slack", "Launch Spotify" |
+| 🔊 | System volume | "Set the volume to 30", "Mute", "Turn it down a bit" |
+| 📋 | Clipboard | "Read what I just copied", "Copy that for me" |
 | 👋 | Goodbye → back to standby | "Thanks, see you later" |
 
 More tools coming over time.
@@ -55,8 +58,10 @@ More tools coming over time.
 - **Speech-to-text**: [`whisper-rs`](https://github.com/tazz4843/whisper-rs) (Rust, Metal-accelerated on macOS) using `ggml-small.bin`
 - **Wake-word matching**: renderer-side string match (NFKC normalization + Whisper homophone variants)
 - **AI**: OpenAI Chat Completions (default `gpt-4o-mini`, switchable in Settings; HTTP call lives in Rust so the API key never enters the renderer)
-- **Tools**: `set_timer` / `list_timers` / `cancel_timer` / `get_current_time` / `end_conversation` (multi-round tool calling in `openai.rs`)
+- **Tools**: `set_timer` / `list_timers` / `cancel_timer` / `get_current_time` / `get_weather` / `open_url` / `web_search` / `open_app` / `get_volume` / `set_volume` / `set_mute` / `read_clipboard` / `write_clipboard` / `end_conversation` (multi-round tool calling in `openai.rs`)
 - **Text-to-speech**: Web Speech API `SpeechSynthesis` (macOS native voices), streamed sentence-by-sentence as the model produces tokens
+- **Visual HUD**: a transparent always-on-top overlay window. Confirms volume / mute toggles, surfaces timer fires, and — when the system is muted — renders Chappie's full reply as text since TTS would be inaudible
+- **Menu bar countdown**: when a timer is running, the tray title shows `M:SS` next to the icon (Galopen pattern). Combined with `🔔` when an update is pending
 - **Mic permission**: `AVCaptureDevice.requestAccessForMediaType:` via objc2 + block2
 - **Settings persistence**: `tauri-plugin-store`
 - **Auto-update**: `tauri-plugin-updater` with confirmation dialog (`tauri-plugin-dialog`)

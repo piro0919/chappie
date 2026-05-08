@@ -21,6 +21,11 @@ export function speakQueued(
   });
 }
 
+// Slightly faster than the default 1.0 rate. WebKit's Japanese voices
+// sound a touch slow at 1.0; bumping to 1.15 keeps clarity while making
+// the conversation feel more responsive.
+const TTS_RATE = 1.15;
+
 function speakInternal(
   text: string,
   voiceURI: string | null,
@@ -28,6 +33,7 @@ function speakInternal(
   reject: (err: Error) => void,
 ): void {
   const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = TTS_RATE;
   if (voiceURI) {
     const voice = window.speechSynthesis
       .getVoices()

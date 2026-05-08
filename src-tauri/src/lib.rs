@@ -120,12 +120,14 @@ pub fn run() {
             hud::hud_dismiss,
             hud::hud_show,
             volume::is_muted,
+            tray::set_update_available,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
             let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             init_tray(&app.handle())?;
+            timer::start_tray_title_ticker(&app.handle());
 
             // Fire-and-forget IP-based location lookup so by the time the
             // user starts talking we already have a city to ground replies in.

@@ -51,6 +51,17 @@ pub struct TrayHandle {
     pub last_state: Mutex<TrayState>,
 }
 
+// When an update is detected but the user dismisses the prompt, we surface
+// a persistent 🔔 badge in the tray title so they don't forget. Cleared on
+// successful update + relaunch.
+pub static UPDATE_AVAILABLE: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+#[tauri::command]
+pub fn set_update_available(available: bool) {
+    UPDATE_AVAILABLE.store(available, std::sync::atomic::Ordering::Relaxed);
+}
+
 pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
     let menu = build_menu(app, TrayState::Idle, true)?;
     let icon = Image::from_bytes(TrayState::Idle.icon_bytes())?;
