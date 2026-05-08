@@ -31,6 +31,14 @@ fn capabilities_pt() -> String {
                 "Me acorda amanhã às 7, lembra de tomar o remédio às 20h (sobrevivem ao reinício)",
             ],
         ),
+        (
+            "Agenda",
+            &[
+                "O que tenho hoje?",
+                "Minha agenda de amanhã",
+                "Qual é o próximo?",
+            ],
+        ),
         ("Clima", &["Clima aqui, vai chover amanhã?, clima em São Paulo"]),
         (
             "Web",
@@ -99,6 +107,14 @@ fn capabilities_ko() -> String {
                 "내일 7시에 깨워줘, 8시에 약 먹으라고 알려줘 (재시작 후에도 유지)",
             ],
         ),
+        (
+            "캘린더",
+            &[
+                "오늘 일정은?",
+                "내일 스케줄 알려줘",
+                "다음 일정은?",
+            ],
+        ),
         ("날씨", &["여기 날씨, 내일 우산 필요해?, 서울 날씨"]),
         (
             "웹",
@@ -162,6 +178,14 @@ fn capabilities_it() -> String {
                 "Che ore sono? / Che data è oggi?",
                 "Fai un timer di 3 minuti (più timer insieme va bene)",
                 "Svegliami domani alle 7, ricordami di prendere la medicina alle 20 (sopravvive al riavvio)",
+            ],
+        ),
+        (
+            "Calendario",
+            &[
+                "Cos'ho in agenda oggi?",
+                "L'agenda di domani",
+                "Qual è il prossimo?",
             ],
         ),
         ("Meteo", &["Meteo qui, devo prendere l'ombrello domani?, meteo a Roma"]),
@@ -230,6 +254,14 @@ fn capabilities_es() -> String {
                 "¿Qué hora es? / ¿Qué fecha es hoy?",
                 "Pon un temporizador de 3 minutos (varios a la vez está bien)",
                 "Despiértame mañana a las 7, recuérdame tomar la pastilla a las 8 (sobreviven al reinicio)",
+            ],
+        ),
+        (
+            "Calendario",
+            &[
+                "¿Qué tengo hoy?",
+                "Agenda de mañana",
+                "¿Qué sigue?",
             ],
         ),
         (
@@ -304,6 +336,14 @@ fn capabilities_fr() -> String {
             ],
         ),
         (
+            "Agenda",
+            &[
+                "Quel est mon planning aujourd'hui ?",
+                "Mon agenda de demain",
+                "Et après ?",
+            ],
+        ),
+        (
             "Météo",
             &["Météo ici, faut-il un parapluie demain ?, météo à Paris"],
         ),
@@ -372,6 +412,14 @@ fn capabilities_de() -> String {
                 "Wie spät ist es? / Welches Datum ist heute?",
                 "Stell einen 3-Minuten-Timer (mehrere parallel OK)",
                 "Weck mich morgen um 7, erinnere mich um 20 Uhr an die Tabletten (überlebt Neustarts)",
+            ],
+        ),
+        (
+            "Kalender",
+            &[
+                "Was steht heute an?",
+                "Mein Plan für morgen",
+                "Was kommt als Nächstes?",
             ],
         ),
         (
@@ -448,6 +496,14 @@ fn capabilities_zh() -> String {
                 "明天 7 点叫我,晚上 8 点提醒我吃药(重启后保留)",
             ],
         ),
+        (
+            "日历",
+            &[
+                "我今天有什么安排？",
+                "明天的日程",
+                "下一个安排是什么？",
+            ],
+        ),
         ("天气", &["这里的天气, 明天要带伞吗?, 北京的天气"]),
         (
             "网页",
@@ -514,6 +570,14 @@ fn capabilities_ja() -> String {
                 "今何時？／今日の日付",
                 "3分タイマー、5分タイマー（複数同時 OK）",
                 "明日7時に起こして、20時に薬って言って（リマインダーは再起動後も保持）",
+            ],
+        ),
+        (
+            "カレンダー",
+            &[
+                "今日の予定は？",
+                "明日のスケジュール教えて",
+                "次の予定は？",
             ],
         ),
         ("天気", &["現在地の天気、明日の傘いる？、東京の天気"]),
@@ -585,6 +649,14 @@ fn capabilities_en() -> String {
                 "What time is it? / What's today's date?",
                 "Set a 3-minute timer, set a 5-minute timer (multiple at once is fine)",
                 "Wake me at 7 tomorrow, remind me to take meds at 8 PM (reminders survive restart)",
+            ],
+        ),
+        (
+            "Calendar",
+            &[
+                "What's on my calendar today?",
+                "Tomorrow's schedule?",
+                "What's next?",
             ],
         ),
         (
