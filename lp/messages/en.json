@@ -75,11 +75,18 @@
         "body": "Adjusts macOS output volume by voice. Absolute levels and relative \"a bit louder / quieter\" both work — perfect when your hands are full."
       },
       "apps": {
-        "title": "Launch Mac apps",
+        "title": "Launch apps & open folders",
         "example1": "\"Open Slack\"",
-        "example2": "\"Launch Spotify\"",
-        "example3": "\"Open Notes\"",
-        "body": "Launches any installed Mac app by name. Pairs naturally with \"open YouTube\" — the menu bar becomes your voice launcher."
+        "example2": "\"Open my Downloads folder\"",
+        "example3": "\"Open the Applications folder\"",
+        "body": "Launches any installed Mac app by name. Also opens Finder at common folders (Downloads, Desktop, Documents, Applications, Trash, etc.) by voice — the menu bar becomes your voice launcher."
+      },
+      "lock": {
+        "title": "Lock, sleep & stay-awake",
+        "example1": "\"Lock the screen\"",
+        "example2": "\"Put the Mac to sleep\"",
+        "example3": "\"Stay awake for 30 minutes\"",
+        "body": "Lock, display-off, or sleep with one word. Or flip it — \"stay awake\" prevents sleep during long-running tasks (timed or open-ended)."
       },
       "battery": {
         "title": "Check the battery",

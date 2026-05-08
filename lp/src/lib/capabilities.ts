@@ -8,6 +8,7 @@ import {
   CloudSun,
   Globe,
   Hand,
+  Lock,
   MessageCircle,
   type Mic,
   Music,
@@ -30,6 +31,7 @@ export const CAPABILITY_IDS = [
   "screenshot",
   "notes",
   "battery",
+  "lock",
   "goodbye",
 ] as const;
 
@@ -56,6 +58,7 @@ export const CAPABILITY_ICONS: Record<CapabilityId, typeof Mic> = {
   reminder: AlarmClock,
   notes: NotebookPen,
   battery: BatteryMedium,
+  lock: Lock,
   goodbye: Hand,
 };
 
@@ -73,5 +76,6 @@ export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
   music: ["example1", "example2", "example3"],
   notes: ["example1", "example2", "example3"],
   battery: ["example1", "example2", "example3"],
+  lock: ["example1", "example2", "example3"],
   goodbye: ["example1", "example2", "example3"],
 };

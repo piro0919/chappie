@@ -1,6 +1,9 @@
 mod audio;
 mod battery;
+mod caffeinate;
+mod capabilities;
 mod clipboard;
+mod finder;
 mod hud;
 mod log_event;
 mod mic_permission;
@@ -9,6 +12,7 @@ mod location;
 mod music;
 mod notes;
 mod openai;
+mod power;
 mod reminder;
 mod screenshot;
 mod timer;

@@ -1,8 +1,26 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-import "./HudView.global.css";
 import styles from "./HudView.module.css";
+
+// HUD-only global resets. Applied imperatively (instead of via a global CSS
+// file) so they don't leak into the settings/conversation windows that share
+// the same bundle. Without this scoping, "overflow: hidden" on body would
+// kill scrolling in Settings.
+function applyHudGlobals() {
+  const html = document.documentElement;
+  const body = document.body;
+  for (const el of [html, body]) {
+    el.style.margin = "0";
+    el.style.padding = "0";
+    el.style.background = "transparent";
+    el.style.overflow = "hidden";
+    el.style.height = "100vh";
+  }
+  body.style.userSelect = "none";
+  body.style.webkitUserSelect = "none";
+  body.style.cursor = "default";
+}
 
 type HudPayload = { text: string; durationMs: number };
 
@@ -34,6 +52,10 @@ function pickAvatar(text: string): string {
 export function HudView() {
   const [text, setText] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    applyHudGlobals();
+  }, []);
 
   useEffect(() => {
     let hideTimer: number | undefined;

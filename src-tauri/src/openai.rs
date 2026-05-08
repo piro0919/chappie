@@ -245,8 +245,26 @@ fn all_tools() -> Value {
         {
             "type": "function",
             "function": {
+                "name": "open_finder",
+                "description": "Finder で指定の場所を開きます。「ダウンロードフォルダ開いて」「デスクトップ開いて」「アプリケーションフォルダ開いて」「ゴミ箱開いて」のような指示で呼び出してください。target はキーワード（'downloads', 'desktop', 'documents', 'pictures', 'music', 'movies', 'applications', 'trash', 'home'）または絶対パス（先頭 '~/' は展開されます）。日本語キーワード（ダウンロード、デスクトップ等）も受け付けます。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "target": {
+                            "type": "string",
+                            "description": "場所を示すキーワードまたはパス。"
+                        }
+                    },
+                    "required": ["target"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "open_app",
-                "description": "macOS の指定アプリを起動します。「Slack 開いて」「Spotify 起動して」「メモ開いて」「VSCode 立ち上げて」のような指示で呼び出してください。name にはユーザーが言ったアプリ名をそのまま渡します（例: 'Slack', 'Spotify', 'メモ', 'Visual Studio Code'）。`open -a` 経由で起動するので、Applications にインストールされていれば見つかります。",
+                "description": "macOS の指定アプリを起動します。「Slack 開いて」「Spotify 起動して」「メモ開いて」「VSCode 立ち上げて」のような指示で呼び出してください。name にはユーザーが言ったアプリ名をそのまま渡します（例: 'Slack', 'Spotify', 'メモ', 'Visual Studio Code'）。`open -a` 経由で起動するので、Applications にインストールされていれば見つかります。\n\n**曖昧なケースの方針**: 名前がアプリでもウェブサービスでもありえる場合（Notion / Twitter / GitHub / YouTube / ChatGPT など）、まずこの open_app を試してください。失敗（not_installed=true）が返ってきたら、続けて open_url で公式 URL を開く、または web_search で検索するフォールバックを行います。失敗したことをユーザーに長々と説明する必要はなく、ウェブで開いた旨を一言伝える程度で OK。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -286,6 +304,72 @@ fn all_tools() -> Value {
                         }
                     },
                     "required": ["text"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "list_capabilities",
+                "description": "Chappie 自身ができることの一覧を返します。「何ができるの？」「Chappie って何？」「使い方教えて」「他には何ができる？」のような自己紹介系の質問で必ず呼び出してください。返ってきた内容は、ユーザーに自然な会話調で要約して伝えます（カテゴリ全部を読み上げず、興味ありそうな2〜3カテゴリに絞ってよい）。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_sleep_prevention",
+                "description": "現在スリープ抑止が ON かどうかを取得します。「今スリープしないモード？」「カフェイン入ってる？」のような質問で呼び出してください。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "set_sleep_prevention",
+                "description": "Mac がスリープに入らないようにする / 元に戻す（macOS の caffeinate コマンド）。「スリープしないようにして」「ずっと起きてて」「画面消さないで」→ enabled=true（duration_minutes 任意）、「もう寝てもいい」「スリープ戻して」「解除して」→ enabled=false。「30分起きてて」のような時間指定があれば duration_minutes に分単位で渡します（指定なしなら無制限）。**lock_screen との混同に注意**: 「画面ロック」「ロックして」は lock_screen を呼ぶこと。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "true=スリープ抑止 ON, false=OFF（既定の挙動に戻す）。"
+                        },
+                        "duration_minutes": {
+                            "type": "integer",
+                            "description": "抑止する時間（分）。指定なしなら時間無制限（stop されるまで）。",
+                            "minimum": 1
+                        }
+                    },
+                    "required": ["enabled"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "lock_screen",
+                "description": "Mac の画面ロック / ディスプレイオフ / スリープを実行します。「画面ロック」「ロックして」→ mode='lock'（ログイン画面に戻す。本体は起きたまま）、「画面消して」「ディスプレイ消して」→ mode='display_off'（画面だけオフ）、「スリープして」「眠らせて」→ mode='sleep'（本体ごとスリープ）。意図が曖昧なときは 'lock' を選んでください（一番安全で復帰も速い）。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "enum": ["lock", "display_off", "sleep"],
+                            "description": "lock=ログイン画面, display_off=画面だけオフ, sleep=本体スリープ。"
+                        }
+                    },
+                    "required": ["mode"],
                     "additionalProperties": false
                 }
             }
@@ -641,6 +725,25 @@ async fn execute_tool(
                 Err(e) => json!({ "ok": false, "error": e }).to_string(),
             }
         }
+        "open_finder" => {
+            let target = args
+                .get("target")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if target.is_empty() {
+                return json!({ "ok": false, "error": "target is required" }).to_string();
+            }
+            match crate::finder::open(&target) {
+                Ok(path) => json!({
+                    "ok": true,
+                    "target": target,
+                    "path": path.display().to_string()
+                })
+                .to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
         "open_app" => {
             let name = args
                 .get("name")
@@ -656,9 +759,11 @@ async fn execute_tool(
                 .status()
             {
                 Ok(s) if s.success() => json!({ "ok": true, "name": name }).to_string(),
-                Ok(s) => json!({
+                Ok(_) => json!({
                     "ok": false,
-                    "error": format!("`open -a` exited with status {s}; the app may not be installed")
+                    "not_installed": true,
+                    "error": format!("'{name}' というアプリは見つかりませんでした（インストールされていない可能性があります）。"),
+                    "fallback_hint": format!("ユーザーは '{name}' のウェブサイトを開きたかった可能性があります。Notion / Slack / GitHub / Twitter / YouTube など、ウェブサービスとしても存在する名前なら、open_url で公式 URL を開くか、web_search でその名前を検索するのが妥当なフォールバックです。ユーザーに『○○のサイトを開きますか？』と聞き返さず、自然にウェブで開いた旨を伝えてください。")
                 })
                 .to_string(),
                 Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
@@ -681,6 +786,60 @@ async fn execute_tool(
             }
             match crate::clipboard::write(text) {
                 Ok(()) => json!({ "ok": true, "chars": text.chars().count() }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "list_capabilities" => crate::capabilities::capabilities_text(),
+        "get_sleep_prevention" => match crate::caffeinate::status() {
+            Some(until_ms) => {
+                let until_local = until_ms.and_then(|ms| {
+                    chrono::Local
+                        .timestamp_millis_opt(ms)
+                        .single()
+                        .map(|d| d.format("%H:%M").to_string())
+                });
+                json!({ "ok": true, "enabled": true, "until_local": until_local }).to_string()
+            }
+            None => json!({ "ok": true, "enabled": false }).to_string(),
+        },
+        "set_sleep_prevention" => {
+            let Some(enabled) = args.get("enabled").and_then(|v| v.as_bool()) else {
+                return json!({ "ok": false, "error": "enabled is required" }).to_string();
+            };
+            if enabled {
+                let mins = args
+                    .get("duration_minutes")
+                    .and_then(|v| v.as_u64());
+                match crate::caffeinate::start(mins) {
+                    Ok(until_ms) => {
+                        let until_local = until_ms.and_then(|ms| {
+                            chrono::Local
+                                .timestamp_millis_opt(ms)
+                                .single()
+                                .map(|d| d.format("%H:%M").to_string())
+                        });
+                        json!({
+                            "ok": true,
+                            "enabled": true,
+                            "duration_minutes": mins,
+                            "until_local": until_local
+                        })
+                        .to_string()
+                    }
+                    Err(e) => json!({ "ok": false, "error": e }).to_string(),
+                }
+            } else {
+                let was_active = crate::caffeinate::stop();
+                json!({ "ok": true, "enabled": false, "was_active": was_active }).to_string()
+            }
+        }
+        "lock_screen" => {
+            let mode = args.get("mode").and_then(|v| v.as_str()).unwrap_or("");
+            if mode.is_empty() {
+                return json!({ "ok": false, "error": "mode is required" }).to_string();
+            }
+            match crate::power::run(mode) {
+                Ok(()) => json!({ "ok": true, "mode": mode }).to_string(),
                 Err(e) => json!({ "ok": false, "error": e }).to_string(),
             }
         }
