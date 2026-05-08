@@ -52,6 +52,8 @@ struct StreamContent {
 struct StreamChunk {
     #[serde(default)]
     candidates: Vec<StreamCandidate>,
+    #[serde(default, rename = "usageMetadata")]
+    usage: Option<Value>,
 }
 
 /// Strip JSON Schema keys Gemini's parser rejects. The OpenAI tool catalog
@@ -158,8 +160,12 @@ pub async fn chat_complete(
         crate::location::get(false).await.ok()
     };
     if let Some(loc) = loc {
+        // Insert after the static persona system message so the cached
+        // prefix (system_instruction + tools) stays identical across turns.
+        // Gemini 2.5+ implicit caching keys off the leading prefix.
+        let pos = if messages.first().map(|m| m.role.as_str()) == Some("system") { 1 } else { 0 };
         messages.insert(
-            0,
+            pos,
             ChatMessage {
                 role: "system".to_string(),
                 content: format!(
@@ -251,6 +257,25 @@ pub async fn chat_complete(
                             continue;
                         }
                     };
+                    if let Some(usage) = &chunk.usage {
+                        let prompt = usage
+                            .get("promptTokenCount")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        let cached = usage
+                            .get("cachedContentTokenCount")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        let completion = usage
+                            .get("candidatesTokenCount")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        crate::linfo!(
+                            &app,
+                            "gemini",
+                            "usage: prompt={prompt} cached={cached} completion={completion}"
+                        );
+                    }
                     let Some(choice) = chunk.candidates.into_iter().next() else {
                         continue;
                     };

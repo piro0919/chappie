@@ -69,6 +69,8 @@ struct StreamChoice {
 #[derive(Deserialize)]
 struct StreamChunk {
     choices: Vec<StreamChoice>,
+    #[serde(default)]
+    usage: Option<Value>,
 }
 
 #[derive(Default, Clone)]
@@ -1157,7 +1159,12 @@ pub async fn chat_complete(
             "ユーザーのおおよその現在地は {} です。場所が指定されない天気・地理・地域に関する質問はここを既定として返答してください（IP ベース推定なので住所単位の精度はありません）。",
             crate::location::format_for_prompt(&loc)
         );
-        working.insert(0, json!({"role": "system", "content": context}));
+        // Insert AFTER the static persona system prompt at index 0 so the
+        // persona + tools prefix stays identical across turns (prompt
+        // caching keys off the leading prefix). Location can change between
+        // sessions but is stable within a session.
+        let pos = if working.first().and_then(|m| m.get("role")).and_then(|r| r.as_str()) == Some("system") { 1 } else { 0 };
+        working.insert(pos, json!({"role": "system", "content": context}));
     }
 
     let mut end_conversation = false;
@@ -1170,6 +1177,12 @@ pub async fn chat_complete(
             "tools": all_tools(),
             "tool_choice": "auto",
             "stream": true,
+            // Include usage info in the final stream chunk so we can log
+            // cached_tokens and verify prompt caching is hitting. OpenAI
+            // auto-caches prompts >=1024 tokens; tools + system reach this
+            // easily so we expect strong cache hit rates after the first
+            // turn of a session.
+            "stream_options": { "include_usage": true },
         });
 
         crate::linfo!(
@@ -1220,6 +1233,26 @@ pub async fn chat_complete(
                             continue;
                         }
                     };
+                    if let Some(usage) = &chunk.usage {
+                        let prompt = usage
+                            .get("prompt_tokens")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        let cached = usage
+                            .get("prompt_tokens_details")
+                            .and_then(|d| d.get("cached_tokens"))
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        let completion = usage
+                            .get("completion_tokens")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        crate::linfo!(
+                            &app,
+                            "openai",
+                            "usage: prompt={prompt} cached={cached} completion={completion}"
+                        );
+                    }
                     let Some(choice) = chunk.choices.into_iter().next() else {
                         continue;
                     };

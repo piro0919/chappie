@@ -135,8 +135,13 @@ pub async fn chat_complete(
         crate::location::get(false).await.ok()
     };
     if let Some(loc) = loc {
+        // Insert AFTER the static persona system message so the cached
+        // prefix (system + tools) stays identical between turns. The system
+        // string fed to Anthropic is the join of all role=system messages
+        // in order, so this placement controls cache key stability.
+        let pos = if messages.first().map(|m| m.role.as_str()) == Some("system") { 1 } else { 0 };
         messages.insert(
-            0,
+            pos,
             ChatMessage {
                 role: "system".to_string(),
                 content: format!(
