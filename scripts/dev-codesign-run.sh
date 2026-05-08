@@ -20,8 +20,16 @@ BINARY="$1"
 shift
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
-    codesign --sign - --force --identifier io.kkweb.chappie "$BINARY" \
-        >/dev/null 2>&1 || true
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    ENTITLEMENTS="$SCRIPT_DIR/../src-tauri/Entitlements.plist"
+    if [[ -f "$ENTITLEMENTS" ]]; then
+        codesign --sign - --force --identifier io.kkweb.chappie \
+            --entitlements "$ENTITLEMENTS" "$BINARY" \
+            >/dev/null 2>&1 || true
+    else
+        codesign --sign - --force --identifier io.kkweb.chappie "$BINARY" \
+            >/dev/null 2>&1 || true
+    fi
 fi
 
 exec "$BINARY" "$@"
