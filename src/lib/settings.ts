@@ -1,6 +1,16 @@
 import { load, type Store } from "@tauri-apps/plugin-store";
 
-export type Language = "auto" | "ja" | "en" | "es" | "fr" | "de" | "zh";
+export type Language =
+  | "auto"
+  | "ja"
+  | "en"
+  | "es"
+  | "fr"
+  | "de"
+  | "zh"
+  | "pt"
+  | "ko"
+  | "it";
 
 export type Settings = {
   openaiApiKey: string;

@@ -45,6 +45,9 @@ fn set_whisper_language(lang: Option<String>) {
         Some("fr") => Some("fr"),
         Some("de") => Some("de"),
         Some("zh") => Some("zh"),
+        Some("pt") => Some("pt"),
+        Some("ko") => Some("ko"),
+        Some("it") => Some("it"),
         _ => None,
     };
     if let Ok(mut g) = WHISPER_LANG.lock() {

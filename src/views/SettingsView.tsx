@@ -215,7 +215,10 @@ export function SettingsView() {
             <option value="es">{t("settings.languageEs")}</option>
             <option value="fr">{t("settings.languageFr")}</option>
             <option value="de">{t("settings.languageDe")}</option>
+            <option value="it">{t("settings.languageIt")}</option>
+            <option value="pt">{t("settings.languagePt")}</option>
             <option value="zh">{t("settings.languageZh")}</option>
+            <option value="ko">{t("settings.languageKo")}</option>
           </select>
         </div>
       </section>

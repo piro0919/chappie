@@ -14,7 +14,211 @@ pub fn capabilities_text() -> String {
         Lang::Fr => capabilities_fr(),
         Lang::De => capabilities_de(),
         Lang::Zh => capabilities_zh(),
+        Lang::Pt => capabilities_pt(),
+        Lang::Ko => capabilities_ko(),
+        Lang::It => capabilities_it(),
     }
+}
+
+fn capabilities_pt() -> String {
+    let categories: &[(&str, &[&str])] = &[
+        ("Conversa", &["Bate-papo, conselhos, perguntas (lembra do recente)"]),
+        (
+            "Tempo",
+            &[
+                "Que horas são? / Que dia é hoje?",
+                "Põe um timer de 3 minutos (vários ao mesmo tempo OK)",
+                "Me acorda amanhã às 7, lembra de tomar o remédio às 20h (sobrevivem ao reinício)",
+            ],
+        ),
+        ("Clima", &["Clima aqui, vai chover amanhã?, clima em São Paulo"]),
+        (
+            "Web",
+            &[
+                "Abre o YouTube, abre o site da Apple",
+                "Pesquisa ___ no Google (no navegador padrão)",
+            ],
+        ),
+        (
+            "Apps e pastas",
+            &[
+                "Abre o Slack, abre o Spotify, abre o Notas",
+                "Abre Downloads, abre Aplicativos, abre o Lixo",
+            ],
+        ),
+        ("Volume", &["Volume 30, abaixa um pouco, mudo"]),
+        (
+            "Música",
+            &[
+                "Próxima, pausa (controla Spotify ou Apple Music aberto)",
+                "O que está tocando? (lê título e artista)",
+            ],
+        ),
+        (
+            "Área de transferência",
+            &["Lê a área de transferência", "Escreve ___ e copia"],
+        ),
+        (
+            "Capturas de tela",
+            &[
+                "Tira um screenshot (seleção → área de transferência)",
+                "Captura a tela toda e salva na Mesa",
+            ],
+        ),
+        (
+            "Notas",
+            &["Anota isso: ___", "Acha as notas sobre ___, lê as notas recentes"],
+        ),
+        (
+            "Status do Mac",
+            &["Quanta bateria?, quanto falta para carregar?"],
+        ),
+        (
+            "Bloquear e dormir",
+            &[
+                "Bloqueia a tela, desliga a tela, dorme",
+                "Não deixa dormir, mantém acordado por 30 minutos, libera",
+            ],
+        ),
+        (
+            "Encerrar",
+            &["Diz 'até mais' ou 'obrigado' para voltar ao modo de espera"],
+        ),
+    ];
+    render(categories)
+}
+
+fn capabilities_ko() -> String {
+    let categories: &[(&str, &[&str])] = &[
+        ("수다", &["잡담, 상담, 질문 답변 (최근 흐름 기억)"]),
+        (
+            "시간",
+            &[
+                "지금 몇 시? / 오늘 날짜",
+                "3분 타이머, 5분 타이머 (동시에 여러 개 OK)",
+                "내일 7시에 깨워줘, 8시에 약 먹으라고 알려줘 (재시작 후에도 유지)",
+            ],
+        ),
+        ("날씨", &["여기 날씨, 내일 우산 필요해?, 서울 날씨"]),
+        (
+            "웹",
+            &[
+                "유튜브 열어, 애플 사이트 열어",
+                "구글에서 ___ 검색해 (기본 브라우저로)",
+            ],
+        ),
+        (
+            "앱과 폴더",
+            &[
+                "Slack 열어, Spotify 열어, 메모 열어",
+                "다운로드 폴더 열어, 응용 프로그램 열어, 휴지통 열어",
+            ],
+        ),
+        ("볼륨", &["볼륨 30으로, 조금 낮춰, 음소거"]),
+        (
+            "음악",
+            &[
+                "다음 곡, 정지 (실행 중인 Spotify / Apple Music 제어)",
+                "지금 무슨 곡? (곡명과 아티스트 읽어줌)",
+            ],
+        ),
+        (
+            "클립보드",
+            &["클립보드 읽어줘", "___ 적어서 클립보드에 복사해 줘"],
+        ),
+        (
+            "스크린샷",
+            &[
+                "스크린샷 찍어 (영역 선택 → 클립보드)",
+                "전체 화면 캡처해서 데스크탑에 저장해",
+            ],
+        ),
+        (
+            "메모",
+            &["이거 메모해 줘: ___", "___ 관련 메모 찾아줘, 최근 메모 읽어줘"],
+        ),
+        ("Mac 상태", &["배터리 몇 %?, 충전 얼마나 남았어?"]),
+        (
+            "잠금과 절전",
+            &[
+                "화면 잠금, 디스플레이 끄기, 절전 모드",
+                "절전 안 되게 해, 30분 깨어 있게 해, 해제",
+            ],
+        ),
+        (
+            "종료",
+            &["'또 봐' 또는 '고마워'라고 하면 대기 모드로 돌아감"],
+        ),
+    ];
+    render(categories)
+}
+
+fn capabilities_it() -> String {
+    let categories: &[(&str, &[&str])] = &[
+        ("Chiacchiere", &["Conversazione, consigli, domande (ricorda il recente)"]),
+        (
+            "Tempo",
+            &[
+                "Che ore sono? / Che data è oggi?",
+                "Fai un timer di 3 minuti (più timer insieme va bene)",
+                "Svegliami domani alle 7, ricordami di prendere la medicina alle 20 (sopravvive al riavvio)",
+            ],
+        ),
+        ("Meteo", &["Meteo qui, devo prendere l'ombrello domani?, meteo a Roma"]),
+        (
+            "Web",
+            &[
+                "Apri YouTube, apri il sito di Apple",
+                "Cerca ___ su Google (nel browser predefinito)",
+            ],
+        ),
+        (
+            "App e cartelle",
+            &[
+                "Apri Slack, apri Spotify, apri Note",
+                "Apri Download, apri Applicazioni, apri il Cestino",
+            ],
+        ),
+        ("Volume", &["Metti il volume a 30, abbassa un po', muto"]),
+        (
+            "Musica",
+            &[
+                "Prossimo brano, pausa (controlla Spotify o Apple Music aperto)",
+                "Cosa sta suonando? (legge titolo e artista)",
+            ],
+        ),
+        (
+            "Appunti",
+            &["Leggi gli appunti", "Scrivi ___ e copialo"],
+        ),
+        (
+            "Schermate",
+            &[
+                "Fai uno screenshot (selezione → appunti)",
+                "Cattura tutto lo schermo e salva sulla Scrivania",
+            ],
+        ),
+        (
+            "Note",
+            &["Annota questo: ___", "Trova le note su ___, leggi le note recenti"],
+        ),
+        (
+            "Stato Mac",
+            &["Quanta batteria?, quanto manca alla carica completa?"],
+        ),
+        (
+            "Blocco e stop",
+            &[
+                "Blocca lo schermo, spegni il display, vai in stop",
+                "Non andare in stop, resta sveglio per 30 minuti, rilascia",
+            ],
+        ),
+        (
+            "Fine",
+            &["Di' 'a dopo' o 'grazie' per tornare in standby"],
+        ),
+    ];
+    render(categories)
 }
 
 fn capabilities_es() -> String {

@@ -32,6 +32,9 @@ fn off_label(lang: Lang) -> &'static str {
         Lang::Fr => "Chappie: Micro désactivé",
         Lang::De => "Chappie: Mikrofon aus",
         Lang::Zh => "Chappie: 麦克风已关闭",
+        Lang::Pt => "Chappie: Microfone desligado",
+        Lang::Ko => "Chappie: 마이크 꺼짐",
+        Lang::It => "Chappie: Microfono spento",
     }
 }
 
@@ -84,6 +87,24 @@ impl TrayState {
             (Self::Thinking, Lang::Zh) => "Chappie: 思考中",
             (Self::Speaking, Lang::Zh) => "Chappie: 说话中",
             (Self::Error, Lang::Zh) => "Chappie: 错误",
+            (Self::Initializing, Lang::Pt) => "Chappie: Iniciando…",
+            (Self::Idle, Lang::Pt) => "Chappie: Em espera",
+            (Self::Listening, Lang::Pt) => "Chappie: Ouvindo",
+            (Self::Thinking, Lang::Pt) => "Chappie: Pensando",
+            (Self::Speaking, Lang::Pt) => "Chappie: Falando",
+            (Self::Error, Lang::Pt) => "Chappie: Erro",
+            (Self::Initializing, Lang::Ko) => "Chappie: 시작 중…",
+            (Self::Idle, Lang::Ko) => "Chappie: 대기 중",
+            (Self::Listening, Lang::Ko) => "Chappie: 듣는 중",
+            (Self::Thinking, Lang::Ko) => "Chappie: 생각 중",
+            (Self::Speaking, Lang::Ko) => "Chappie: 말하는 중",
+            (Self::Error, Lang::Ko) => "Chappie: 오류",
+            (Self::Initializing, Lang::It) => "Chappie: Avvio…",
+            (Self::Idle, Lang::It) => "Chappie: In attesa",
+            (Self::Listening, Lang::It) => "Chappie: In ascolto",
+            (Self::Thinking, Lang::It) => "Chappie: Sto pensando",
+            (Self::Speaking, Lang::It) => "Chappie: Sto parlando",
+            (Self::Error, Lang::It) => "Chappie: Errore",
         }
     }
 }
@@ -96,6 +117,9 @@ fn menu_label_mic(lang: Lang) -> &'static str {
         Lang::Fr => "Activer le microphone",
         Lang::De => "Mikrofon aktivieren",
         Lang::Zh => "启用麦克风",
+        Lang::Pt => "Ativar microfone",
+        Lang::Ko => "마이크 사용",
+        Lang::It => "Attiva microfono",
     }
 }
 
@@ -107,6 +131,9 @@ fn menu_label_settings(lang: Lang) -> &'static str {
         Lang::Fr => "Ouvrir les réglages",
         Lang::De => "Einstellungen öffnen",
         Lang::Zh => "打开设置",
+        Lang::Pt => "Abrir ajustes",
+        Lang::Ko => "설정 열기",
+        Lang::It => "Apri impostazioni",
     }
 }
 
@@ -118,6 +145,9 @@ fn menu_label_check_update(lang: Lang) -> &'static str {
         Lang::Fr => "Rechercher des mises à jour",
         Lang::De => "Nach Updates suchen",
         Lang::Zh => "检查更新",
+        Lang::Pt => "Buscar atualizações",
+        Lang::Ko => "업데이트 확인",
+        Lang::It => "Controlla aggiornamenti",
     }
 }
 
@@ -129,6 +159,9 @@ fn menu_label_quit(lang: Lang) -> &'static str {
         Lang::Fr => "Quitter",
         Lang::De => "Beenden",
         Lang::Zh => "退出",
+        Lang::Pt => "Sair",
+        Lang::Ko => "종료",
+        Lang::It => "Esci",
     }
 }
 

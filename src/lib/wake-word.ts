@@ -16,7 +16,7 @@ const WAKE_WORDS = [
   "joppy",
   "choppy",
   // Phonetic variants Whisper produces in non-EN/JA locales.
-  "chappi", // es
+  "chappi", // es / pt / it
   "chapie", // fr (also covers some German speakers)
   "tschappi", // de
   "tschapie", // de
@@ -24,6 +24,9 @@ const WAKE_WORDS = [
   "恰比", // zh — common transliteration
   "查皮",
   "夏皮",
+  "채피", // ko — common Hangul transliteration of "chappie"
+  "찹피",
+  "차피",
 ] as const;
 
 const LEAD_TRIM_RE = /^[\s、。．，,.!！?？:：;；\-—–…]+/;
