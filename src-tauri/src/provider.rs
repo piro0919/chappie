@@ -50,7 +50,7 @@ impl Provider {
             Self::XAI => "grok-2-latest",
             Self::OpenRouter => "openai/gpt-4o-mini",
             Self::Anthropic => "claude-3-5-haiku-latest",
-            Self::Gemini => "gemini-2.0-flash",
+            Self::Gemini => "gemini-2.5-flash",
         }
     }
 

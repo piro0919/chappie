@@ -54,9 +54,32 @@ struct StreamChunk {
     candidates: Vec<StreamCandidate>,
 }
 
+/// Strip JSON Schema keys Gemini's parser rejects. The OpenAI tool catalog
+/// uses `additionalProperties: false` (and could in principle use `$schema`,
+/// `definitions`, etc.) — Gemini's function_declarations validator only
+/// knows the OpenAPI-3-style subset and 400s on anything else.
+fn sanitize_schema(value: &mut Value) {
+    match value {
+        Value::Object(map) => {
+            map.remove("additionalProperties");
+            map.remove("$schema");
+            map.remove("definitions");
+            map.remove("$defs");
+            for (_, v) in map.iter_mut() {
+                sanitize_schema(v);
+            }
+        }
+        Value::Array(arr) => {
+            for v in arr {
+                sanitize_schema(v);
+            }
+        }
+        _ => {}
+    }
+}
+
 /// Translate OpenAI-shape tools (the canonical form `all_tools()` returns)
-/// into Gemini's `function_declarations` shape. The `parameters` schema is
-/// reused as-is — Gemini accepts JSON Schema with the same keys.
+/// into Gemini's `function_declarations` shape.
 fn translate_tools(openai_tools: &Value) -> Value {
     let decls: Vec<Value> = openai_tools
         .as_array()
@@ -64,10 +87,15 @@ fn translate_tools(openai_tools: &Value) -> Value {
             arr.iter()
                 .filter_map(|t| {
                     let f = t.get("function")?;
+                    let mut params = f
+                        .get("parameters")
+                        .cloned()
+                        .unwrap_or(json!({"type": "object"}));
+                    sanitize_schema(&mut params);
                     Some(json!({
                         "name": f.get("name")?.clone(),
                         "description": f.get("description").cloned().unwrap_or(Value::Null),
-                        "parameters": f.get("parameters").cloned().unwrap_or(json!({"type": "object"})),
+                        "parameters": params,
                     }))
                 })
                 .collect()
@@ -159,6 +187,13 @@ pub async fn chat_complete(
             "contents": contents,
             "tools": tools,
             "tool_config": { "function_calling_config": { "mode": "AUTO" } },
+            // Gemini 2.5 family enables a "thinking" phase by default that
+            // can consume the full output budget on its own and return an
+            // empty content (`parts: []`, `finishReason: "STOP"`). We don't
+            // need reasoning for short voice replies, so disable it.
+            "generationConfig": {
+                "thinkingConfig": { "thinkingBudget": 0 }
+            },
         });
         if let Some(sys) = &system_instruction {
             body["system_instruction"] = json!({ "parts": [{ "text": sys }] });
@@ -192,14 +227,17 @@ pub async fn chat_complete(
 
         let mut stream = resp.bytes_stream();
         let mut buf = String::new();
-        while let Some(item) = stream.next().await {
-            let bytes = item.map_err(|e| format!("stream: {e}"))?;
-            buf.push_str(&String::from_utf8_lossy(&bytes));
+        let mut total_bytes: usize = 0;
+        let mut raw_log = String::new();
 
-            while let Some(idx) = buf.find("\n\n") {
-                let event: String = buf.drain(..idx + 2).collect();
-                for line in event.lines() {
-                    let Some(data) = line.strip_prefix("data: ") else {
+        // Closure-equivalent: process one logical SSE event from `event_text`,
+        // advancing round state. Hoisted via a macro so we can reuse it both
+        // inside the streaming loop and after EOF (for any trailing event
+        // that didn't end with a blank line).
+        macro_rules! process_event {
+            ($event:expr) => {{
+                for line in $event.lines() {
+                    let Some(data) = line.strip_prefix("data: ").or_else(|| line.strip_prefix("data:")) else {
                         continue;
                     };
                     let data = data.trim();
@@ -240,10 +278,38 @@ pub async fn chat_complete(
                         finish_reason = Some(reason);
                     }
                 }
+            }};
+        }
+
+        while let Some(item) = stream.next().await {
+            let bytes = item.map_err(|e| format!("stream: {e}"))?;
+            total_bytes += bytes.len();
+            // Normalize CRLF → LF so the `\n\n` boundary detection works
+            // regardless of which line ending the server uses.
+            let chunk_str = String::from_utf8_lossy(&bytes).replace("\r\n", "\n");
+            raw_log.push_str(&chunk_str);
+            buf.push_str(&chunk_str);
+
+            while let Some(idx) = buf.find("\n\n") {
+                let event: String = buf.drain(..idx + 2).collect();
+                process_event!(event);
             }
-            // Drain to EOF rather than break early on finishReason — the
-            // last chunk often carries both finishReason and the final
-            // functionCall parts in the same event.
+        }
+
+        // The last event may not be terminated by a blank line if the server
+        // closes the stream right after writing it — process whatever is
+        // left in the buffer.
+        if !buf.trim().is_empty() {
+            let event = std::mem::take(&mut buf);
+            process_event!(event);
+        }
+
+        if round_text.is_empty() && function_calls.is_empty() {
+            crate::lwarn!(
+                &app,
+                "gemini",
+                "stream produced no content: {total_bytes} bytes, finish_reason={finish_reason:?}, raw={raw_log:?}"
+            );
         }
 
         full_text.push_str(&round_text);
