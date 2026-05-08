@@ -64,8 +64,8 @@ pub fn init() {
 }
 
 fn guarded<T, F: FnOnce() -> Result<T, String>>(f: F) -> Result<T, String> {
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| unsafe {
-        objc2::exception::catch(std::panic::AssertUnwindSafe(f))
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        unsafe { objc2::exception::catch(std::panic::AssertUnwindSafe(f)) }
     }));
     match result {
         Ok(Ok(v)) => v,
@@ -119,11 +119,140 @@ fn request_permission_inner(store: &EKEventStore) -> Result<bool, String> {
 }
 
 fn fetch_events_inner(
-    _store: &EKEventStore,
-    _range: Range,
+    store: &EKEventStore,
+    range: Range,
 ) -> Result<Vec<CalendarEvent>, String> {
-    // Implemented in Task 4.
-    Err("not implemented".to_string())
+    let now = Local::now();
+    let today = now.date_naive();
+
+    let (start_local, end_local, max_count) = match range {
+        Range::Today => (
+            now.naive_local(),
+            today
+                .and_hms_opt(23, 59, 59)
+                .ok_or("Failed to build today end")?,
+            10usize,
+        ),
+        Range::Tomorrow => {
+            let tomorrow = today + chrono::Duration::days(1);
+            (
+                tomorrow
+                    .and_hms_opt(0, 0, 0)
+                    .ok_or("Failed to build tomorrow start")?,
+                tomorrow
+                    .and_hms_opt(23, 59, 59)
+                    .ok_or("Failed to build tomorrow end")?,
+                10usize,
+            )
+        }
+        Range::Upcoming => {
+            let end = today + chrono::Duration::days(7);
+            (
+                now.naive_local(),
+                end.and_hms_opt(23, 59, 59)
+                    .ok_or("Failed to build upcoming end")?,
+                10usize,
+            )
+        }
+    };
+
+    let start_utc = Local
+        .from_local_datetime(&start_local)
+        .single()
+        .ok_or("Failed to convert start to UTC")?
+        .with_timezone(&Utc);
+    let end_utc = Local
+        .from_local_datetime(&end_local)
+        .single()
+        .ok_or("Failed to convert end to UTC")?
+        .with_timezone(&Utc);
+
+    let start_nsdate =
+        unsafe { NSDate::dateWithTimeIntervalSince1970(start_utc.timestamp() as f64) };
+    let end_nsdate =
+        unsafe { NSDate::dateWithTimeIntervalSince1970(end_utc.timestamp() as f64) };
+
+    unsafe { store.refreshSourcesIfNecessary() };
+    unsafe { store.reset() };
+
+    let predicate = unsafe {
+        store.predicateForEventsWithStartDate_endDate_calendars(
+            &start_nsdate,
+            &end_nsdate,
+            None::<&NSArray<EKCalendar>>,
+        )
+    };
+    let ek_events = unsafe { store.eventsMatchingPredicate(&predicate) };
+
+    let mut events: Vec<CalendarEvent> = ek_events
+        .iter()
+        .filter_map(|e| {
+            let status = unsafe { e.status() };
+            if status == EKEventStatus::Canceled {
+                return None;
+            }
+            // Use msg_send! with Option types for nullable ObjC properties so
+            // we don't trip Retained's non-null assertions.
+            let title: Option<objc2::rc::Retained<objc2_foundation::NSString>> =
+                unsafe { objc2::msg_send![&*e, title] };
+            let title = title.map(|s| s.to_string()).unwrap_or_default();
+            let start_date: Option<objc2::rc::Retained<NSDate>> =
+                unsafe { objc2::msg_send![&*e, startDate] };
+            let end_date: Option<objc2::rc::Retained<NSDate>> =
+                unsafe { objc2::msg_send![&*e, endDate] };
+            let start_date = start_date?;
+            let end_date = end_date?;
+            let is_all_day = unsafe { e.isAllDay() };
+            let location: Option<objc2::rc::Retained<objc2_foundation::NSString>> =
+                unsafe { objc2::msg_send![&*e, location] };
+            let location = location.map(|s| s.to_string());
+            let calendar_name: Option<String> = {
+                let cal: Option<objc2::rc::Retained<EKCalendar>> =
+                    unsafe { objc2::msg_send![&*e, calendar] };
+                cal.map(|c| {
+                    let t: objc2::rc::Retained<objc2_foundation::NSString> =
+                        unsafe { c.title() };
+                    t.to_string()
+                })
+            };
+
+            let start_dt =
+                DateTime::<Utc>::from_timestamp(start_date.timeIntervalSince1970() as i64, 0)?;
+            let end_dt =
+                DateTime::<Utc>::from_timestamp(end_date.timeIntervalSince1970() as i64, 0)?;
+
+            let (start_str, end_str) = if is_all_day {
+                (
+                    start_dt.with_timezone(&Local).format("%Y-%m-%d").to_string(),
+                    end_dt.with_timezone(&Local).format("%Y-%m-%d").to_string(),
+                )
+            } else {
+                (
+                    start_dt.with_timezone(&Local).to_rfc3339(),
+                    end_dt.with_timezone(&Local).to_rfc3339(),
+                )
+            };
+
+            let id_base: Option<objc2::rc::Retained<objc2_foundation::NSString>> =
+                unsafe { objc2::msg_send![&*e, eventIdentifier] };
+            let id_base = id_base.map(|s| s.to_string()).unwrap_or_default();
+            let id = format!("{}_{}", id_base, start_dt.timestamp());
+
+            Some(CalendarEvent {
+                id,
+                title,
+                start: start_str,
+                end: end_str,
+                is_all_day,
+                location,
+                calendar_name,
+            })
+        })
+        .collect();
+
+    events.sort_by(|a, b| a.start.cmp(&b.start));
+    events.truncate(max_count);
+    Ok(events)
 }
 
 #[tauri::command]
