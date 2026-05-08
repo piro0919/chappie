@@ -2,6 +2,7 @@ mod anthropic;
 mod audio;
 mod battery;
 mod caffeinate;
+mod calendar;
 mod capabilities;
 mod clipboard;
 mod finder;
