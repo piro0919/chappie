@@ -408,9 +408,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
         voiceURIRef.current = s.voiceURI;
         langRef.current = s.language;
         historyRef.current = createHistory(buildSystemPrompt(s.language));
-        void invoke("set_whisper_language", {
-          lang: resolveLanguage(s.language),
-        }).catch(() => {});
+        const resolvedLang = resolveLanguage(s.language);
+        void invoke("set_whisper_language", { lang: resolvedLang }).catch(
+          () => {},
+        );
+        void invoke("set_app_language", { lang: resolvedLang }).catch(() => {});
         chatClientRef.current = s.openaiApiKey
           ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)
           : null;
@@ -522,9 +524,13 @@ export function useConversationLoop(): { state: State; error: string | null } {
             ...historyRef.current,
             systemPrompt: buildSystemPrompt(s.language),
           };
-          void invoke("set_whisper_language", {
-            lang: resolveLanguage(s.language),
-          }).catch(() => {});
+          const resolvedLang = resolveLanguage(s.language);
+          void invoke("set_whisper_language", { lang: resolvedLang }).catch(
+            () => {},
+          );
+          void invoke("set_app_language", { lang: resolvedLang }).catch(
+            () => {},
+          );
         }
         chatClientRef.current = s.openaiApiKey
           ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)

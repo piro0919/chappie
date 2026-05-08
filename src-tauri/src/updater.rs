@@ -3,6 +3,52 @@ use tauri::AppHandle;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_updater::UpdaterExt;
 
+use crate::i18n::Lang;
+
+struct UpdaterStrings {
+    title: &'static str,
+    init_failed: fn(&str) -> String,
+    up_to_date: &'static str,
+    check_failed: fn(&str) -> String,
+    available: fn(&str) -> String,
+    ok: &'static str,
+    cancel: &'static str,
+    download_failed: fn(&str) -> String,
+    install_failed: fn(&str) -> String,
+    install_done: &'static str,
+}
+
+fn strings(lang: Lang) -> UpdaterStrings {
+    match lang {
+        Lang::Ja => UpdaterStrings {
+            title: "アップデート",
+            init_failed: |e| format!("アップデーターを初期化できませんでした。\n{e}"),
+            up_to_date: "お使いのバージョンは最新です。",
+            check_failed: |e| format!("確認に失敗しました。\n{e}"),
+            available: |v| {
+                format!("新しいバージョン v{v} が利用可能です。\nアップデートしますか？")
+            },
+            ok: "OK",
+            cancel: "キャンセル",
+            download_failed: |e| format!("ダウンロードに失敗しました。\n{e}"),
+            install_failed: |e| format!("インストールに失敗しました。\n{e}"),
+            install_done: "アップデートが完了しました。\nアプリを自動で再起動します。",
+        },
+        Lang::En => UpdaterStrings {
+            title: "Update",
+            init_failed: |e| format!("Couldn't initialize the updater.\n{e}"),
+            up_to_date: "You're on the latest version.",
+            check_failed: |e| format!("Update check failed.\n{e}"),
+            available: |v| format!("Version v{v} is available.\nUpdate now?"),
+            ok: "OK",
+            cancel: "Cancel",
+            download_failed: |e| format!("Download failed.\n{e}"),
+            install_failed: |e| format!("Installation failed.\n{e}"),
+            install_done: "Update complete.\nThe app will restart automatically.",
+        },
+    }
+}
+
 /// How often the background ticker re-checks for updates while the app is running.
 const PERIODIC_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
 
@@ -22,14 +68,15 @@ pub enum CheckTrigger {
 }
 
 pub async fn check_for_updates(app: AppHandle, trigger: CheckTrigger) {
+    let s = strings(crate::i18n::current());
     let updater = match app.updater() {
         Ok(u) => u,
         Err(e) => {
             eprintln!("[updater] init failed: {e}");
             if matches!(trigger, CheckTrigger::Manual) {
                 app.dialog()
-                    .message(format!("アップデーターを初期化できませんでした。\n{e}"))
-                    .title("アップデート")
+                    .message((s.init_failed)(&e.to_string()))
+                    .title(s.title)
                     .blocking_show();
             }
             return;
@@ -42,8 +89,8 @@ pub async fn check_for_updates(app: AppHandle, trigger: CheckTrigger) {
             crate::tray::set_update_available(false);
             if matches!(trigger, CheckTrigger::Manual) {
                 app.dialog()
-                    .message("お使いのバージョンは最新です。")
-                    .title("アップデート")
+                    .message(s.up_to_date)
+                    .title(s.title)
                     .blocking_show();
             }
             return;
@@ -52,8 +99,8 @@ pub async fn check_for_updates(app: AppHandle, trigger: CheckTrigger) {
             eprintln!("[updater] check failed: {e}");
             if matches!(trigger, CheckTrigger::Manual) {
                 app.dialog()
-                    .message(format!("確認に失敗しました。\n{e}"))
-                    .title("アップデート")
+                    .message((s.check_failed)(&e.to_string()))
+                    .title(s.title)
                     .blocking_show();
             }
             return;
@@ -66,19 +113,13 @@ pub async fn check_for_updates(app: AppHandle, trigger: CheckTrigger) {
         return;
     }
 
-    let title = "アップデート";
-    let msg = format!(
-        "新しいバージョン v{} が利用可能です。\nアップデートしますか？",
-        update.version
-    );
-
     let confirmed = app
         .dialog()
-        .message(msg)
-        .title(title)
+        .message((s.available)(&update.version))
+        .title(s.title)
         .buttons(MessageDialogButtons::OkCancelCustom(
-            "OK".to_string(),
-            "キャンセル".to_string(),
+            s.ok.to_string(),
+            s.cancel.to_string(),
         ))
         .blocking_show();
 
@@ -91,8 +132,8 @@ pub async fn check_for_updates(app: AppHandle, trigger: CheckTrigger) {
         Ok(b) => b,
         Err(e) => {
             app.dialog()
-                .message(format!("ダウンロードに失敗しました。\n{e}"))
-                .title(title)
+                .message((s.download_failed)(&e.to_string()))
+                .title(s.title)
                 .blocking_show();
             return;
         }
@@ -101,8 +142,8 @@ pub async fn check_for_updates(app: AppHandle, trigger: CheckTrigger) {
     match update.install(bytes) {
         Ok(_) => {
             app.dialog()
-                .message("アップデートが完了しました。\nアプリを自動で再起動します。")
-                .title(title)
+                .message(s.install_done)
+                .title(s.title)
                 .blocking_show();
             // Relaunch via `open` after exit — workaround for tauri macOS
             // restart bug (tauri-apps/tauri#13923). Mirrors Galopen.
@@ -121,8 +162,8 @@ pub async fn check_for_updates(app: AppHandle, trigger: CheckTrigger) {
         }
         Err(e) => {
             app.dialog()
-                .message(format!("インストールに失敗しました。\n{e}"))
-                .title(title)
+                .message((s.install_failed)(&e.to_string()))
+                .title(s.title)
                 .blocking_show();
         }
     }

@@ -7,6 +7,7 @@ mod clipboard;
 mod finder;
 mod gemini;
 mod hud;
+mod i18n;
 mod log_event;
 mod mic_permission;
 mod model;
@@ -44,6 +45,22 @@ fn set_whisper_language(lang: Option<String>) {
     };
     if let Ok(mut g) = WHISPER_LANG.lock() {
         *g = mapped;
+    }
+}
+
+#[tauri::command]
+fn set_app_language(app: tauri::AppHandle, lang: String) {
+    use tauri::Manager;
+    i18n::set(&lang);
+    // Rebuild tray menu / labels in the new language. We don't change the
+    // actual TrayState — just want the strings to refresh.
+    if let Some(handle) = app.try_state::<tray::TrayHandle>() {
+        let state = handle
+            .last_state
+            .lock()
+            .map(|g| *g)
+            .unwrap_or(tray::TrayState::Idle);
+        let _ = tray::apply_tray_state(&app, state);
     }
 }
 
@@ -141,6 +158,7 @@ pub fn run() {
             open_settings,
             ensure_model,
             set_whisper_language,
+            set_app_language,
             mic_permission::check_microphone_permission,
             mic_permission::request_microphone_access,
             audio::start_listening,

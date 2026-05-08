@@ -6,6 +6,8 @@ use tauri::{
     AppHandle, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 
+use crate::i18n::Lang;
+
 #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TrayState {
@@ -21,7 +23,13 @@ pub enum TrayState {
 // input off from the tray menu. The cpal stream is fully released in this
 // mode so macOS no longer shows its "in-use" microphone indicator.
 const OFF_ICON_BYTES: &[u8] = include_bytes!("../icons/tray-muted.png");
-const OFF_LABEL: &str = "Chappie: マイク入力オフ";
+
+fn off_label(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Ja => "Chappie: マイク入力オフ",
+        Lang::En => "Chappie: Mic off",
+    }
+}
 
 impl TrayState {
     fn icon_bytes(self) -> &'static [u8] {
@@ -34,15 +42,49 @@ impl TrayState {
             Self::Error => include_bytes!("../icons/tray-error.png"),
         }
     }
-    fn label(self) -> &'static str {
-        match self {
-            Self::Initializing => "Chappie: 起動中",
-            Self::Idle => "Chappie: 待機中",
-            Self::Listening => "Chappie: 聞いています",
-            Self::Thinking => "Chappie: 考え中",
-            Self::Speaking => "Chappie: 喋っています",
-            Self::Error => "Chappie: エラー",
+    pub fn label(self, lang: Lang) -> &'static str {
+        match (self, lang) {
+            (Self::Initializing, Lang::Ja) => "Chappie: 起動中",
+            (Self::Idle, Lang::Ja) => "Chappie: 待機中",
+            (Self::Listening, Lang::Ja) => "Chappie: 聞いています",
+            (Self::Thinking, Lang::Ja) => "Chappie: 考え中",
+            (Self::Speaking, Lang::Ja) => "Chappie: 喋っています",
+            (Self::Error, Lang::Ja) => "Chappie: エラー",
+            (Self::Initializing, Lang::En) => "Chappie: Starting…",
+            (Self::Idle, Lang::En) => "Chappie: Idle",
+            (Self::Listening, Lang::En) => "Chappie: Listening",
+            (Self::Thinking, Lang::En) => "Chappie: Thinking",
+            (Self::Speaking, Lang::En) => "Chappie: Speaking",
+            (Self::Error, Lang::En) => "Chappie: Error",
         }
+    }
+}
+
+fn menu_label_mic(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Ja => "マイクを有効にする",
+        Lang::En => "Enable microphone",
+    }
+}
+
+fn menu_label_settings(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Ja => "設定を開く",
+        Lang::En => "Open settings",
+    }
+}
+
+fn menu_label_check_update(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Ja => "アップデートを確認",
+        Lang::En => "Check for updates",
+    }
+}
+
+fn menu_label_quit(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Ja => "終了",
+        Lang::En => "Quit",
     }
 }
 
@@ -63,12 +105,13 @@ pub fn set_update_available(available: bool) {
 }
 
 pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
+    let lang = crate::i18n::current();
     let menu = build_menu(app, TrayState::Idle, true)?;
     let icon = Image::from_bytes(TrayState::Idle.icon_bytes())?;
     let tray = TrayIconBuilder::with_id("main")
         .icon(icon)
         .icon_as_template(false)
-        .tooltip(TrayState::Idle.label())
+        .tooltip(TrayState::Idle.label(lang))
         .menu(&menu)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "toggle_mic" => {
@@ -130,17 +173,23 @@ fn build_menu(
     state: TrayState,
     listening: bool,
 ) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
-    let status_label = if listening { state.label() } else { OFF_LABEL };
+    let lang = crate::i18n::current();
+    let status_label = if listening {
+        state.label(lang)
+    } else {
+        off_label(lang)
+    };
     let status = MenuItemBuilder::with_id("status", status_label)
         .enabled(false)
         .build(app)?;
-    let mic = CheckMenuItemBuilder::with_id("toggle_mic", "マイクを有効にする")
+    let mic = CheckMenuItemBuilder::with_id("toggle_mic", menu_label_mic(lang))
         .checked(listening)
         .build(app)?;
-    let settings = MenuItemBuilder::with_id("open_settings", "設定を開く").build(app)?;
+    let settings =
+        MenuItemBuilder::with_id("open_settings", menu_label_settings(lang)).build(app)?;
     let check_update =
-        MenuItemBuilder::with_id("check_update", "アップデートを確認").build(app)?;
-    let quit = MenuItemBuilder::with_id("quit", "終了").build(app)?;
+        MenuItemBuilder::with_id("check_update", menu_label_check_update(lang)).build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", menu_label_quit(lang)).build(app)?;
     MenuBuilder::new(app)
         .item(&status)
         .item(&PredefinedMenuItem::separator(app)?)
@@ -181,10 +230,11 @@ pub fn apply_tray_state(app: &AppHandle, state: TrayState) -> tauri::Result<()> 
     let tray = handle.icon.lock().unwrap();
     *handle.last_state.lock().unwrap() = state;
     let listening = crate::audio::is_listening();
+    let lang = crate::i18n::current();
     let (icon_bytes, tooltip) = if listening {
-        (state.icon_bytes(), state.label())
+        (state.icon_bytes(), state.label(lang))
     } else {
-        (OFF_ICON_BYTES, OFF_LABEL)
+        (OFF_ICON_BYTES, off_label(lang))
     };
     tray.set_icon(Some(Image::from_bytes(icon_bytes)?))?;
     tray.set_tooltip(Some(tooltip))?;
