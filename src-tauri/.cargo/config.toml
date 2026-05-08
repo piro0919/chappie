@@ -1,0 +1,8 @@
+# `cargo run` (and therefore `pnpm tauri dev`) goes through this runner on
+# macOS so the dev binary gets re-signed with a stable identifier before
+# launch. Without this, every rebuild gets a fresh code-signing identifier
+# and macOS TCC never remembers granted permissions (Screen Recording,
+# specifically). See scripts/dev-codesign-run.sh for the why.
+
+[target.'cfg(target_os = "macos")']
+runner = "../scripts/dev-codesign-run.sh"

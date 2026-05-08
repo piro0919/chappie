@@ -171,6 +171,7 @@ pub fn run() {
             mic_permission::request_microphone_access,
             screen_permission::check_screen_recording_permission,
             screen_permission::request_screen_recording_access,
+            screen_permission::open_screen_recording_settings,
             audio::start_listening,
             audio::stop_listening,
             audio::pause_listening,

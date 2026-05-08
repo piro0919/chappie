@@ -24,8 +24,6 @@ type ScreenStatus = "granted" | "denied";
 
 const MIC_PRIVACY_URL =
   "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
-const SCREEN_PRIVACY_URL =
-  "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
 
 export function SettingsView() {
   const { t } = useT();
@@ -76,21 +74,27 @@ export function SettingsView() {
   }
 
   async function refreshScreenStatus() {
+    console.info("[settings] refreshScreenStatus");
     try {
       const status = await invoke<ScreenStatus>(
         "check_screen_recording_permission",
       );
+      console.info("[settings] check_screen_recording_permission ->", status);
       setScreenStatus(status);
-    } catch {}
+    } catch (e) {
+      console.error("[settings] check_screen_recording_permission failed", e);
+    }
   }
 
   async function requestScreen() {
+    console.info("[settings] requestScreen clicked");
     setRequestingScreen(true);
     try {
-      await invoke<boolean>("request_screen_recording_access").catch(
-        () => false,
-      );
+      const granted = await invoke<boolean>("request_screen_recording_access");
+      console.info("[settings] request_screen_recording_access ->", granted);
       await refreshScreenStatus();
+    } catch (e) {
+      console.error("[settings] request_screen_recording_access failed", e);
     } finally {
       setRequestingScreen(false);
     }
@@ -226,7 +230,9 @@ export function SettingsView() {
               type="button"
               className={styles.button}
               onClick={() => {
-                void openUrl(SCREEN_PRIVACY_URL).catch(() => {});
+                void invoke("open_screen_recording_settings").catch((e) =>
+                  console.error("[settings] open_screen_recording_settings", e),
+                );
               }}
             >
               {t("settings.micOpenSystem")}
