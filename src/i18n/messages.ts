@@ -24,6 +24,11 @@ type Messages = {
     screenDenied: string;
     screenRequest: string;
     screenDeniedNote: string;
+    calendarAccess: string;
+    calendarGranted: string;
+    calendarDenied: string;
+    calendarRequest: string;
+    calendarDeniedNote: string;
     apiKey: string;
     apiKeyPlaceholder: string;
     apiKeyNote: string;
@@ -90,6 +95,12 @@ const ja: Messages = {
     screenRequest: "画面収録を許可する",
     screenDeniedNote:
       "一度拒否すると、システム設定からのみ再有効化できます。スクリーンショット機能で必要です。",
+    calendarAccess: "カレンダーへのアクセス",
+    calendarGranted: "許可済み",
+    calendarDenied: "未許可",
+    calendarRequest: "カレンダーへのアクセスを許可",
+    calendarDeniedNote:
+      "macOS のシステム設定 → プライバシーとセキュリティ → カレンダー で Chappie を有効化してください。",
     apiKey: "API キー",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini に対応。",
@@ -163,6 +174,12 @@ const en: Messages = {
     screenRequest: "Request screen recording access",
     screenDeniedNote:
       "Once denied, screen recording can only be re-enabled from System Settings. Required for the screenshot tool.",
+    calendarAccess: "Calendar access",
+    calendarGranted: "Granted",
+    calendarDenied: "Not granted",
+    calendarRequest: "Grant calendar access",
+    calendarDeniedNote:
+      "Open System Settings → Privacy & Security → Calendars and enable Chappie.",
     apiKey: "API Key",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Supports OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
@@ -236,6 +253,12 @@ const es: Messages = {
     screenRequest: "Solicitar acceso a grabación de pantalla",
     screenDeniedNote:
       "Una vez denegada, la grabación de pantalla solo se puede reactivar desde Configuración del Sistema. Se necesita para la captura de pantalla.",
+    calendarAccess: "Acceso al calendario",
+    calendarGranted: "Concedido",
+    calendarDenied: "Denegado",
+    calendarRequest: "Permitir acceso al calendario",
+    calendarDeniedNote:
+      "Abre Configuración → Privacidad y seguridad → Calendarios y habilita Chappie.",
     apiKey: "Clave de API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
@@ -310,6 +333,12 @@ const fr: Messages = {
     screenRequest: "Demander l'accès à l'enregistrement d'écran",
     screenDeniedNote:
       "Une fois refusé, l'enregistrement d'écran ne peut être réactivé que depuis les Réglages Système. Nécessaire pour l'outil de capture d'écran.",
+    calendarAccess: "Accès à l'agenda",
+    calendarGranted: "Autorisé",
+    calendarDenied: "Refusé",
+    calendarRequest: "Autoriser l'accès à l'agenda",
+    calendarDeniedNote:
+      "Ouvre Réglages → Confidentialité et sécurité → Calendriers et active Chappie.",
     apiKey: "Clé d'API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatible OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
@@ -383,6 +412,12 @@ const de: Messages = {
     screenRequest: "Bildschirmaufnahme anfordern",
     screenDeniedNote:
       "Einmal abgelehnt, lässt sich die Bildschirmaufnahme nur über die Systemeinstellungen wieder aktivieren. Wird für das Screenshot-Tool benötigt.",
+    calendarAccess: "Kalenderzugriff",
+    calendarGranted: "Erteilt",
+    calendarDenied: "Verweigert",
+    calendarRequest: "Kalenderzugriff erlauben",
+    calendarDeniedNote:
+      "Öffne Systemeinstellungen → Datenschutz & Sicherheit → Kalender und aktiviere Chappie.",
     apiKey: "API-Schlüssel",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Unterstützt OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
@@ -454,6 +489,11 @@ const zh: Messages = {
     screenDenied: "未授权",
     screenRequest: "请求屏幕录制权限",
     screenDeniedNote: "一旦拒绝,只能在系统设置中重新启用。截图功能需要此权限。",
+    calendarAccess: "日历访问权限",
+    calendarGranted: "已授权",
+    calendarDenied: "未授权",
+    calendarRequest: "授权访问日历",
+    calendarDeniedNote: "打开系统设置 → 隐私与安全性 → 日历，启用 Chappie。",
     apiKey: "API 密钥",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "支持 OpenAI / xAI / OpenRouter / Anthropic / Gemini。",
@@ -525,6 +565,12 @@ const pt: Messages = {
     screenRequest: "Solicitar acesso à gravação de tela",
     screenDeniedNote:
       "Uma vez negada, a gravação de tela só pode ser reativada nos Ajustes do Sistema. Necessária para a captura de tela.",
+    calendarAccess: "Acesso ao calendário",
+    calendarGranted: "Concedido",
+    calendarDenied: "Negado",
+    calendarRequest: "Permitir acesso ao calendário",
+    calendarDeniedNote:
+      "Abra Ajustes → Privacidade e Segurança → Calendários e ative Chappie.",
     apiKey: "Chave de API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
@@ -599,6 +645,12 @@ const ko: Messages = {
     screenRequest: "화면 기록 권한 요청",
     screenDeniedNote:
       "한 번 거부하면 시스템 설정에서만 다시 활성화할 수 있습니다. 스크린샷 기능에 필요합니다.",
+    calendarAccess: "캘린더 접근 권한",
+    calendarGranted: "허용됨",
+    calendarDenied: "거부됨",
+    calendarRequest: "캘린더 접근 허용",
+    calendarDeniedNote:
+      "시스템 설정 → 개인정보 보호 및 보안 → 캘린더에서 Chappie를 활성화하세요.",
     apiKey: "API 키",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini 지원.",
@@ -672,6 +724,12 @@ const it: Messages = {
     screenRequest: "Richiedi accesso alla registrazione schermo",
     screenDeniedNote:
       "Una volta negato, la registrazione schermo può essere riattivata solo dalle Impostazioni di Sistema. Necessaria per gli screenshot.",
+    calendarAccess: "Accesso al calendario",
+    calendarGranted: "Concesso",
+    calendarDenied: "Negato",
+    calendarRequest: "Consenti accesso al calendario",
+    calendarDeniedNote:
+      "Apri Impostazioni → Privacy e sicurezza → Calendari e abilita Chappie.",
     apiKey: "Chiave API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
