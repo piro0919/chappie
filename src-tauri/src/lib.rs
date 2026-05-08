@@ -173,6 +173,8 @@ pub fn run() {
             screen_permission::check_screen_recording_permission,
             screen_permission::request_screen_recording_access,
             screen_permission::open_screen_recording_settings,
+            calendar::calendar_status,
+            calendar::request_calendar_access,
             audio::start_listening,
             audio::stop_listening,
             audio::pause_listening,
@@ -189,6 +191,7 @@ pub fn run() {
 
             init_tray(&app.handle())?;
             timer::start_tray_title_ticker(&app.handle());
+            calendar::init();
             reminder::init(&app.handle());
 
             // Auto-update check in Rust so the dialog is window-independent
