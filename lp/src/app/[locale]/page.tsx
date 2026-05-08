@@ -1,8 +1,10 @@
 import {
   Clock,
+  CloudSun,
   Cpu,
   Download,
   Github,
+  Globe,
   Hand,
   Lock,
   MessageCircle,
@@ -18,11 +20,20 @@ import type { ReactNode } from "react";
 const GITHUB_URL = "https://github.com/piro0919/chappie";
 const RELEASE_URL = "https://github.com/piro0919/chappie/releases/latest";
 
-const CAPABILITY_IDS = ["chat", "timer", "time", "goodbye"] as const;
+const CAPABILITY_IDS = [
+  "chat",
+  "timer",
+  "time",
+  "weather",
+  "web",
+  "goodbye",
+] as const;
 const CAPABILITY_ICONS: Record<(typeof CAPABILITY_IDS)[number], typeof Mic> = {
   chat: MessageCircle,
   timer: Timer,
   time: Clock,
+  weather: CloudSun,
+  web: Globe,
   goodbye: Hand,
 };
 const CAPABILITY_EXAMPLE_KEYS: Record<
@@ -32,6 +43,8 @@ const CAPABILITY_EXAMPLE_KEYS: Record<
   chat: ["example1", "example2"],
   timer: ["example1", "example2", "example3"],
   time: ["example1", "example2", "example3"],
+  weather: ["example1", "example2"],
+  web: ["example1", "example2", "example3"],
   goodbye: ["example1", "example2", "example3"],
 };
 

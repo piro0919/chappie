@@ -32,6 +32,8 @@
 | 💬 | Chat | "Help me plan tomorrow's schedule" |
 | ⏲ | Timers | "Set a 3-minute timer", "Cancel all timers" |
 | 🕐 | Date & time | "What time is it?", "What day is it today?" |
+| ⛅ | Weather | "What's the weather in Tokyo?" |
+| 🌐 | Open sites & web search | "Open YouTube", "Google how to make ramen" |
 | 👋 | Goodbye → back to standby | "Thanks, see you later" |
 
 More tools coming over time.

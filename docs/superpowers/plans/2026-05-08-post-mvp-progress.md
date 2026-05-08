@@ -38,6 +38,18 @@ v0.1.8 リリース後、「動くデモ」段階を超えてプロダクトに�
 - **`list_timers()`** — 残時間付きで一覧
 - **`cancel_timer({ id? })`** — 個別 / 全件キャンセル
 - 発火時 renderer 側で `pause_listening` + `speakQueued` で「タイマーです。時間です。」と読み上げ
+- **`open_url({ url })`** — 既定ブラウザで URL を開く（http/https のみ受理）
+- **`web_search({ query })`** — Google 検索 URL を組み立てて開く
+
+### tray メニューからのマイク on/off
+
+- `CheckMenuItem` で「マイクを有効にする」を追加。チェック外す＝`stop_listening` 呼出で cpal stream を破棄 → macOS のマイク使用中インジケータも消える
+- `RUNNING` を `OnceCell` から `Mutex<Option<Arc<AtomicBool>>>` に変更。複数回 on/off を繰り返しても古い Arc を握り続けないように
+- off 状態は専用アイコン (`tray-muted.png`) + 「Chappie: マイク入力オフ」ツールチップで明示
+
+### 設定ウィンドウのフォアグラウンド化
+
+- Accessory-mode（LSUIElement）アプリは新規ウィンドウが裏に出やすいので、`NSApp.activateIgnoringOtherApps:` を直接呼ぶ patch を追加（`objc2` 経由）。`set_focus()` だけでは前面に来ない
 
 ## 現在の構成（2026-05-08 時点）
 

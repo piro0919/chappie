@@ -41,6 +41,19 @@
         "example3": "\"What's the date today?\"",
         "body": "Reads your Mac's clock. Math like \"how many hours until 6 PM?\" works too."
       },
+      "weather": {
+        "title": "Tell the weather",
+        "example1": "\"What's the weather in Tokyo?\"",
+        "example2": "\"How's tomorrow's weather in Osaka?\"",
+        "body": "Pulls a free, key-less Open-Meteo forecast for any city. Returns the current conditions plus today and tomorrow's highs, lows and rain chance."
+      },
+      "web": {
+        "title": "Open websites & search",
+        "example1": "\"Open YouTube\"",
+        "example2": "\"Look up the weather tomorrow\"",
+        "example3": "\"Google how to make ramen\"",
+        "body": "Launches your default browser to open a URL or run a web search. Great for kicking off research when your hands are full."
+      },
       "goodbye": {
         "title": "Politely goes back to standby",
         "example1": "\"Thanks, see you later\"",

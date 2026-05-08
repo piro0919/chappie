@@ -2,9 +2,11 @@ mod audio;
 mod log_event;
 mod mic_permission;
 mod model;
+mod location;
 mod openai;
 mod timer;
 mod tray;
+mod weather;
 
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
@@ -118,6 +120,18 @@ pub fn run() {
             let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             init_tray(&app.handle())?;
+
+            // Fire-and-forget IP-based location lookup so by the time the
+            // user starts talking we already have a city to ground replies in.
+            tauri::async_runtime::spawn(async {
+                match location::get(false).await {
+                    Ok(loc) => eprintln!(
+                        "[location] resolved: {}",
+                        location::format_for_prompt(&loc)
+                    ),
+                    Err(e) => eprintln!("[location] lookup failed: {e}"),
+                }
+            });
 
             // Prevent the debug ('main') window's close button from destroying
             // the conversation worker; hide it instead so the loop keeps running.

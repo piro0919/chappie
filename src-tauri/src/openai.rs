@@ -141,6 +141,59 @@ fn all_tools() -> Value {
         {
             "type": "function",
             "function": {
+                "name": "open_url",
+                "description": "ユーザーの既定ブラウザで指定 URL を開きます。「○○のサイト開いて」「YouTube 開いて」「GitHub の chappie リポジトリ開いて」のような指示で呼び出してください。url は http:// または https:// で始まる完全な URL である必要があります。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "開く URL。http:// または https:// で始まる完全な URL。"
+                        }
+                    },
+                    "required": ["url"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "web_search",
+                "description": "ユーザーの既定ブラウザで Google 検索を開きます。「○○について調べて」「○○を検索して」「○○ググって」のような指示で呼び出してください。最新情報や Web 上の情報が必要なときに使用してください。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "検索クエリ。"
+                        }
+                    },
+                    "required": ["query"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_weather",
+                "description": "天気予報を取得します。「東京の天気は？」「明日の大阪の天気教えて」「天気どう？」のような質問で呼び出してください。location を省略するか空文字にした場合はユーザーの現在地（IP 推定）の天気を返します。現在の気温・天候、今日と明日の最高 / 最低気温と降水確率を返します。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "天気を知りたい地名（例: 東京、大阪、Paris）。指定しなければユーザーの現在地。"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "cancel_timer",
                 "description": "タイマーを取り消します。id を指定すると該当タイマー、未指定なら全件取り消し。「タイマー消して」「全部キャンセル」などで呼び出してください。",
                 "parameters": {
@@ -166,7 +219,7 @@ fn format_current_time() -> String {
         .to_string()
 }
 
-fn execute_tool(
+async fn execute_tool(
     app: &tauri::AppHandle,
     name: &str,
     args: &Value,
@@ -178,6 +231,36 @@ fn execute_tool(
             "ok".to_string()
         }
         "get_current_time" => format_current_time(),
+        "get_weather" => {
+            let location = args
+                .get("location")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim();
+            if location.is_empty() {
+                if let Some(here) = crate::location::cached() {
+                    let label = crate::location::format_for_prompt(&here);
+                    match crate::weather::lookup_by_coords(
+                        here.latitude,
+                        here.longitude,
+                        &label,
+                        here.timezone.as_deref(),
+                    )
+                    .await
+                    {
+                        Ok(text) => text,
+                        Err(e) => format!("error: {e}"),
+                    }
+                } else {
+                    "error: ユーザーの現在地が取得できていません。地名を指定してもう一度呼んでください。".to_string()
+                }
+            } else {
+                match crate::weather::lookup(location).await {
+                    Ok(text) => text,
+                    Err(e) => format!("error: {e}"),
+                }
+            }
+        }
         "set_timer" => {
             let secs = args.get("duration_seconds").and_then(|v| v.as_u64());
             let Some(secs) = secs else {
@@ -216,6 +299,30 @@ fn execute_tool(
                 .collect();
             json!({ "timers": entries }).to_string()
         }
+        "open_url" => {
+            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or("");
+            if !(url.starts_with("https://") || url.starts_with("http://")) {
+                return json!({ "ok": false, "error": "url must start with http:// or https://" }).to_string();
+            }
+            match tauri_plugin_opener::OpenerExt::opener(app).open_url(url, None::<&str>) {
+                Ok(()) => json!({ "ok": true, "url": url }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
+            }
+        }
+        "web_search" => {
+            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
+            if query.trim().is_empty() {
+                return json!({ "ok": false, "error": "query is empty" }).to_string();
+            }
+            let url = format!(
+                "https://www.google.com/search?q={}",
+                urlencoding::encode(query)
+            );
+            match tauri_plugin_opener::OpenerExt::opener(app).open_url(&url, None::<&str>) {
+                Ok(()) => json!({ "ok": true, "query": query }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
+            }
+        }
         "cancel_timer" => {
             if let Some(id) = args.get("id").and_then(|v| v.as_u64()) {
                 let ok = crate::timer::cancel_timer(id as u32);
@@ -245,6 +352,24 @@ pub async fn chat_complete(
         .into_iter()
         .map(|m| json!({"role": m.role, "content": m.content}))
         .collect();
+
+    // Inject the user's approximate location as a system message so chat
+    // replies can ground themselves in the right area without the user
+    // having to repeat it every turn. Lookup is lazy: if the cache is cold
+    // (first turn after launch faster than the startup fetch finished),
+    // we trigger one synchronously here with a short timeout.
+    let loc = if let Some(c) = crate::location::cached() {
+        Some(c)
+    } else {
+        crate::location::get(false).await.ok()
+    };
+    if let Some(loc) = loc {
+        let context = format!(
+            "ユーザーのおおよその現在地は {} です。場所が指定されない天気・地理・地域に関する質問はここを既定として返答してください（IP ベース推定なので住所単位の精度はありません）。",
+            crate::location::format_for_prompt(&loc)
+        );
+        working.insert(0, json!({"role": "system", "content": context}));
+    }
 
     let mut end_conversation = false;
     let mut full_text = String::new();
@@ -385,7 +510,7 @@ pub async fn chat_complete(
             for (_, call) in &tool_calls {
                 let args: Value =
                     serde_json::from_str(&call.arguments).unwrap_or(json!({}));
-                execute_tool(&app, &call.name, &args, &mut end_conversation);
+                execute_tool(&app, &call.name, &args, &mut end_conversation).await;
             }
             let text = if full_text.is_empty() && end_conversation {
                 "またね。".to_string()
@@ -397,7 +522,7 @@ pub async fn chat_complete(
             crate::linfo!(
                 &app,
                 "openai",
-                "done: chars={} end_conversation={end_conversation}",
+                "done: chars={} end_conversation={end_conversation} reply={text:?}",
                 text.chars().count()
             );
             return Ok(ChatResult {
@@ -422,7 +547,13 @@ pub async fn chat_complete(
         sorted.sort_by_key(|(k, _)| *k);
         for (_, call) in sorted {
             let args: Value = serde_json::from_str(&call.arguments).unwrap_or(json!({}));
-            let result = execute_tool(&app, &call.name, &args, &mut end_conversation);
+            let result = execute_tool(&app, &call.name, &args, &mut end_conversation).await;
+            crate::linfo!(
+                &app,
+                "openai",
+                "tool {name} args={args} -> {result:?}",
+                name = call.name
+            );
             working.push(json!({
                 "role": "tool",
                 "tool_call_id": call.id,

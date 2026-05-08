@@ -25,8 +25,10 @@ import {
 import { detectWake } from "../lib/wake-word";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
-const SYSTEM_PROMPT =
-  "あなたはチャッピー、ハンズフリー音声アシスタントです。返答は読み上げられるので、短く自然な会話調の日本語で答えてください。";
+const SYSTEM_PROMPT = [
+  "あなたはチャッピー、ハンズフリー音声アシスタントです。返答は読み上げられるので、短く自然な会話調の日本語で答えてください。",
+  "数値は読み上げで自然に聞こえる表記にしてください。小数点は『点』と書きます（例: 17.3度 → 17点3度、35% → 35パーセント）。「:」「/」など記号は読み上げると不自然になるので、時刻は「14時30分」、日付は「5月8日」のような表記にしてください。",
+].join(" ");
 const FOLLOWUP_TIMEOUT_MS = 6000;
 // After Chappie finishes speaking, accept follow-up without requiring a fresh
 // "チャッピー" wake-word for this window. Lets a multi-turn conversation flow.

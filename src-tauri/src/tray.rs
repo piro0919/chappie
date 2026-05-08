@@ -128,6 +128,21 @@ fn build_menu(
         .build()
 }
 
+// macOS-only: explicitly activate the app so an LSUIElement / Accessory
+// process can bring its newly-shown window to the foreground. Without
+// NSApp.activate(ignoringOtherApps:true) the window draws behind whatever
+// is currently focused.
+#[cfg(target_os = "macos")]
+fn activate_app_for_window() {
+    use objc2::{class, msg_send, runtime::AnyObject};
+    unsafe {
+        let app: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
+        if !app.is_null() {
+            let _: () = msg_send![app, activateIgnoringOtherApps: true];
+        }
+    }
+}
+
 fn current_tray_state(app: &AppHandle) -> Option<TrayState> {
     let handle = app.try_state::<TrayHandle>()?;
     let state = *handle.last_state.lock().ok()?;
@@ -153,6 +168,8 @@ pub fn apply_tray_state(app: &AppHandle, state: TrayState) -> tauri::Result<()> 
 
 pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
     if let Some(win) = app.get_webview_window("settings") {
+        let _ = win.show();
+        let _ = win.unminimize();
         let _ = win.set_focus();
         return Ok(());
     }
@@ -164,7 +181,16 @@ pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
     .title("Chappie 設定")
     .inner_size(480.0, 360.0)
     .resizable(false)
+    .focused(true)
     .build()?;
+    // Accessory-mode (LSUIElement) apps don't normally come to the front
+    // when a window is created, so we explicitly raise it. show() + focus()
+    // brings the window above other apps; on macOS we additionally need
+    // the app to "activate" so the window can take key state.
+    #[cfg(target_os = "macos")]
+    activate_app_for_window();
+    let _ = win.show();
+    let _ = win.set_focus();
     #[cfg(debug_assertions)]
     win.open_devtools();
     let _ = win;
