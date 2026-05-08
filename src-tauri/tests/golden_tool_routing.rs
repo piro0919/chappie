@@ -7,10 +7,11 @@
 //
 // These tests hit real LLM providers, so:
 // - They are skipped by default when no provider key is in the env.
-// - Each enabled provider runs the suite once: ~25 LLM calls + ~20
-//   stubbed multi-round follow-ups. Total ~$0.50 per provider run on
-//   today's pricing (Anthropic Sonnet is the most expensive; OpenAI
-//   gpt-4o-mini and Gemini 2.5 Flash are well under $0.10).
+// - Each enabled provider runs the suite once: ~25 LLM calls + a few
+//   stubbed multi-round follow-ups. Cost per full 3-provider sweep is
+//   ~$0.10–0.15 on today's pricing with caching: gpt-4o-mini ~$0.03,
+//   claude-3-5-haiku ~$0.07 (90% cache discount), gemini-2.5-flash
+//   ~$0 in the free tier.
 // - Run via `pnpm test:golden` (root script) or
 //   `cd src-tauri && cargo test --test golden_tool_routing -- --nocapture`.
 // - CI does not run these by default; the assistant runs them on a
