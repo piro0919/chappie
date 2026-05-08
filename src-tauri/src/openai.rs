@@ -86,7 +86,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "end_conversation",
-                "description": "ユーザーが会話の終了を示したとき（「ありがとう」「じゃあね」「またね」など）に呼び出してください。呼び出すとアシスタントは聞き取りを停止しウェイクワード待ちに戻ります。",
+                "description": "ユーザーが会話を終わらせたとき（「ありがとう」「またね」「じゃあね」）。アシスタントは聞き取りを停止しウェイクワード待ちに戻る。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -98,7 +98,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "get_current_time",
-                "description": "現在の日付と時刻（ローカルタイム）を取得します。「今何時？」「今日は何日？」「今日は何曜日？」のような質問に答えるとき必ず呼び出してください。",
+                "description": "現在の日付と時刻（ローカル）を返す。「今何時?」「今日何曜日?」など時刻系質問では必ず先にこれを呼ぶ。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -110,7 +110,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "set_timer",
-                "description": "指定秒数後に発火するタイマーを設定します。「3分タイマー」「10分後に教えて」「1時間半セットして」のような指示で必ず呼び出してください。分・時間は秒に換算して duration_seconds に渡します（例: 3分 = 180）。label は「お茶」「会議」など用途のラベル（任意）。",
+                "description": "指定秒数後に発火するタイマー。「3分タイマー」「10分後に教えて」「1時間半セットして」。分・時間は秒換算（3分=180）。label は用途名（任意）。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -121,7 +121,7 @@ pub(crate) fn all_tools() -> Value {
                         },
                         "label": {
                             "type": "string",
-                            "description": "タイマーの用途を示す短いラベル。指定がなければ省略可。"
+                            "description": "用途ラベル（任意）。"
                         }
                     },
                     "required": ["duration_seconds"],
@@ -133,7 +133,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "list_timers",
-                "description": "現在動いているタイマーの一覧を取得します。「タイマー残り何分?」「いまセットしてるタイマー教えて」などで呼び出してください。",
+                "description": "動いているタイマー一覧。「残り何分?」「いまセットしてるタイマー?」",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -145,13 +145,13 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "open_url",
-                "description": "ユーザーの既定ブラウザで指定 URL を開きます。「○○のサイト開いて」「YouTube 開いて」「GitHub の chappie リポジトリ開いて」のような指示で呼び出してください。url は http:// または https:// で始まる完全な URL である必要があります。",
+                "description": "既定ブラウザで URL を開く。「○○のサイト開いて」「YouTube 開いて」。url は http(s):// で始まる完全な URL。",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "url": {
                             "type": "string",
-                            "description": "開く URL。http:// または https:// で始まる完全な URL。"
+                            "description": "http(s):// で始まる完全な URL。"
                         }
                     },
                     "required": ["url"],
@@ -163,7 +163,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "web_search",
-                "description": "ユーザーの既定ブラウザで Google 検索を開きます。「○○について調べて」「○○を検索して」「○○ググって」のような指示で呼び出してください。最新情報や Web 上の情報が必要なときに使用してください。",
+                "description": "既定ブラウザで Google 検索を開く。「○○について調べて」「○○ググって」。最新情報や Web 上の情報が必要なとき。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -181,13 +181,13 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "get_weather",
-                "description": "天気予報を取得します。「東京の天気は？」「明日の大阪の天気教えて」「天気どう？」のような質問で呼び出してください。location を省略するか空文字にした場合はユーザーの現在地（IP 推定）の天気を返します。現在の気温・天候、今日と明日の最高 / 最低気温と降水確率を返します。",
+                "description": "天気予報を取得。「東京の天気?」「明日の大阪の天気」。location 省略でユーザー現在地（IP 推定）。現在の気温・天候 + 今日と明日の最高/最低気温・降水確率。",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "location": {
                             "type": "string",
-                            "description": "天気を知りたい地名（例: 東京、大阪、Paris）。指定しなければユーザーの現在地。"
+                            "description": "地名（例: 東京、Paris）。省略でユーザー現在地。"
                         }
                     },
                     "additionalProperties": false
@@ -198,7 +198,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "get_volume",
-                "description": "現在のシステム音量とミュート状態を取得します。「いま音量いくつ？」のような質問や、「音量上げて」「もう少し下げて」のような相対指示で **set_volume を呼ぶ前に必ずこれを呼んで現在値を確認**してください。",
+                "description": "現在のシステム音量とミュート状態を取得。「上げて」「下げて」など相対指示では **set_volume の前に必ずこれで現在値を確認**。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -210,7 +210,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "set_volume",
-                "description": "システムの出力音量を 0〜100 で設定します。「音量30%」「音量50にして」のような絶対指示で呼び出してください。「上げて」「下げて」のような相対指示の場合は **先に get_volume で現在値を取り、適切な絶対値を計算してから呼ぶ**こと（目安: 1段階 = ±10）。",
+                "description": "システム音量を 0〜100 で設定。絶対指示「音量30」「音量50にして」など。相対指示「上げて」「下げて」は **先に get_volume で現在値を取り絶対値を計算**（1段階=±10）。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -230,7 +230,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "set_mute",
-                "description": "システム出力のミュートを切り替えます。「ミュート」「消音」→ muted=true、「ミュート解除」「音戻して」→ muted=false。",
+                "description": "出力ミュート切り替え。「ミュート」「消音」=true、「解除」「音戻して」=false。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -248,7 +248,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "open_finder",
-                "description": "Finder で指定の場所を開きます。「ダウンロードフォルダ開いて」「デスクトップ開いて」「アプリケーションフォルダ開いて」「ゴミ箱開いて」のような指示で呼び出してください。target はキーワード（'downloads', 'desktop', 'documents', 'pictures', 'music', 'movies', 'applications', 'trash', 'home'）または絶対パス（先頭 '~/' は展開されます）。日本語キーワード（ダウンロード、デスクトップ等）も受け付けます。",
+                "description": "Finder で場所を開く。「ダウンロード開いて」「ゴミ箱開いて」など。target はキーワード（downloads / desktop / documents / pictures / music / movies / applications / trash / home、日本語エイリアス可）または絶対パス（~/ 展開可）。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -266,7 +266,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "open_app",
-                "description": "macOS の指定アプリを起動します。「Slack 開いて」「Spotify 起動して」「メモ開いて」「VSCode 立ち上げて」のような指示で呼び出してください。name にはユーザーが言ったアプリ名をそのまま渡します（例: 'Slack', 'Spotify', 'メモ', 'Visual Studio Code'）。`open -a` 経由で起動するので、Applications にインストールされていれば見つかります。\n\n**曖昧なケースの方針**: 名前がアプリでもウェブサービスでもありえる場合（Notion / Twitter / GitHub / YouTube / ChatGPT など）、まずこの open_app を試してください。失敗（not_installed=true）が返ってきたら、続けて open_url で公式 URL を開く、または web_search で検索するフォールバックを行います。失敗したことをユーザーに長々と説明する必要はなく、ウェブで開いた旨を一言伝える程度で OK。",
+                "description": "macOS のアプリを起動。「Slack 開いて」「メモ開いて」など。name はユーザが言った名前そのまま（'Slack', 'メモ', 'Visual Studio Code'）。`open -a` 経由。アプリでもウェブでもありえる名前（Notion / Twitter / GitHub / YouTube / ChatGPT 等）は **まず open_app を試す** → 失敗（not_installed=true）なら open_url か web_search にフォールバック。ウェブで開いた旨を一言伝えれば OK、失敗を長々説明しない。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -284,7 +284,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "read_clipboard",
-                "description": "ユーザーのクリップボード（コピー履歴の最新）の内容を取得します。「クリップボード読み上げて」「コピーしたやつ何だっけ」「これ何て書いてある？」（直前にコピーした想定）のような指示で呼び出してください。テキスト以外（画像など）が入っている場合はエラーが返ります。",
+                "description": "クリップボードのテキストを取得。「クリップボード読んで」「コピーしたやつ何だっけ?」など。テキスト以外（画像）はエラー。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -296,7 +296,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "write_clipboard",
-                "description": "指定したテキストをユーザーのクリップボードに書き込みます。「○○をコピーしといて」「それコピーして」「クリップボードに入れて」のような指示で呼び出してください。会話で生成した文章・コード・要約などを他のアプリに貼り付けたい場合に使います。",
+                "description": "テキストをクリップボードに書き込む。「○○コピーしといて」「クリップボードに入れて」。生成した文章・コード・要約を他アプリに貼りたいとき。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -314,7 +314,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "list_capabilities",
-                "description": "Chappie 自身ができることの一覧を返します。「何ができるの？」「Chappie って何？」「使い方教えて」「他には何ができる？」のような自己紹介系の質問で必ず呼び出してください。返ってきた内容は、ユーザーに自然な会話調で要約して伝えます（カテゴリ全部を読み上げず、興味ありそうな2〜3カテゴリに絞ってよい）。",
+                "description": "Chappie ができることの一覧を返す。「何ができるの?」「使い方教えて」など自己紹介系の質問で呼ぶ。応答は 2〜3 カテゴリに絞って自然な会話調で。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -326,7 +326,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "get_sleep_prevention",
-                "description": "現在スリープ抑止が ON かどうかを取得します。「今スリープしないモード？」「カフェイン入ってる？」のような質問で呼び出してください。",
+                "description": "スリープ抑止が ON か確認。「スリープしないモード?」「カフェイン入ってる?」",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -338,17 +338,17 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "set_sleep_prevention",
-                "description": "Mac がスリープに入らないようにする / 元に戻す（macOS の caffeinate コマンド）。「スリープしないようにして」「ずっと起きてて」「画面消さないで」→ enabled=true（duration_minutes 任意）、「もう寝てもいい」「スリープ戻して」「解除して」→ enabled=false。「30分起きてて」のような時間指定があれば duration_minutes に分単位で渡します（指定なしなら無制限）。**lock_screen との混同に注意**: 「画面ロック」「ロックして」は lock_screen を呼ぶこと。",
+                "description": "Mac のスリープ抑止 ON/OFF（caffeinate）。「スリープしないで」「ずっと起きてて」=true、「もう寝ていい」「解除」=false。「30分起きてて」など時間指定は duration_minutes（分、未指定で無制限）。**lock_screen と混同注意**: 「画面ロック」は lock_screen を使う。",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "enabled": {
                             "type": "boolean",
-                            "description": "true=スリープ抑止 ON, false=OFF（既定の挙動に戻す）。"
+                            "description": "true=抑止 ON、false=OFF。"
                         },
                         "duration_minutes": {
                             "type": "integer",
-                            "description": "抑止する時間（分）。指定なしなら時間無制限（stop されるまで）。",
+                            "description": "抑止する時間（分）。未指定で無制限。",
                             "minimum": 1
                         }
                     },
@@ -361,7 +361,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "lock_screen",
-                "description": "Mac の画面ロック / ディスプレイオフ / スリープを実行します。「画面ロック」「ロックして」→ mode='lock'（ログイン画面に戻す。本体は起きたまま）、「画面消して」「ディスプレイ消して」→ mode='display_off'（画面だけオフ）、「スリープして」「眠らせて」→ mode='sleep'（本体ごとスリープ）。意図が曖昧なときは 'lock' を選んでください（一番安全で復帰も速い）。",
+                "description": "Mac の画面ロック / ディスプレイオフ / スリープ。「ロックして」=lock（ログイン画面、本体は起動）、「画面消して」=display_off（画面だけオフ）、「スリープして」=sleep（本体スリープ）。曖昧なら lock（最安全で復帰も速い）。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -380,7 +380,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "get_battery_status",
-                "description": "Mac のバッテリー残量・充電状態・残り時間を取得します。「バッテリー何％？」「充電あとどれくらい？」「電源繋いでる？」のような質問で呼び出してください。デスクトップ Mac などバッテリーがない場合は has_battery=false で返ります。",
+                "description": "バッテリー残量・充電状態・残り時間。「バッテリー何%?」「充電あとどれくらい?」「電源繋いでる?」。バッテリーなしの Mac は has_battery=false。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -392,7 +392,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "add_note",
-                "description": "ユーザーの声でメモを残します。「これメモしといて: ○○」「○○を覚えておいて」「○○ってメモして」のような指示で呼び出してください。text にはユーザーがメモしたい内容そのもの（補足や前置きは付けない）。アプリ再起動後も保持されます。",
+                "description": "ボイスメモを保存。「これメモして: ○○」「○○を覚えて」。text は本文そのもの（前置き付けない）。再起動後も保持。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -410,7 +410,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "list_notes",
-                "description": "保存済みメモを取得します。「メモ何ある？」「最近のメモ読んで」「○○のメモ探して」のような指示で呼び出してください。query を渡すと部分一致（大文字小文字無視）でフィルタ、未指定なら直近 limit 件（既定 10）を新しい順で返します。",
+                "description": "保存メモを取得。「メモ何ある?」「○○のメモ探して」。query で部分一致（大小無視）、未指定で直近 limit 件（既定 10）を新しい順。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -433,7 +433,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "delete_note",
-                "description": "メモを削除します。「○○のメモ消して」のような指示で呼び出してください。id が分からない場合は **先に list_notes で該当 id を特定**してから呼びます。",
+                "description": "メモを削除。id 不明なら **先に list_notes で特定**。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -451,7 +451,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "control_music",
-                "description": "起動中の Spotify または Apple Music を再生 / 停止 / 次の曲 / 前の曲に切り替えます。「音楽流して」「再生して」→ action='play'、「止めて」「ポーズ」→ 'pause'、「次の曲」「スキップ」→ 'next'、「前の曲」「戻して」→ 'previous'、「再生・停止切り替えて」→ 'toggle'。app は通常省略（auto = Spotify が起動していれば優先、なければ Music）。アプリが両方とも起動していない場合はエラーになります。**勝手にアプリを起動はしません。**",
+                "description": "起動中の Spotify / Apple Music を操作。「再生」=play、「止めて」=pause、「次」=next、「前」=previous、「切り替え」=toggle。app=auto は Spotify 優先、なければ Music。**勝手にアプリは起動しない**ので両方未起動ならエラー。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -475,7 +475,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "get_now_playing",
-                "description": "Spotify / Apple Music で再生中の曲情報（曲名・アーティスト・アルバム・再生状態）を取得します。「いま何の曲？」「これ誰の歌？」「再生中？」のような質問で呼び出してください。",
+                "description": "再生中の曲情報（曲名・アーティスト・アルバム・状態）。「いま何の曲?」「これ誰の歌?」「再生中?」",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -493,17 +493,17 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "add_reminder_at",
-                "description": "指定した絶対時刻にリマインダーを設定します。「明日7時に起こして」「20時に薬」「日曜日10時に会議って言って」のような **絶対時刻指定** で呼び出してください。秒単位の相対指定（「3分後」など）は set_timer を使ってください。**必ず先に get_current_time を呼んで現在の年月日と時刻を確認してから** at に未来の絶対時刻を組み立てて渡します。at は **ユーザーのローカルタイム** で `YYYY-MM-DD HH:MM` 形式（例: 2026-05-10 07:00）。「明日」「来週」などは現在時刻を基準に解決してください。リマインダーはアプリを再起動しても保持されます。",
+                "description": "絶対時刻のリマインダー。「明日7時に起こして」「20時に薬」など。**先に get_current_time で現在時刻を確認**してから at に未来の絶対時刻を組み立てる。at はローカルタイムで `YYYY-MM-DD HH:MM`。「明日」「来週」は現在時刻基準で解決。再起動後も保持。秒単位の相対（「3分後」）は set_timer。",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "at": {
                             "type": "string",
-                            "description": "発火時刻。ユーザーのローカルタイムで `YYYY-MM-DD HH:MM`（例: 2026-05-10 07:00）。"
+                            "description": "ローカルタイム `YYYY-MM-DD HH:MM`（例: 2026-05-10 07:00）。"
                         },
                         "label": {
                             "type": "string",
-                            "description": "リマインダーの内容（例: 起床、薬、会議）。発火時に「○○の時間です」と読み上げられます。"
+                            "description": "内容ラベル（例: 起床、薬、会議）。発火時「○○の時間です」と読み上げ。"
                         }
                     },
                     "required": ["at", "label"],
@@ -515,7 +515,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "list_reminders",
-                "description": "登録済みのリマインダー一覧（時刻順）を取得します。「リマインダー何ある？」「予定教えて」のような指示で呼び出してください。",
+                "description": "登録済みリマインダー一覧（時刻順）。「リマインダー何ある?」",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -527,7 +527,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "cancel_reminder",
-                "description": "リマインダーを取り消します。id を指定すると該当のみ、未指定なら全件キャンセル。「明日の起床リマインダー消して」「リマインダー全部消して」などで使います。id が分からない場合は **先に list_reminders を呼んで該当 id を特定**してください。",
+                "description": "リマインダーを取り消す。id 指定で該当のみ、未指定で全件。id 不明なら **先に list_reminders で特定**。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -544,7 +544,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "take_screenshot",
-                "description": "macOS の `screencapture` でスクリーンショットを撮ります。「スクショ撮って」「キャプチャお願い」「画面コピーして」のような指示で呼び出してください。mode='selection'（既定）はユーザーがマウスで範囲をドラッグ選択、mode='fullscreen' は全画面。destination='clipboard'（既定）はクリップボードに入れて貼り付けられる状態に、destination='file' は ~/Desktop に PNG で保存します。「デスクトップに保存して」「画像ファイルにして」のような指示なら destination='file'。範囲選択中にユーザーが Esc でキャンセルした場合は cancelled=true で返ります。",
+                "description": "screencapture でスクショ撮影。「スクショ撮って」「画面コピーして」。mode=selection（既定、ドラッグ選択）/ fullscreen。destination=clipboard（既定）/ file（~/Desktop に PNG）。「デスクトップに保存」なら file。Esc キャンセルで cancelled=true。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -567,7 +567,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "list_events",
-                "description": "macOS のカレンダーから予定を取得します。「今日の予定は？」「明日のスケジュール教えて」「次の予定は？」のような質問で呼び出してください。range='today' は今この瞬間から今日の終わりまで、'tomorrow' は明日丸一日、'upcoming' は今から1週間以内で先頭10件までを返します。返却が空配列なら予定なし。権限未許可なら error='permission_denied' を返すので、その場合はユーザーに『設定 → カレンダー権限を許可してください』と案内してください。",
+                "description": "macOS カレンダーから予定取得。「今日の予定?」「明日のスケジュール」「次の予定?」。range=today（現在から今日終端）/ tomorrow（明日丸一日）/ upcoming（今から1週間、先頭10件）。空配列=予定なし。permission_denied なら『設定 → カレンダー権限を許可』と案内。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -586,7 +586,7 @@ pub(crate) fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "cancel_timer",
-                "description": "タイマーを取り消します。id を指定すると該当タイマー、未指定なら全件取り消し。「タイマー消して」「全部キャンセル」などで呼び出してください。",
+                "description": "タイマーを取り消す。id 指定で該当のみ、未指定で全件。「タイマー消して」「全部キャンセル」。",
                 "parameters": {
                     "type": "object",
                     "properties": {
