@@ -68,7 +68,15 @@ const SENTENCE_TERMINATORS = /[。！？.!?]+/g;
 /** Streaming speaker. Feed it text chunks as they arrive; it accumulates
  *  until a sentence terminator is seen, then queues the sentence for TTS.
  *  Returns a `flush` that you must await after no more chunks will come —
- *  it speaks any remaining buffer and resolves once everything has played. */
+ *  it speaks any remaining buffer and resolves once everything has played.
+ *
+ *  Sentences are pushed straight into WebKit's native synthesis queue
+ *  (rather than chained via JS Promises) so they play back-to-back without
+ *  the per-utterance gap that `chain.then(speakQueued(...))` introduced.
+ *  Completion is detected by polling `synthesis.speaking / pending` —
+ *  `utter.onend` fires 1-3 s late on macOS Japanese voices (Kyoko / Otoya),
+ *  which used to leave the tray stuck in "speaking" after audio actually
+ *  ended. */
 export function createStreamingSpeaker(voiceURI: string | null): {
   feed: (chunk: string) => void;
   flush: () => Promise<void>;
@@ -77,15 +85,25 @@ export function createStreamingSpeaker(voiceURI: string | null): {
   window.speechSynthesis.cancel();
 
   let buffer = "";
-  let chain: Promise<void> = Promise.resolve();
+  const cachedVoice = voiceURI
+    ? (window.speechSynthesis
+        .getVoices()
+        .find((v) => v.voiceURI === voiceURI) ?? null)
+    : null;
 
   const speakOne = (sentence: string) => {
-    chain = chain
-      .then(() => speakQueued(sentence, voiceURI))
-      .catch((e) => {
-        // Don't break the chain on a single utterance failure.
-        console.error("speak failed", e);
-      });
+    const utter = new SpeechSynthesisUtterance(sentence);
+    utter.rate = TTS_RATE;
+    if (cachedVoice) {
+      utter.voice = cachedVoice;
+      utter.lang = cachedVoice.lang;
+    }
+    utter.onerror = (e) => {
+      if (e.error !== "interrupted" && e.error !== "canceled") {
+        console.error("speak failed", e.error);
+      }
+    };
+    window.speechSynthesis.speak(utter);
   };
 
   return {
@@ -108,7 +126,14 @@ export function createStreamingSpeaker(voiceURI: string | null): {
       const tail = buffer.trim();
       buffer = "";
       if (tail) speakOne(tail);
-      await chain;
+      // Poll the synthesis flags. They flip to `false` when audio actually
+      // finishes — typically a beat before WebKit's lazy onend would fire.
+      while (
+        window.speechSynthesis.speaking ||
+        window.speechSynthesis.pending
+      ) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
     },
   };
 }
