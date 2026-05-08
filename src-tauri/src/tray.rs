@@ -157,13 +157,6 @@ pub fn activate_app_for_window() {
 #[cfg(not(target_os = "macos"))]
 pub fn activate_app_for_window() {}
 
-/// Tauri command exposed for renderer-side flows (e.g. the auto-updater
-/// dialog) that need the app to come to the foreground in Accessory mode.
-#[tauri::command]
-pub fn activate_app() {
-    activate_app_for_window();
-}
-
 fn current_tray_state(app: &AppHandle) -> Option<TrayState> {
     let handle = app.try_state::<TrayHandle>()?;
     let state = *handle.last_state.lock().ok()?;

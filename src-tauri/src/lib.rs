@@ -20,6 +20,7 @@ mod reminder;
 mod screenshot;
 mod timer;
 mod tray;
+mod updater;
 mod volume;
 mod weather;
 
@@ -133,7 +134,6 @@ pub fn run() {
             hud::hud_show,
             volume::is_muted,
             tray::set_update_available,
-            tray::activate_app,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -142,6 +142,16 @@ pub fn run() {
             init_tray(&app.handle())?;
             timer::start_tray_title_ticker(&app.handle());
             reminder::init(&app.handle());
+
+            // Auto-update check in Rust so the dialog is window-independent
+            // (the JS `ask()` API attaches to the current window as a sheet,
+            // which would force the hidden main/debug window to become visible).
+            {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    updater::check_for_updates(app_handle).await;
+                });
+            }
 
             // Fire-and-forget IP-based location lookup so by the time the
             // user starts talking we already have a city to ground replies in.
