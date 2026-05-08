@@ -12,5 +12,9 @@
     <string>Used to ground replies in your area — for weather and locally relevant context.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Used to ground replies in your area — for weather and locally relevant context.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Used to read your upcoming events so Chappie can speak them out loud.</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Used to read your upcoming events so Chappie can speak them out loud.</string>
 </dict>
 </plist>
