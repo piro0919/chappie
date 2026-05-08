@@ -33,11 +33,16 @@ pub struct ChatMessage {
     pub content: String,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatResult {
     pub text: String,
     pub end_conversation: bool,
+    /// Names of tools the LLM called during this turn, in the order they
+    /// were invoked (across all rounds). Used by the golden tool-routing
+    /// test to verify tool selection stability; renderer ignores it.
+    #[serde(default)]
+    pub tool_calls: Vec<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -80,7 +85,7 @@ struct AccumulatedToolCall {
     arguments: String,
 }
 
-pub(crate) fn all_tools() -> Value {
+pub fn all_tools() -> Value {
     json!([
         {
             "type": "function",
@@ -1161,6 +1166,7 @@ pub async fn chat_complete(
 
     let mut end_conversation = false;
     let mut full_text = String::new();
+    let mut called_tools: Vec<String> = Vec::new();
 
     for round in 0..=MAX_TOOL_ROUNDS {
         let body = json!({
@@ -1322,6 +1328,7 @@ pub async fn chat_complete(
             // Even if we short-circuited, run the marker tools so their
             // side effects (e.g. flipping `end_conversation`) take effect.
             for (_, call) in &tool_calls {
+                called_tools.push(call.name.clone());
                 let args: Value =
                     serde_json::from_str(&call.arguments).unwrap_or(json!({}));
                 execute_tool(&app, &call.name, &args, &mut end_conversation).await;
@@ -1342,6 +1349,7 @@ pub async fn chat_complete(
             return Ok(ChatResult {
                 text,
                 end_conversation,
+                tool_calls: called_tools,
             });
         }
 
@@ -1360,6 +1368,7 @@ pub async fn chat_complete(
         let mut sorted: Vec<_> = tool_calls.into_iter().collect();
         sorted.sort_by_key(|(k, _)| *k);
         for (_, call) in sorted {
+            called_tools.push(call.name.clone());
             let args: Value = serde_json::from_str(&call.arguments).unwrap_or(json!({}));
             let result = execute_tool(&app, &call.name, &args, &mut end_conversation).await;
             crate::linfo!(

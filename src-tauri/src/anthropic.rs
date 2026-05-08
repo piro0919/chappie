@@ -176,6 +176,7 @@ pub async fn chat_complete(
 
     let mut end_conversation = false;
     let mut full_text = String::new();
+    let mut called_tools: Vec<String> = Vec::new();
 
     for round in 0..=MAX_TOOL_ROUNDS {
         let mut body = json!({
@@ -410,6 +411,7 @@ pub async fn chat_complete(
             return Ok(ChatResult {
                 text,
                 end_conversation,
+                tool_calls: called_tools,
             });
         }
 
@@ -428,6 +430,7 @@ pub async fn chat_complete(
         // tool_result blocks (Anthropic groups results that way).
         let mut result_blocks: Vec<Value> = Vec::new();
         for (id, name, args) in tool_uses {
+            called_tools.push(name.clone());
             let result =
                 crate::openai::execute_tool(&app, &name, &args, &mut end_conversation).await;
             crate::linfo!(

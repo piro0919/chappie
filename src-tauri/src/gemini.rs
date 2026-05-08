@@ -187,6 +187,7 @@ pub async fn chat_complete(
 
     let mut end_conversation = false;
     let mut full_text = String::new();
+    let mut called_tools: Vec<String> = Vec::new();
 
     for round in 0..=MAX_TOOL_ROUNDS {
         let mut body = json!({
@@ -359,6 +360,7 @@ pub async fn chat_complete(
             return Ok(ChatResult {
                 text,
                 end_conversation,
+                tool_calls: called_tools,
             });
         }
 
@@ -394,6 +396,7 @@ pub async fn chat_complete(
         let mut response_parts: Vec<Value> = Vec::new();
         let _ = finish_reason;
         for (name, args) in function_calls {
+            called_tools.push(name.clone());
             let result =
                 crate::openai::execute_tool(&app, &name, &args, &mut end_conversation).await;
             // Tool results need to be JSON objects in Gemini's eyes; if our

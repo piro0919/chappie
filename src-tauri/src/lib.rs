@@ -15,7 +15,7 @@ mod model;
 mod location;
 mod music;
 mod notes;
-mod openai;
+pub mod openai;
 mod power;
 mod provider;
 mod reminder;
