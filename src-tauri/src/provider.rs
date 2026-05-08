@@ -43,14 +43,18 @@ impl Provider {
     }
 
     /// Sensible default model for each provider. Picked to be the cheapest
-    /// "real" model that does tool calling well.
+    /// "real" model that does tool calling well. For Gemini we deliberately
+    /// pick `flash-lite` over `flash` because the free-tier daily quota for
+    /// `flash` is so low (20/day at the time of writing) that ad-hoc users
+    /// run into 429s within minutes — `flash-lite` gives ~1000/day. Power
+    /// users can override via the `CHAPPIE_MODEL` env var.
     pub fn default_model(self) -> &'static str {
         match self {
             Self::OpenAI => "gpt-4o-mini",
             Self::XAI => "grok-2-latest",
             Self::OpenRouter => "openai/gpt-4o-mini",
             Self::Anthropic => "claude-3-5-haiku-latest",
-            Self::Gemini => "gemini-2.5-flash",
+            Self::Gemini => "gemini-2.5-flash-lite",
         }
     }
 
