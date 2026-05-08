@@ -1,9 +1,11 @@
+mod anthropic;
 mod audio;
 mod battery;
 mod caffeinate;
 mod capabilities;
 mod clipboard;
 mod finder;
+mod gemini;
 mod hud;
 mod log_event;
 mod mic_permission;

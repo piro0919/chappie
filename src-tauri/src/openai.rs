@@ -78,7 +78,7 @@ struct AccumulatedToolCall {
     arguments: String,
 }
 
-fn all_tools() -> Value {
+pub(crate) fn all_tools() -> Value {
     json!([
         {
             "type": "function",
@@ -589,7 +589,7 @@ fn format_current_time() -> String {
         .to_string()
 }
 
-async fn execute_tool(
+pub(crate) async fn execute_tool(
     app: &tauri::AppHandle,
     name: &str,
     args: &Value,
@@ -1041,26 +1041,35 @@ pub async fn chat_complete(
 
     // Auto-detect provider from key prefix. OpenAI / xAI / OpenRouter speak
     // the same chat/completions wire format and only differ in base URL,
-    // so they all flow through this function. Anthropic / Gemini have
-    // separate APIs and aren't routed here yet.
+    // so they flow through this function. Gemini and Anthropic each have
+    // their own API and are delegated to dedicated modules.
     let provider = crate::provider::detect_from_key(&api_key);
+    let env_override = std::env::var("CHAPPIE_MODEL")
+        .ok()
+        .filter(|s| !s.trim().is_empty());
+    if provider == crate::provider::Provider::Gemini {
+        let model = env_override
+            .clone()
+            .unwrap_or_else(|| provider.default_model().to_string());
+        return crate::gemini::chat_complete(app, api_key, model, messages, on_chunk).await;
+    }
+    if provider == crate::provider::Provider::Anthropic {
+        let model = env_override
+            .clone()
+            .unwrap_or_else(|| provider.default_model().to_string());
+        return crate::anthropic::chat_complete(app, api_key, model, messages, on_chunk).await;
+    }
     if !provider.is_openai_compatible() {
         return Err(format!(
-            "{} provider is not yet supported. Use an OpenAI / xAI / OpenRouter key for now.",
+            "{} provider is not yet supported.",
             provider.label()
         ));
     }
     let endpoint = format!("{}/chat/completions", provider.base_url());
 
-    // Hidden override for power users / development. The settings UI no
-    // longer exposes a model picker — set CHAPPIE_MODEL=gpt-4.1-mini etc.
-    // when launching to use something other than the default the renderer
-    // sent us. If the renderer sent an OpenAI-style default ("gpt-4o-mini")
-    // but the key is for a different provider, prefer that provider's
-    // default unless the env var is explicitly set.
-    let env_override = std::env::var("CHAPPIE_MODEL")
-        .ok()
-        .filter(|s| !s.trim().is_empty());
+    // For OpenAI-compatible (xAI / OpenRouter): if the renderer sent us
+    // an OpenAI-style default but the key isn't OpenAI, swap in the
+    // provider's recommended model. CHAPPIE_MODEL env var wins over both.
     let model = env_override.unwrap_or_else(|| {
         if provider == crate::provider::Provider::OpenAI {
             model
