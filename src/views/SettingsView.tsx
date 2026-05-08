@@ -20,9 +20,12 @@ import {
 import styles from "./SettingsView.module.css";
 
 type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
+type ScreenStatus = "granted" | "denied";
 
 const MIC_PRIVACY_URL =
   "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
+const SCREEN_PRIVACY_URL =
+  "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
 
 export function SettingsView() {
   const { t } = useT();
@@ -34,6 +37,8 @@ export function SettingsView() {
   const [version, setVersion] = useState("");
   const [micStatus, setMicStatus] = useState<MicStatus>("not_determined");
   const [requestingMic, setRequestingMic] = useState(false);
+  const [screenStatus, setScreenStatus] = useState<ScreenStatus>("denied");
+  const [requestingScreen, setRequestingScreen] = useState(false);
 
   function micStatusBadge(status: MicStatus): {
     label: string;
@@ -70,6 +75,27 @@ export function SettingsView() {
     } catch {}
   }
 
+  async function refreshScreenStatus() {
+    try {
+      const status = await invoke<ScreenStatus>(
+        "check_screen_recording_permission",
+      );
+      setScreenStatus(status);
+    } catch {}
+  }
+
+  async function requestScreen() {
+    setRequestingScreen(true);
+    try {
+      await invoke<boolean>("request_screen_recording_access").catch(
+        () => false,
+      );
+      await refreshScreenStatus();
+    } finally {
+      setRequestingScreen(false);
+    }
+  }
+
   async function requestMic() {
     setRequestingMic(true);
     try {
@@ -88,6 +114,7 @@ export function SettingsView() {
       setLanguage(s.language);
       setAutostart(await isAutostartEnabled());
       await refreshMicStatus();
+      await refreshScreenStatus();
       setLoaded(true);
     })();
     getVersion()
@@ -167,6 +194,54 @@ export function SettingsView() {
         )}
         {micStatus === "denied" && (
           <p className={styles.note}>{t("settings.micDeniedNote")}</p>
+        )}
+      </section>
+
+      {/* Screen recording */}
+      <section className={styles.card}>
+        <div className={styles.statusRow}>
+          <span className={styles.statusLabel}>
+            {t("settings.screenAccess")}
+          </span>
+          <span
+            className={`${styles.badge} ${screenStatus === "granted" ? styles.badgeGranted : styles.badgeDenied}`}
+          >
+            <span className={styles.badgeDot} />
+            {screenStatus === "granted"
+              ? t("settings.screenGranted")
+              : t("settings.screenDenied")}
+          </span>
+        </div>
+        {screenStatus !== "granted" && (
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={requestScreen}
+              disabled={requestingScreen}
+            >
+              {t("settings.screenRequest")}
+            </button>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={() => {
+                void openUrl(SCREEN_PRIVACY_URL).catch(() => {});
+              }}
+            >
+              {t("settings.micOpenSystem")}
+            </button>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={refreshScreenStatus}
+            >
+              {t("settings.micRecheck")}
+            </button>
+          </div>
+        )}
+        {screenStatus === "denied" && (
+          <p className={styles.note}>{t("settings.screenDeniedNote")}</p>
         )}
       </section>
 

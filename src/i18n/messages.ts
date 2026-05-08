@@ -19,6 +19,11 @@ type Messages = {
     micOpenSystem: string;
     micRecheck: string;
     micDeniedNote: string;
+    screenAccess: string;
+    screenGranted: string;
+    screenDenied: string;
+    screenRequest: string;
+    screenDeniedNote: string;
     apiKey: string;
     apiKeyPlaceholder: string;
     apiKeyNote: string;
@@ -79,6 +84,12 @@ const ja: Messages = {
     micOpenSystem: "システム設定を開く",
     micRecheck: "再確認",
     micDeniedNote: "一度拒否すると、システム設定からのみ再有効化できます。",
+    screenAccess: "画面収録",
+    screenGranted: "許可済み",
+    screenDenied: "未許可",
+    screenRequest: "画面収録を許可する",
+    screenDeniedNote:
+      "一度拒否すると、システム設定からのみ再有効化できます。スクリーンショット機能で必要です。",
     apiKey: "API キー",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini に対応。",
@@ -146,6 +157,12 @@ const en: Messages = {
     micRecheck: "Recheck",
     micDeniedNote:
       "Once denied, microphone access can only be re-enabled from System Settings.",
+    screenAccess: "Screen recording",
+    screenGranted: "Granted",
+    screenDenied: "Not granted",
+    screenRequest: "Request screen recording access",
+    screenDeniedNote:
+      "Once denied, screen recording can only be re-enabled from System Settings. Required for the screenshot tool.",
     apiKey: "API Key",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Supports OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
@@ -213,6 +230,12 @@ const es: Messages = {
     micRecheck: "Volver a comprobar",
     micDeniedNote:
       "Una vez denegado, el acceso al micrófono solo se puede reactivar desde Configuración del Sistema.",
+    screenAccess: "Grabación de pantalla",
+    screenGranted: "Permitido",
+    screenDenied: "No permitido",
+    screenRequest: "Solicitar acceso a grabación de pantalla",
+    screenDeniedNote:
+      "Una vez denegada, la grabación de pantalla solo se puede reactivar desde Configuración del Sistema. Se necesita para la captura de pantalla.",
     apiKey: "Clave de API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
@@ -281,6 +304,12 @@ const fr: Messages = {
     micRecheck: "Revérifier",
     micDeniedNote:
       "Une fois refusé, l'accès au microphone ne peut être réactivé que depuis les Réglages Système.",
+    screenAccess: "Enregistrement d'écran",
+    screenGranted: "Autorisé",
+    screenDenied: "Non autorisé",
+    screenRequest: "Demander l'accès à l'enregistrement d'écran",
+    screenDeniedNote:
+      "Une fois refusé, l'enregistrement d'écran ne peut être réactivé que depuis les Réglages Système. Nécessaire pour l'outil de capture d'écran.",
     apiKey: "Clé d'API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatible OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
@@ -348,6 +377,12 @@ const de: Messages = {
     micRecheck: "Erneut prüfen",
     micDeniedNote:
       "Einmal abgelehnt, lässt sich der Mikrofonzugriff nur noch über die Systemeinstellungen wieder aktivieren.",
+    screenAccess: "Bildschirmaufnahme",
+    screenGranted: "Erlaubt",
+    screenDenied: "Nicht erlaubt",
+    screenRequest: "Bildschirmaufnahme anfordern",
+    screenDeniedNote:
+      "Einmal abgelehnt, lässt sich die Bildschirmaufnahme nur über die Systemeinstellungen wieder aktivieren. Wird für das Screenshot-Tool benötigt.",
     apiKey: "API-Schlüssel",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "Unterstützt OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
@@ -414,6 +449,11 @@ const zh: Messages = {
     micOpenSystem: "打开系统设置",
     micRecheck: "重新检查",
     micDeniedNote: "一旦拒绝,只能在系统设置中重新启用麦克风权限。",
+    screenAccess: "屏幕录制",
+    screenGranted: "已授权",
+    screenDenied: "未授权",
+    screenRequest: "请求屏幕录制权限",
+    screenDeniedNote: "一旦拒绝,只能在系统设置中重新启用。截图功能需要此权限。",
     apiKey: "API 密钥",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "支持 OpenAI / xAI / OpenRouter / Anthropic / Gemini。",
@@ -479,6 +519,12 @@ const pt: Messages = {
     micRecheck: "Verificar de novo",
     micDeniedNote:
       "Uma vez negado, o acesso ao microfone só pode ser reativado nos Ajustes do Sistema.",
+    screenAccess: "Gravação de tela",
+    screenGranted: "Permitido",
+    screenDenied: "Não permitido",
+    screenRequest: "Solicitar acesso à gravação de tela",
+    screenDeniedNote:
+      "Uma vez negada, a gravação de tela só pode ser reativada nos Ajustes do Sistema. Necessária para a captura de tela.",
     apiKey: "Chave de API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:
@@ -547,6 +593,12 @@ const ko: Messages = {
     micRecheck: "다시 확인",
     micDeniedNote:
       "한 번 거부하면 시스템 설정에서만 다시 활성화할 수 있습니다.",
+    screenAccess: "화면 기록",
+    screenGranted: "허용됨",
+    screenDenied: "허용 안 됨",
+    screenRequest: "화면 기록 권한 요청",
+    screenDeniedNote:
+      "한 번 거부하면 시스템 설정에서만 다시 활성화할 수 있습니다. 스크린샷 기능에 필요합니다.",
     apiKey: "API 키",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / xAI / OpenRouter / Anthropic / Gemini 지원.",
@@ -614,6 +666,12 @@ const it: Messages = {
     micRecheck: "Ricontrolla",
     micDeniedNote:
       "Una volta negato, l'accesso al microfono può essere riattivato solo dalle Impostazioni di Sistema.",
+    screenAccess: "Registrazione schermo",
+    screenGranted: "Consentito",
+    screenDenied: "Non consentito",
+    screenRequest: "Richiedi accesso alla registrazione schermo",
+    screenDeniedNote:
+      "Una volta negato, la registrazione schermo può essere riattivata solo dalle Impostazioni di Sistema. Necessaria per gli screenshot.",
     apiKey: "Chiave API",
     apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
     apiKeyNote:

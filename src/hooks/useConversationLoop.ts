@@ -448,6 +448,12 @@ export function useConversationLoop(): { state: State; error: string | null } {
             void invoke("set_tray_state", { state: "error" }).catch(() => {});
             return;
           }
+          // Fire-and-forget: prompt for Screen Recording too so the
+          // `take_screenshot` tool works on first invocation. macOS only
+          // shows the dialog the first time per binary; we don't gate
+          // startup on the result because the rest of Chappie works
+          // fine without it.
+          void invoke("request_screen_recording_access").catch(() => {});
           await invoke<string>("ensure_model");
         } catch (e) {
           setError(

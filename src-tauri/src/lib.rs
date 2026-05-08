@@ -18,6 +18,7 @@ mod openai;
 mod power;
 mod provider;
 mod reminder;
+mod screen_permission;
 mod screenshot;
 mod timer;
 mod tray;
@@ -168,6 +169,8 @@ pub fn run() {
             set_app_language,
             mic_permission::check_microphone_permission,
             mic_permission::request_microphone_access,
+            screen_permission::check_screen_recording_permission,
+            screen_permission::request_screen_recording_access,
             audio::start_listening,
             audio::stop_listening,
             audio::pause_listening,
