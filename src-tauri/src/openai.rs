@@ -442,7 +442,14 @@ async fn execute_tool(
                 return json!({ "ok": false, "error": "muted is required" }).to_string();
             };
             match crate::volume::set_muted(muted) {
-                Ok(()) => json!({ "ok": true, "muted": muted }).to_string(),
+                Ok(()) => {
+                    if muted {
+                        crate::hud::show(app, "🔇 ミュート", 2500);
+                    } else {
+                        crate::hud::show(app, "🔊 ミュート解除", 2000);
+                    }
+                    json!({ "ok": true, "muted": muted }).to_string()
+                }
                 Err(e) => json!({ "ok": false, "error": e }).to_string(),
             }
         }

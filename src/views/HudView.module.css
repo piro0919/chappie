@@ -1,0 +1,77 @@
+.root {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  padding-bottom: 16px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Hiragino Maru Gothic ProN",
+    "Hiragino Sans",
+    "Yu Gothic",
+    sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: #4a3826; /* cocoa-700 */
+  background-color: rgba(253, 243, 227, 0.94); /* cream-100 */
+  background-image: url("/pattern.png");
+  background-repeat: repeat;
+  background-size: 220px;
+  background-blend-mode: multiply;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  padding: 18px 26px 18px 18px;
+  border-radius: 28px;
+  border: 1px solid rgba(247, 230, 201, 0.9); /* cream-200 */
+  box-shadow:
+    0 14px 32px -10px rgba(74, 56, 38, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  max-width: 680px;
+  opacity: 0;
+  transform: translateY(8px) scale(0.97);
+  transition:
+    opacity 180ms ease-out,
+    transform 180ms ease-out;
+}
+
+.card.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(106, 70, 40, 0.22));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  white-space: pre-wrap;
+  text-align: left;
+  word-break: break-word;
+}
+
+.suffix {
+  font-size: 14px;
+  font-weight: 500;
+  color: #8a6a4d; /* cocoa-500 */
+  letter-spacing: 0.02em;
+}

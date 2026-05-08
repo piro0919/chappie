@@ -35,6 +35,20 @@ const FOLLOWUP_TIMEOUT_MS = 6000;
 const CONTINUE_WINDOW_MS = 6000;
 // Time the tray "error" state stays visible before auto-recovering.
 const ERROR_DISPLAY_MS = 1800;
+// Friendly variants for the wake-word acknowledgement. Picked at random so
+// Chappie doesn't feel like it's playing the same canned response on loop.
+const WAKE_ACKS = [
+  "はい",
+  "はーい",
+  "はい、なに？",
+  "なーに？",
+  "どうしたの？",
+  "呼んだ？",
+  "なになに？",
+];
+function pickWakeAck(): string {
+  return WAKE_ACKS[Math.floor(Math.random() * WAKE_ACKS.length)];
+}
 // Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
 // room for speaker reverb and ensures Chappie doesn't re-trigger on its tail.
 const POST_TTS_COOLDOWN_MS = 350;
@@ -92,6 +106,30 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const ttsActiveRef = useRef(false);
   const errorRecoveryTimerRef = useRef<number | null>(null);
 
+  // When the system is muted, Chappie's TTS is inaudible — route the reply
+  // to the HUD as text instead. Duration scales with length so longer text
+  // stays up long enough to read; clamped to 3-30s.
+  async function showOnHud(text: string) {
+    const duration = Math.max(5000, Math.min(45000, text.length * 200));
+    console.info(`[loop] hud_show chars=${text.length} dur=${duration}`);
+    try {
+      await invoke("hud_show", { text, durationMs: duration });
+    } catch (e) {
+      console.error("[loop] hud_show invoke failed", e);
+    }
+  }
+
+  async function isSystemMuted(): Promise<boolean> {
+    try {
+      const m = (await invoke<boolean>("is_muted")) === true;
+      console.info(`[loop] is_muted -> ${m}`);
+      return m;
+    } catch (e) {
+      console.warn("[loop] is_muted failed", e);
+      return false;
+    }
+  }
+
   async function withMutedCapture<T>(fn: () => Promise<T>): Promise<T> {
     ttsActiveRef.current = true;
     await invoke("pause_listening").catch(() => {});
@@ -136,13 +174,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
     console.info(`[loop] runTurn: "${userText}"`);
     if (!apiKeyRef.current || !chatClientRef.current) {
       console.warn("[loop] no api key — speaking error message");
+      const msg = "OpenAI APIキーが未設定です。設定画面から登録してください。";
       try {
-        await withMutedCapture(() =>
-          speak(
-            "OpenAI APIキーが未設定です。設定画面から登録してください。",
-            voiceURIRef.current,
-          ),
-        );
+        if (await isSystemMuted()) await showOnHud(msg);
+        else await withMutedCapture(() => speak(msg, voiceURIRef.current));
       } catch {}
       scheduleErrorRecovery("no api key");
       return;
@@ -150,11 +185,25 @@ export function useConversationLoop(): { state: State; error: string | null } {
 
     historyRef.current = addUser(historyRef.current, userText);
 
-    // Streaming path: kick off the chat completion and start TTS on the
-    // first sentence as soon as it arrives, so the user hears Chappie
-    // before the full reply has been assembled. The `withMutedCapture`
-    // wrapper holds the mic muted from the moment the first chunk lands
-    // until all queued sentences have finished speaking.
+    // Pre-turn mute check — used to pick the right number-formatting hint
+    // in the prompt (TTS-friendly "17点3度" vs display-friendly "17.3度").
+    // The mid-turn mute case (user says "ミュート" right now) won't be caught
+    // here, but those replies are short ("ミュートしました") and rarely
+    // contain numbers, so the cosmetic miss is acceptable.
+    const mutedAtTurnStart = await isSystemMuted();
+    const requestMessages = messagesForRequest(historyRef.current);
+    if (mutedAtTurnStart) {
+      requestMessages.splice(1, 0, {
+        role: "system",
+        content:
+          "今回の返答は音声ではなく画面に文字で表示されます。数字・記号は通常の表記で書いてください（例: 17.3度、39%、14:30、5/8）。「点」「パーセント」「時◯分」のような読み上げ向け表記は使わないでください。",
+      });
+    }
+
+    // Output routing (TTS vs HUD) is decided when the first text chunk
+    // arrives, not at turn start — the model may mute the system mid-turn
+    // via a tool call (e.g. set_mute), and we want that turn's reply to
+    // already render as text since the user can't hear TTS anymore.
     type Speaker = {
       feed: (chunk: string) => void;
       flush: () => Promise<void>;
@@ -163,7 +212,12 @@ export function useConversationLoop(): { state: State; error: string | null } {
     let reply: string;
     let endConversation = false;
     let firstChunkSeen = false;
+    // null = routing not yet decided (still awaiting is_muted check at first
+    // chunk). false = TTS, true = HUD. While null we buffer chunks so the
+    // first ~50ms of streaming isn't dropped.
+    let routeToHud: boolean | null = null;
     let speaker: Speaker | null = null;
+    const pendingChunks: string[] = [];
 
     const ensureSpeaker = () => {
       if (speaker) return;
@@ -173,15 +227,35 @@ export function useConversationLoop(): { state: State; error: string | null } {
       speaker = createStreamingSpeaker(voiceURIRef.current);
     };
 
+    const flushPendingToSpeaker = () => {
+      if (!speaker) return;
+      for (const chunk of pendingChunks.splice(0)) speaker.feed(chunk);
+    };
+
     try {
       const result = await chatClientRef.current.complete(
-        messagesForRequest(historyRef.current),
+        requestMessages,
         (chunk) => {
           if (!firstChunkSeen) {
             firstChunkSeen = true;
-            ensureSpeaker();
+            // Decide routing once. Mid-turn toggling would strand us with
+            // a half-spoken / half-written reply.
+            void isSystemMuted().then((muted) => {
+              routeToHud = muted;
+              if (!muted) {
+                ensureSpeaker();
+                flushPendingToSpeaker();
+              } else {
+                dispatch({ type: "responseReady", reply: "" });
+                pendingChunks.length = 0;
+              }
+            });
           }
-          speaker?.feed(chunk);
+          if (routeToHud === null) {
+            pendingChunks.push(chunk);
+          } else if (routeToHud === false) {
+            speaker?.feed(chunk);
+          }
         },
       );
       reply = result.text;
@@ -194,17 +268,31 @@ export function useConversationLoop(): { state: State; error: string | null } {
           await (speaker as Speaker).flush();
         } catch {}
       }
+      const errMsg = "うまく繋がりませんでした。";
+      const errMuted = await isSystemMuted();
       try {
-        await withMutedCapture(() =>
-          speak("うまく繋がりませんでした。", voiceURIRef.current),
-        );
+        if (errMuted) await showOnHud(errMsg);
+        else await withMutedCapture(() => speak(errMsg, voiceURIRef.current));
       } catch {}
       scheduleErrorRecovery(String(e));
       return;
     }
 
     historyRef.current = addAssistant(historyRef.current, reply);
-    if (!firstChunkSeen) {
+
+    // If the routing decision never resolved (no chunks → no first-chunk
+    // callback fired), check now so the non-streaming fallback also
+    // respects mute state.
+    if (routeToHud === null) routeToHud = await isSystemMuted();
+
+    if (routeToHud) {
+      // Muted: surface the whole reply as text, no audio.
+      try {
+        await showOnHud(reply);
+      } catch (e) {
+        console.error("hud show failed", e);
+      }
+    } else if (!firstChunkSeen) {
       // Non-streaming fallback: model returned everything before any chunks
       // landed (rare; possible if the round triggered tools and the final
       // answer was short). Speak the whole thing at once.
@@ -295,9 +383,19 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // Fire-and-forget — we don't await it because the user may start
       // speaking immediately, and `withMutedCapture` would block the
       // pipeline for the cooldown duration.
-      void withMutedCapture(() => speak("はい", voiceURIRef.current)).catch(
-        () => {},
-      );
+      void (async () => {
+        const ack = pickWakeAck();
+        if (await isSystemMuted()) {
+          await invoke("hud_show", {
+            text: `👂 ${ack}`,
+            durationMs: 2200,
+          }).catch(() => {});
+        } else {
+          await withMutedCapture(() => speak(ack, voiceURIRef.current)).catch(
+            () => {},
+          );
+        }
+      })();
       return;
     }
 
@@ -454,6 +552,17 @@ export function useConversationLoop(): { state: State; error: string | null } {
             ? `${label}のタイマーです。時間です。`
             : "タイマーです。時間です。";
           console.info(`[timer] fired: id=${e.payload.id} label="${label}"`);
+          // When muted, the spoken alarm would be silent — surface it on
+          // the HUD instead so the user actually notices the timer fired.
+          const muted = await invoke<boolean>("is_muted").catch(() => false);
+          if (muted) {
+            const hudText = label ? `⏲ ${label} タイマー` : "⏲ タイマー";
+            await invoke("hud_show", {
+              text: hudText,
+              durationMs: 8000,
+            }).catch(() => {});
+            return;
+          }
           ttsActiveRef.current = true;
           await invoke("pause_listening").catch(() => {});
           try {

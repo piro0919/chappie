@@ -1,5 +1,6 @@
 mod audio;
 mod clipboard;
+mod hud;
 mod log_event;
 mod mic_permission;
 mod model;
@@ -116,6 +117,8 @@ pub fn run() {
             audio::pause_listening,
             audio::resume_listening,
             openai::chat_complete,
+            hud::hud_dismiss,
+            hud::hud_show,
             volume::is_muted,
         ])
         .setup(|app| {
