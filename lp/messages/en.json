@@ -45,7 +45,7 @@
         "title": "Tell the weather",
         "example1": "\"What's the weather in Tokyo?\"",
         "example2": "\"How's tomorrow's weather in Osaka?\"",
-        "body": "Pulls a free, key-less Open-Meteo forecast for any city. Returns the current conditions plus today and tomorrow's highs, lows and rain chance."
+        "body": "Tells you the current weather and temperature, plus today and tomorrow's highs, lows, and chance of rain — a quick check before heading out."
       },
       "web": {
         "title": "Open websites & search",
