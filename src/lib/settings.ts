@@ -1,13 +1,17 @@
 import { load, type Store } from "@tauri-apps/plugin-store";
 
+export type Language = "auto" | "ja" | "en";
+
 export type Settings = {
   openaiApiKey: string;
   voiceURI: string | null;
+  language: Language;
 };
 
 const DEFAULTS: Settings = {
   openaiApiKey: "",
   voiceURI: null,
+  language: "auto",
 };
 const FILE = "settings.json";
 
@@ -23,7 +27,8 @@ export async function loadSettings(): Promise<Settings> {
     (await store.get<string>("openaiApiKey")) ?? DEFAULTS.openaiApiKey;
   const voiceURI =
     (await store.get<string | null>("voiceURI")) ?? DEFAULTS.voiceURI;
-  return { openaiApiKey: apiKey, voiceURI };
+  const language = (await store.get<Language>("language")) ?? DEFAULTS.language;
+  return { openaiApiKey: apiKey, voiceURI, language };
 }
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
@@ -33,6 +38,9 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.voiceURI !== undefined) {
     await store.set("voiceURI", patch.voiceURI);
+  }
+  if (patch.language !== undefined) {
+    await store.set("language", patch.language);
   }
   await store.save();
 }

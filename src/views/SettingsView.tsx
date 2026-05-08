@@ -9,7 +9,13 @@ import {
 } from "@tauri-apps/plugin-autostart";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
-import { loadSettings, type Settings, saveSettings } from "../lib/settings";
+import { useT } from "../i18n/useT";
+import {
+  type Language,
+  loadSettings,
+  type Settings,
+  saveSettings,
+} from "../lib/settings";
 import styles from "./SettingsView.module.css";
 
 type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
@@ -17,25 +23,11 @@ type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
 const MIC_PRIVACY_URL =
   "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
 
-function micStatusBadge(status: MicStatus): {
-  label: string;
-  className: string;
-} {
-  switch (status) {
-    case "granted":
-      return { label: "許可済み", className: styles.badgeGranted };
-    case "denied":
-      return { label: "拒否されています", className: styles.badgeDenied };
-    case "restricted":
-      return { label: "システムにより制限", className: styles.badgeDenied };
-    default:
-      return { label: "未設定", className: styles.badgeNeutral };
-  }
-}
-
 export function SettingsView() {
+  const { t } = useT();
   const [apiKey, setApiKey] = useState("");
   const [voiceURI, setVoiceURI] = useState<string | null>(null);
+  const [language, setLanguage] = useState<Language>("auto");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [autostart, setAutostart] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -43,6 +35,34 @@ export function SettingsView() {
   const [version, setVersion] = useState("");
   const [micStatus, setMicStatus] = useState<MicStatus>("not_determined");
   const [requestingMic, setRequestingMic] = useState(false);
+
+  function micStatusBadge(status: MicStatus): {
+    label: string;
+    className: string;
+  } {
+    switch (status) {
+      case "granted":
+        return {
+          label: t("settings.micGranted"),
+          className: styles.badgeGranted,
+        };
+      case "denied":
+        return {
+          label: t("settings.micDenied"),
+          className: styles.badgeDenied,
+        };
+      case "restricted":
+        return {
+          label: t("settings.micRestricted"),
+          className: styles.badgeDenied,
+        };
+      default:
+        return {
+          label: t("settings.micNotDetermined"),
+          className: styles.badgeNeutral,
+        };
+    }
+  }
 
   async function refreshMicStatus() {
     try {
@@ -67,6 +87,7 @@ export function SettingsView() {
       const s: Settings = await loadSettings();
       setApiKey(s.openaiApiKey);
       setVoiceURI(s.voiceURI);
+      setLanguage(s.language);
       setAutostart(await isAutostartEnabled());
       await refreshMicStatus();
       setLoaded(true);
@@ -82,7 +103,7 @@ export function SettingsView() {
   }, []);
 
   const onSave = async () => {
-    await saveSettings({ openaiApiKey: apiKey, voiceURI });
+    await saveSettings({ openaiApiKey: apiKey, voiceURI, language });
     try {
       if (autostart) await enableAutostart();
       else await disableAutostart();
@@ -101,7 +122,7 @@ export function SettingsView() {
   };
 
   if (!loaded) {
-    return <main className={styles.loading}>読み込み中…</main>;
+    return <main className={styles.loading}>{t("common.loading")}</main>;
   }
 
   const badge = micStatusBadge(micStatus);
@@ -111,7 +132,7 @@ export function SettingsView() {
       {/* Microphone access */}
       <section className={styles.card}>
         <div className={styles.statusRow}>
-          <span className={styles.statusLabel}>マイクアクセス</span>
+          <span className={styles.statusLabel}>{t("settings.micAccess")}</span>
           <span className={`${styles.badge} ${badge.className}`}>
             <span className={styles.badgeDot} />
             {badge.label}
@@ -126,7 +147,9 @@ export function SettingsView() {
                 onClick={requestMic}
                 disabled={requestingMic}
               >
-                {requestingMic ? "リクエスト中…" : "マイクを許可する"}
+                {requestingMic
+                  ? t("settings.micRequesting")
+                  : t("settings.micRequest")}
               </button>
             )}
             {(micStatus === "denied" || micStatus === "restricted") && (
@@ -137,7 +160,7 @@ export function SettingsView() {
                   void openUrl(MIC_PRIVACY_URL).catch(() => {});
                 }}
               >
-                システム設定を開く
+                {t("settings.micOpenSystem")}
               </button>
             )}
             <button
@@ -145,14 +168,12 @@ export function SettingsView() {
               className={styles.button}
               onClick={refreshMicStatus}
             >
-              再確認
+              {t("settings.micRecheck")}
             </button>
           </div>
         )}
         {micStatus === "denied" && (
-          <p className={styles.note}>
-            一度拒否すると、システム設定からのみ再有効化できます。
-          </p>
+          <p className={styles.note}>{t("settings.micDeniedNote")}</p>
         )}
       </section>
 
@@ -160,7 +181,7 @@ export function SettingsView() {
       <section className={styles.card}>
         <div className={styles.row}>
           <label className={styles.rowLabel} htmlFor="api-key">
-            API キー
+            {t("settings.apiKey")}
           </label>
           <input
             id="api-key"
@@ -170,19 +191,36 @@ export function SettingsView() {
             onChange={(e) => setApiKey(e.target.value)}
             autoComplete="off"
             spellCheck={false}
-            placeholder="sk-... / xai-... / sk-or-... / sk-ant-... / AIza..."
+            placeholder={t("settings.apiKeyPlaceholder")}
           />
         </div>
-        <p className={styles.note}>
-          OpenAI / xAI / OpenRouter / Anthropic / Gemini に対応。
-        </p>
+        <p className={styles.note}>{t("settings.apiKeyNote")}</p>
+      </section>
+
+      {/* Language */}
+      <section className={styles.card}>
+        <div className={styles.row}>
+          <label className={styles.rowLabel} htmlFor="language">
+            {t("settings.languageLabel")}
+          </label>
+          <select
+            id="language"
+            className={styles.select}
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as Language)}
+          >
+            <option value="auto">{t("settings.languageAuto")}</option>
+            <option value="ja">{t("settings.languageJa")}</option>
+            <option value="en">{t("settings.languageEn")}</option>
+          </select>
+        </div>
       </section>
 
       {/* Voice + autostart */}
       <section className={styles.card}>
         <div className={styles.row}>
           <label className={styles.rowLabel} htmlFor="voice">
-            読み上げ音声
+            {t("settings.voice")}
           </label>
           <select
             id="voice"
@@ -192,7 +230,7 @@ export function SettingsView() {
               setVoiceURI(e.target.value === "" ? null : e.target.value)
             }
           >
-            <option value="">（システム既定）</option>
+            <option value="">{t("settings.voiceSystemDefault")}</option>
             {voices.map((v) => (
               <option key={v.voiceURI} value={v.voiceURI}>
                 {v.name} ({v.lang})
@@ -201,26 +239,30 @@ export function SettingsView() {
           </select>
         </div>
         <div className={styles.row}>
-          <span className={styles.rowLabel}>起動</span>
+          <span className={styles.rowLabel}>
+            {t("settings.autostartLabel")}
+          </span>
           <label className={styles.checkRow}>
             <input
               type="checkbox"
               checked={autostart}
               onChange={(e) => setAutostart(e.target.checked)}
             />
-            ログイン時に自動起動する
+            {t("settings.autostartCheckbox")}
           </label>
         </div>
       </section>
 
       <div className={styles.saveBar}>
-        {saved && <span className={styles.savedFlash}>保存しました</span>}
+        {saved && (
+          <span className={styles.savedFlash}>{t("settings.saved")}</span>
+        )}
         <button
           type="button"
           className={`${styles.button} ${styles.buttonPrimary}`}
           onClick={onSave}
         >
-          保存
+          {t("settings.save")}
         </button>
       </div>
 
