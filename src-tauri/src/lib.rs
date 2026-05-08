@@ -41,6 +41,10 @@ fn set_whisper_language(lang: Option<String>) {
     let mapped: Option<&'static str> = match lang.as_deref() {
         Some("ja") => Some("ja"),
         Some("en") => Some("en"),
+        Some("es") => Some("es"),
+        Some("fr") => Some("fr"),
+        Some("de") => Some("de"),
+        Some("zh") => Some("zh"),
         _ => None,
     };
     if let Ok(mut g) = WHISPER_LANG.lock() {

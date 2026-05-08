@@ -28,6 +28,10 @@ fn off_label(lang: Lang) -> &'static str {
     match lang {
         Lang::Ja => "Chappie: マイク入力オフ",
         Lang::En => "Chappie: Mic off",
+        Lang::Es => "Chappie: Micrófono apagado",
+        Lang::Fr => "Chappie: Micro désactivé",
+        Lang::De => "Chappie: Mikrofon aus",
+        Lang::Zh => "Chappie: 麦克风已关闭",
     }
 }
 
@@ -56,6 +60,30 @@ impl TrayState {
             (Self::Thinking, Lang::En) => "Chappie: Thinking",
             (Self::Speaking, Lang::En) => "Chappie: Speaking",
             (Self::Error, Lang::En) => "Chappie: Error",
+            (Self::Initializing, Lang::Es) => "Chappie: Iniciando…",
+            (Self::Idle, Lang::Es) => "Chappie: En espera",
+            (Self::Listening, Lang::Es) => "Chappie: Escuchando",
+            (Self::Thinking, Lang::Es) => "Chappie: Pensando",
+            (Self::Speaking, Lang::Es) => "Chappie: Hablando",
+            (Self::Error, Lang::Es) => "Chappie: Error",
+            (Self::Initializing, Lang::Fr) => "Chappie: Démarrage…",
+            (Self::Idle, Lang::Fr) => "Chappie: En veille",
+            (Self::Listening, Lang::Fr) => "Chappie: À l'écoute",
+            (Self::Thinking, Lang::Fr) => "Chappie: Réflexion",
+            (Self::Speaking, Lang::Fr) => "Chappie: Parle",
+            (Self::Error, Lang::Fr) => "Chappie: Erreur",
+            (Self::Initializing, Lang::De) => "Chappie: Startet…",
+            (Self::Idle, Lang::De) => "Chappie: Bereit",
+            (Self::Listening, Lang::De) => "Chappie: Hört zu",
+            (Self::Thinking, Lang::De) => "Chappie: Denkt nach",
+            (Self::Speaking, Lang::De) => "Chappie: Spricht",
+            (Self::Error, Lang::De) => "Chappie: Fehler",
+            (Self::Initializing, Lang::Zh) => "Chappie: 启动中…",
+            (Self::Idle, Lang::Zh) => "Chappie: 待机中",
+            (Self::Listening, Lang::Zh) => "Chappie: 正在聆听",
+            (Self::Thinking, Lang::Zh) => "Chappie: 思考中",
+            (Self::Speaking, Lang::Zh) => "Chappie: 说话中",
+            (Self::Error, Lang::Zh) => "Chappie: 错误",
         }
     }
 }
@@ -64,6 +92,10 @@ fn menu_label_mic(lang: Lang) -> &'static str {
     match lang {
         Lang::Ja => "マイクを有効にする",
         Lang::En => "Enable microphone",
+        Lang::Es => "Activar micrófono",
+        Lang::Fr => "Activer le microphone",
+        Lang::De => "Mikrofon aktivieren",
+        Lang::Zh => "启用麦克风",
     }
 }
 
@@ -71,6 +103,10 @@ fn menu_label_settings(lang: Lang) -> &'static str {
     match lang {
         Lang::Ja => "設定を開く",
         Lang::En => "Open settings",
+        Lang::Es => "Abrir ajustes",
+        Lang::Fr => "Ouvrir les réglages",
+        Lang::De => "Einstellungen öffnen",
+        Lang::Zh => "打开设置",
     }
 }
 
@@ -78,6 +114,10 @@ fn menu_label_check_update(lang: Lang) -> &'static str {
     match lang {
         Lang::Ja => "アップデートを確認",
         Lang::En => "Check for updates",
+        Lang::Es => "Buscar actualizaciones",
+        Lang::Fr => "Rechercher des mises à jour",
+        Lang::De => "Nach Updates suchen",
+        Lang::Zh => "检查更新",
     }
 }
 
@@ -85,6 +125,10 @@ fn menu_label_quit(lang: Lang) -> &'static str {
     match lang {
         Lang::Ja => "終了",
         Lang::En => "Quit",
+        Lang::Es => "Salir",
+        Lang::Fr => "Quitter",
+        Lang::De => "Beenden",
+        Lang::Zh => "退出",
     }
 }
 

@@ -30,6 +30,10 @@ type Messages = {
     languageAuto: string;
     languageJa: string;
     languageEn: string;
+    languageEs: string;
+    languageFr: string;
+    languageDe: string;
+    languageZh: string;
     save: string;
     saved: string;
   };
@@ -83,6 +87,10 @@ const ja: Messages = {
     languageAuto: "自動",
     languageJa: "日本語",
     languageEn: "English",
+    languageEs: "Español (Beta)",
+    languageFr: "Français (Beta)",
+    languageDe: "Deutsch (Beta)",
+    languageZh: "简体中文 (Beta)",
     save: "保存",
     saved: "保存しました",
   },
@@ -143,6 +151,10 @@ const en: Messages = {
     languageAuto: "Auto",
     languageJa: "日本語",
     languageEn: "English",
+    languageEs: "Español (Beta)",
+    languageFr: "Français (Beta)",
+    languageDe: "Deutsch (Beta)",
+    languageZh: "简体中文 (Beta)",
     save: "Save",
     saved: "Saved",
   },
@@ -176,7 +188,268 @@ const en: Messages = {
   },
 };
 
-const CATALOGS: Record<Exclude<Language, "auto">, Messages> = { ja, en };
+const es: Messages = {
+  common: {
+    loading: "Cargando…",
+  },
+  settings: {
+    micAccess: "Acceso al micrófono",
+    micGranted: "Permitido",
+    micDenied: "Denegado",
+    micRestricted: "Restringido por el sistema",
+    micNotDetermined: "Sin definir",
+    micRequest: "Solicitar acceso al micrófono",
+    micRequesting: "Solicitando…",
+    micOpenSystem: "Abrir Configuración del Sistema",
+    micRecheck: "Volver a comprobar",
+    micDeniedNote:
+      "Una vez denegado, el acceso al micrófono solo se puede reactivar desde Configuración del Sistema.",
+    apiKey: "Clave de API",
+    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
+    apiKeyNote:
+      "Compatible con OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    voice: "Voz",
+    voiceSystemDefault: "(Predeterminada del sistema)",
+    autostartLabel: "Inicio",
+    autostartCheckbox: "Iniciar al iniciar sesión",
+    languageLabel: "Idioma",
+    languageAuto: "Automático",
+    languageJa: "日本語",
+    languageEn: "English",
+    languageEs: "Español (Beta)",
+    languageFr: "Français (Beta)",
+    languageDe: "Deutsch (Beta)",
+    languageZh: "简体中文 (Beta)",
+    save: "Guardar",
+    saved: "Guardado",
+  },
+  conversation: {
+    apiKeyMissingShort:
+      "No se ha configurado una clave de API de OpenAI. Añade una desde Ajustes.",
+    apiKeyMissingLong:
+      "No se ha configurado la clave de API de OpenAI. Abre el menú de la barra → Ajustes para añadir una.",
+    micDenied:
+      "El acceso al micrófono no está permitido. Activa Chappie en Configuración del Sistema → Privacidad y Seguridad → Micrófono.",
+    timerFiredWithLabel: "Temporizador de {label}: ¡se acabó el tiempo!",
+    timerFiredNoLabel: "¡Se acabó el tiempo!",
+    reminderFiredWithLabel: "Recordatorio: {label}.",
+    reminderFiredNoLabel: "Recordatorio.",
+    timerHudWithLabel: "⏲ Temporizador {label}",
+    timerHudNoLabel: "⏲ Temporizador",
+    reminderHudWithLabel: "⏰ {label}",
+    reminderHudNoLabel: "⏰ Recordatorio",
+    fallbackError: "No se pudo conectar.",
+    modelProgress: "Descargando el modelo de Whisper… {pct}%",
+    modelFetchFailed: "Falló la descarga del modelo: {err}",
+    micStartFailed: "No se pudo iniciar el micrófono: {err}",
+  },
+  systemPrompt: {
+    persona:
+      "Eres Chappie, un asistente de voz manos libres. Tus respuestas se leen en voz alta, así que sé breve, natural y conversacional, en español.",
+    formatTts:
+      "Escribe los números de forma que suenen naturales al leerlos en voz alta. Evita signos que no se lean bien — di las horas como 'dos y media' en lugar de '14:30', y las fechas como 'ocho de mayo' en lugar de '5/8'.",
+    formatHud:
+      "Esta respuesta se mostrará en pantalla como texto en lugar de leerse. Usa números y signos normales (p. ej. 17.3°, 39%, 14:30, 5/8). Evita las formas pensadas para la lectura en voz alta.",
+  },
+};
+
+const fr: Messages = {
+  common: {
+    loading: "Chargement…",
+  },
+  settings: {
+    micAccess: "Accès au microphone",
+    micGranted: "Autorisé",
+    micDenied: "Refusé",
+    micRestricted: "Restreint par le système",
+    micNotDetermined: "Non défini",
+    micRequest: "Demander l'accès au microphone",
+    micRequesting: "Demande en cours…",
+    micOpenSystem: "Ouvrir les Réglages Système",
+    micRecheck: "Revérifier",
+    micDeniedNote:
+      "Une fois refusé, l'accès au microphone ne peut être réactivé que depuis les Réglages Système.",
+    apiKey: "Clé d'API",
+    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
+    apiKeyNote: "Compatible OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    voice: "Voix",
+    voiceSystemDefault: "(Par défaut du système)",
+    autostartLabel: "Démarrage",
+    autostartCheckbox: "Lancer à l'ouverture de session",
+    languageLabel: "Langue",
+    languageAuto: "Automatique",
+    languageJa: "日本語",
+    languageEn: "English",
+    languageEs: "Español (Beta)",
+    languageFr: "Français (Beta)",
+    languageDe: "Deutsch (Beta)",
+    languageZh: "简体中文 (Beta)",
+    save: "Enregistrer",
+    saved: "Enregistré",
+  },
+  conversation: {
+    apiKeyMissingShort:
+      "Aucune clé d'API OpenAI configurée. Ajoutez-en une dans les Réglages.",
+    apiKeyMissingLong:
+      "Aucune clé d'API OpenAI configurée. Ouvrez le menu → Réglages pour en ajouter une.",
+    micDenied:
+      "L'accès au microphone n'est pas autorisé. Activez Chappie dans Réglages Système → Confidentialité et sécurité → Microphone.",
+    timerFiredWithLabel: "Minuteur {label} : c'est l'heure.",
+    timerFiredNoLabel: "Le minuteur est terminé.",
+    reminderFiredWithLabel: "Rappel : {label}.",
+    reminderFiredNoLabel: "Rappel.",
+    timerHudWithLabel: "⏲ Minuteur {label}",
+    timerHudNoLabel: "⏲ Minuteur",
+    reminderHudWithLabel: "⏰ {label}",
+    reminderHudNoLabel: "⏰ Rappel",
+    fallbackError: "Impossible de se connecter.",
+    modelProgress: "Téléchargement du modèle Whisper… {pct}%",
+    modelFetchFailed: "Échec du téléchargement du modèle : {err}",
+    micStartFailed: "Impossible de démarrer le microphone : {err}",
+  },
+  systemPrompt: {
+    persona:
+      "Tu es Chappie, un assistant vocal mains libres. Tes réponses sont lues à voix haute, alors reste bref, naturel et conversationnel, en français.",
+    formatTts:
+      "Écris les nombres de façon naturelle à l'oral. Évite la ponctuation qui se lit mal — donne les heures comme « quatorze heures trente » plutôt que « 14:30 », les dates comme « huit mai » plutôt que « 5/8 ».",
+    formatHud:
+      "Cette réponse s'affichera à l'écran sous forme de texte au lieu d'être lue. Utilise les notations normales (p. ex. 17,3 °C, 39 %, 14:30, 5/8). Évite les formes adaptées à la lecture orale.",
+  },
+};
+
+const de: Messages = {
+  common: {
+    loading: "Wird geladen…",
+  },
+  settings: {
+    micAccess: "Mikrofonzugriff",
+    micGranted: "Erlaubt",
+    micDenied: "Abgelehnt",
+    micRestricted: "Vom System eingeschränkt",
+    micNotDetermined: "Nicht festgelegt",
+    micRequest: "Mikrofonzugriff anfordern",
+    micRequesting: "Anfrage läuft…",
+    micOpenSystem: "Systemeinstellungen öffnen",
+    micRecheck: "Erneut prüfen",
+    micDeniedNote:
+      "Einmal abgelehnt, lässt sich der Mikrofonzugriff nur noch über die Systemeinstellungen wieder aktivieren.",
+    apiKey: "API-Schlüssel",
+    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
+    apiKeyNote: "Unterstützt OpenAI / xAI / OpenRouter / Anthropic / Gemini.",
+    voice: "Stimme",
+    voiceSystemDefault: "(Systemstandard)",
+    autostartLabel: "Start",
+    autostartCheckbox: "Beim Anmelden automatisch starten",
+    languageLabel: "Sprache",
+    languageAuto: "Automatisch",
+    languageJa: "日本語",
+    languageEn: "English",
+    languageEs: "Español (Beta)",
+    languageFr: "Français (Beta)",
+    languageDe: "Deutsch (Beta)",
+    languageZh: "简体中文 (Beta)",
+    save: "Speichern",
+    saved: "Gespeichert",
+  },
+  conversation: {
+    apiKeyMissingShort:
+      "Es ist kein OpenAI-API-Schlüssel hinterlegt. Bitte einen unter Einstellungen hinzufügen.",
+    apiKeyMissingLong:
+      "Es ist kein OpenAI-API-Schlüssel hinterlegt. Menüleiste → Einstellungen, um einen einzutragen.",
+    micDenied:
+      "Mikrofonzugriff nicht erlaubt. Aktiviere Chappie unter Systemeinstellungen → Datenschutz & Sicherheit → Mikrofon.",
+    timerFiredWithLabel: "Timer {label}: Die Zeit ist um.",
+    timerFiredNoLabel: "Die Zeit ist um.",
+    reminderFiredWithLabel: "Erinnerung: {label}.",
+    reminderFiredNoLabel: "Erinnerung.",
+    timerHudWithLabel: "⏲ Timer {label}",
+    timerHudNoLabel: "⏲ Timer",
+    reminderHudWithLabel: "⏰ {label}",
+    reminderHudNoLabel: "⏰ Erinnerung",
+    fallbackError: "Verbindung fehlgeschlagen.",
+    modelProgress: "Whisper-Modell wird geladen… {pct}%",
+    modelFetchFailed: "Modell-Download fehlgeschlagen: {err}",
+    micStartFailed: "Mikrofon ließ sich nicht starten: {err}",
+  },
+  systemPrompt: {
+    persona:
+      "Du bist Chappie, ein freihändiger Sprachassistent. Deine Antworten werden vorgelesen — halte sie kurz, natürlich und im Plauderton, auf Deutsch.",
+    formatTts:
+      "Schreibe Zahlen so, dass sie beim Vorlesen natürlich klingen. Vermeide Satzzeichen, die sich schlecht vorlesen lassen — sag Uhrzeiten als 'vierzehn Uhr dreißig' statt '14:30' und Daten als 'achter Mai' statt '5/8'.",
+    formatHud:
+      "Diese Antwort wird als Text auf dem Bildschirm angezeigt statt vorgelesen. Verwende normale Zahlen- und Zeichennotationen (z. B. 17,3 °C, 39 %, 14:30, 5/8). Verzichte auf vorlesefreundliche Schreibweisen.",
+  },
+};
+
+const zh: Messages = {
+  common: {
+    loading: "加载中…",
+  },
+  settings: {
+    micAccess: "麦克风权限",
+    micGranted: "已授权",
+    micDenied: "已拒绝",
+    micRestricted: "被系统限制",
+    micNotDetermined: "未设置",
+    micRequest: "请求麦克风权限",
+    micRequesting: "请求中…",
+    micOpenSystem: "打开系统设置",
+    micRecheck: "重新检查",
+    micDeniedNote: "一旦拒绝,只能在系统设置中重新启用麦克风权限。",
+    apiKey: "API 密钥",
+    apiKeyPlaceholder: "sk-... / xai-... / sk-or-... / sk-ant-... / AIza...",
+    apiKeyNote: "支持 OpenAI / xAI / OpenRouter / Anthropic / Gemini。",
+    voice: "语音",
+    voiceSystemDefault: "(系统默认)",
+    autostartLabel: "启动",
+    autostartCheckbox: "登录时自动启动",
+    languageLabel: "语言",
+    languageAuto: "自动",
+    languageJa: "日本語",
+    languageEn: "English",
+    languageEs: "Español (Beta)",
+    languageFr: "Français (Beta)",
+    languageDe: "Deutsch (Beta)",
+    languageZh: "简体中文 (Beta)",
+    save: "保存",
+    saved: "已保存",
+  },
+  conversation: {
+    apiKeyMissingShort: "尚未设置 OpenAI API 密钥。请在设置中添加。",
+    apiKeyMissingLong: "尚未设置 OpenAI API 密钥。打开菜单栏 → 设置进行添加。",
+    micDenied:
+      "麦克风未获授权。请在系统设置 → 隐私与安全性 → 麦克风中启用 Chappie。",
+    timerFiredWithLabel: "{label} 的计时器:时间到。",
+    timerFiredNoLabel: "时间到。",
+    reminderFiredWithLabel: "提醒:{label}。",
+    reminderFiredNoLabel: "提醒。",
+    timerHudWithLabel: "⏲ {label} 计时器",
+    timerHudNoLabel: "⏲ 计时器",
+    reminderHudWithLabel: "⏰ {label}",
+    reminderHudNoLabel: "⏰ 提醒",
+    fallbackError: "连接失败。",
+    modelProgress: "正在下载 Whisper 模型… {pct}%",
+    modelFetchFailed: "模型下载失败:{err}",
+    micStartFailed: "麦克风启动失败:{err}",
+  },
+  systemPrompt: {
+    persona:
+      "你是 Chappie,一个免提语音助手。你的回复会被朗读出来,所以请用自然、口语化的简体中文简短作答。",
+    formatTts:
+      "数字请写成朗读时自然的形式。避免不便朗读的符号——时间用「下午两点半」而不是「14:30」,日期用「五月八日」而不是「5/8」。",
+    formatHud:
+      "本次回复会以文字形式显示在屏幕上,而不是朗读。请使用常规的数字和符号写法(例如 17.3°、39%、14:30、5/8),不要使用为朗读设计的写法。",
+  },
+};
+
+const CATALOGS: Record<Exclude<Language, "auto">, Messages> = {
+  ja,
+  en,
+  es,
+  fr,
+  de,
+  zh,
+};
 
 const WAKE_ACKS: Record<Exclude<Language, "auto">, string[]> = {
   ja: [
@@ -189,6 +462,10 @@ const WAKE_ACKS: Record<Exclude<Language, "auto">, string[]> = {
     "なになに？",
   ],
   en: ["Yes?", "Yeah?", "What's up?", "Hmm?", "Mhm?", "Go ahead.", "I'm here."],
+  es: ["¿Sí?", "¿Diga?", "¿Qué tal?", "Aquí estoy.", "¿Mande?", "Te escucho."],
+  fr: ["Oui ?", "Hein ?", "Je t'écoute.", "Quoi ?", "Dis-moi.", "Présent."],
+  de: ["Ja?", "Hm?", "Was gibt's?", "Ich höre.", "Sag mal.", "Bin da."],
+  zh: ["嗯?", "什么事?", "我在。", "说吧。", "怎么了?", "嗯哼?"],
 };
 
 export function getWakeAcks(lang: Language): string[] {
@@ -199,7 +476,12 @@ export function resolveLanguage(lang: Language): Exclude<Language, "auto"> {
   if (lang !== "auto") return lang;
   const nav =
     typeof navigator !== "undefined" ? navigator.language.toLowerCase() : "ja";
-  return nav.startsWith("ja") ? "ja" : "en";
+  if (nav.startsWith("ja")) return "ja";
+  if (nav.startsWith("es")) return "es";
+  if (nav.startsWith("fr")) return "fr";
+  if (nav.startsWith("de")) return "de";
+  if (nav.startsWith("zh")) return "zh";
+  return "en";
 }
 
 type Path<T, P extends string = ""> = T extends object
