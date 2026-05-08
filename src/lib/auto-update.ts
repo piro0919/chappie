@@ -16,7 +16,13 @@ export async function runUpdateCheck(): Promise<void> {
     // main (hidden, debug-only) window to become visible. Stash it back to
     // hidden once the dialog returns so the user doesn't end up staring at
     // an empty "Chappie デバッグ" frame.
+    //
+    // We're an Accessory-mode (LSUIElement) app, so the dialog also doesn't
+    // come to the foreground on its own — call `activate_app` to raise the
+    // process before showing it.
     const mainWindow = getCurrentWindow();
+    void invoke("activate_app").catch(() => {});
+    await mainWindow.setFocus().catch(() => {});
     let confirmed = false;
     try {
       confirmed = await ask(

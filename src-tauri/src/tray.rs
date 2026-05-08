@@ -144,7 +144,7 @@ fn build_menu(
 // NSApp.activate(ignoringOtherApps:true) the window draws behind whatever
 // is currently focused.
 #[cfg(target_os = "macos")]
-fn activate_app_for_window() {
+pub fn activate_app_for_window() {
     use objc2::{class, msg_send, runtime::AnyObject};
     unsafe {
         let app: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
@@ -152,6 +152,16 @@ fn activate_app_for_window() {
             let _: () = msg_send![app, activateIgnoringOtherApps: true];
         }
     }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn activate_app_for_window() {}
+
+/// Tauri command exposed for renderer-side flows (e.g. the auto-updater
+/// dialog) that need the app to come to the foreground in Accessory mode.
+#[tauri::command]
+pub fn activate_app() {
+    activate_app_for_window();
 }
 
 fn current_tray_state(app: &AppHandle) -> Option<TrayState> {

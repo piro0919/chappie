@@ -133,6 +133,7 @@ pub fn run() {
             hud::hud_show,
             volume::is_muted,
             tray::set_update_available,
+            tray::activate_app,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
