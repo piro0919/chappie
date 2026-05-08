@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Local secrets — API keys for the golden tool-routing test.
+.env.golden
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
