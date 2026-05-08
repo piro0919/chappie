@@ -564,6 +564,25 @@ pub(crate) fn all_tools() -> Value {
         {
             "type": "function",
             "function": {
+                "name": "list_events",
+                "description": "macOS のカレンダーから予定を取得します。「今日の予定は？」「明日のスケジュール教えて」「次の予定は？」のような質問で呼び出してください。range='today' は今この瞬間から今日の終わりまで、'tomorrow' は明日丸一日、'upcoming' は今から1週間以内で先頭10件までを返します。返却が空配列なら予定なし。権限未許可なら error='permission_denied' を返すので、その場合はユーザーに『設定 → カレンダー権限を許可してください』と案内してください。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "range": {
+                            "type": "string",
+                            "enum": ["today", "tomorrow", "upcoming"],
+                            "description": "today=現在以降の今日、tomorrow=明日、upcoming=今から1週間。"
+                        }
+                    },
+                    "required": ["range"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "cancel_timer",
                 "description": "タイマーを取り消します。id を指定すると該当タイマー、未指定なら全件取り消し。「タイマー消して」「全部キャンセル」などで呼び出してください。",
                 "parameters": {
@@ -652,6 +671,37 @@ pub(crate) async fn execute_tool(
                 "fires_at_unix_ms": info.fires_at_unix_ms
             })
             .to_string()
+        }
+        "list_events" => {
+            let range = args
+                .get("range")
+                .and_then(|v| v.as_str())
+                .unwrap_or("today");
+            match crate::calendar::calendar_status_sync() {
+                Ok(s) if s == "granted" => {}
+                Ok(s) => {
+                    return json!({
+                        "error": "permission_denied",
+                        "status": s,
+                        "hint": "設定からカレンダーへのアクセスを許可してください。"
+                    })
+                    .to_string();
+                }
+                Err(e) => {
+                    return json!({ "error": "calendar_unavailable", "detail": e })
+                        .to_string();
+                }
+            }
+            let parsed_range = match range {
+                "tomorrow" => crate::calendar::Range::Tomorrow,
+                "upcoming" => crate::calendar::Range::Upcoming,
+                _ => crate::calendar::Range::Today,
+            };
+            match crate::calendar::fetch_events(parsed_range) {
+                Ok(events) => json!({ "events": events }).to_string(),
+                Err(e) => json!({ "error": "calendar_unavailable", "detail": e })
+                    .to_string(),
+            }
         }
         "list_timers" => {
             let timers = crate::timer::list_timers();
