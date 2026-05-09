@@ -10,7 +10,7 @@
 // - Each enabled provider runs the suite once: ~25 LLM calls + a few
 //   stubbed multi-round follow-ups. Cost per full 3-provider sweep is
 //   ~$0.10–0.15 on today's pricing with caching: gpt-4o-mini ~$0.03,
-//   claude-3-5-haiku ~$0.07 (90% cache discount), gemini-2.5-flash
+//   claude-haiku-4-5 ~$0.07 (90% cache discount), gemini-2.5-flash
 //   ~$0 in the free tier.
 // - Run via `pnpm test:golden` (root script) or
 //   `cd src-tauri && cargo test --test golden_tool_routing -- --nocapture`.
@@ -44,9 +44,12 @@ use serde_json::{json, Value};
 use std::time::Duration;
 
 /// Concurrent in-flight requests per provider. Trade-off: too few wastes
-/// wall-clock; too many trips rate limits (especially Gemini free tier).
-/// 4 is comfortable on every provider tested.
-const CONCURRENCY: usize = 4;
+/// wall-clock; too many trips rate limits.
+/// Anthropic's default tier is 50k input tokens/min — 27 cases × ~9k tokens
+/// of system+tools sails past that with any meaningful concurrency, so it
+/// runs sequentially. OpenAI / Gemini are comfortable at 4.
+const CONCURRENCY_DEFAULT: usize = 4;
+const CONCURRENCY_ANTHROPIC: usize = 1;
 
 const PERSONA_JA: &str =
     "あなたはチャッピー、ハンズフリー音声アシスタントです。返答は読み上げられるので、短く自然な会話調の日本語で答えてください。";
@@ -264,7 +267,7 @@ async fn run_anthropic(
 
     for _ in 0..max_rounds {
         let body = json!({
-            "model": "claude-3-5-haiku-latest",
+            "model": "claude-haiku-4-5",
             "max_tokens": 1024,
             "system": PERSONA_JA,
             "messages": messages,
@@ -444,11 +447,19 @@ async fn run_one(
     // add_reminder_at) and we only need one extra in case the LLM emits
     // a redundant probe before settling.
     let max_rounds = 3;
-    match provider {
+    let r = match provider {
         Provider::OpenAI => run_openai(client, key, case.utterance, max_rounds).await,
         Provider::Anthropic => run_anthropic(client, key, case.utterance, max_rounds).await,
         Provider::Gemini => run_gemini(client, key, case.utterance, max_rounds).await,
+    };
+    // Anthropic default tier is 50k input tokens/min; each case is ~9k
+    // tokens AND multi-round cases fire 2-3 requests back-to-back from
+    // a single case. 30s buffers the rolling window enough to absorb
+    // multi-round bursts without 429.
+    if matches!(provider, Provider::Anthropic) {
+        tokio::time::sleep(Duration::from_secs(30)).await;
     }
+    r
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -461,16 +472,45 @@ async fn golden_tool_routing() {
         return;
     }
 
+    // Optional case filter: comma-separated substrings, matched against
+    // case.label. Useful for retrying just the cases that failed in a
+    // previous run without burning the whole suite (and rate limit budget).
+    let only_filter = std::env::var("GOLDEN_ONLY").ok();
+    let case_indices: Vec<usize> = match &only_filter {
+        Some(s) => {
+            let needles: Vec<&str> = s.split(',').map(|x| x.trim()).filter(|x| !x.is_empty()).collect();
+            CASES
+                .iter()
+                .enumerate()
+                .filter(|(_, c)| needles.iter().any(|n| c.label.contains(n)))
+                .map(|(i, _)| i)
+                .collect()
+        }
+        None => (0..CASES.len()).collect(),
+    };
+    if let Some(s) = &only_filter {
+        eprintln!(
+            "[golden] GOLDEN_ONLY={s:?} → running {} of {} cases",
+            case_indices.len(),
+            CASES.len()
+        );
+    }
+
     let mut total_failures: Vec<String> = Vec::new();
     let client = http();
     for (provider, key) in &providers {
         eprintln!("[golden] === {} ===", provider.label());
 
-        // Run cases concurrently within the provider. CONCURRENCY caps
-        // in-flight requests to avoid tripping rate limits (Gemini's
-        // free tier especially) while keeping wall-clock low.
+        let concurrency = match provider {
+            Provider::Anthropic => CONCURRENCY_ANTHROPIC,
+            _ => CONCURRENCY_DEFAULT,
+        };
+
+        // Run cases concurrently within the provider. Concurrency caps
+        // in-flight requests to avoid tripping rate limits while
+        // keeping wall-clock low.
         let results: Vec<(usize, Result<Vec<String>, String>)> =
-            stream::iter(CASES.iter().enumerate())
+            stream::iter(case_indices.iter().copied().map(|i| (i, &CASES[i])))
                 .map(|(i, case)| {
                     let client = &client;
                     async move {
@@ -478,7 +518,7 @@ async fn golden_tool_routing() {
                         (i, r)
                     }
                 })
-                .buffer_unordered(CONCURRENCY)
+                .buffer_unordered(concurrency)
                 .collect()
                 .await;
 
