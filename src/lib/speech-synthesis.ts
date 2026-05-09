@@ -114,6 +114,14 @@ export function createStreamingSpeaker(lang: string): {
   let buffer = "";
   const cachedVoice = pickVoice(lang);
 
+  // Track utterances explicitly. WebKit's speaking/pending flags get
+  // wedged true for up to a few seconds after audio actually ends on
+  // macOS Japanese voices (Kyoko / Otoya), and onend can fire late.
+  // Using our own per-utterance settled count plus a wall-clock cap is
+  // more reliable than trusting either WebKit signal alone.
+  let queuedCount = 0;
+  let settledCount = 0;
+
   const speakOne = (sentence: string) => {
     const utter = new SpeechSynthesisUtterance(sanitizeForTTS(sentence, lang));
     utter.rate = TTS_RATE;
@@ -123,10 +131,16 @@ export function createStreamingSpeaker(lang: string): {
     } else {
       utter.lang = lang;
     }
+    queuedCount++;
+    const settle = () => {
+      settledCount++;
+    };
+    utter.onend = settle;
     utter.onerror = (e) => {
       if (e.error !== "interrupted" && e.error !== "canceled") {
         console.error("speak failed", e.error);
       }
+      settle();
     };
     window.speechSynthesis.speak(utter);
   };
@@ -151,13 +165,23 @@ export function createStreamingSpeaker(lang: string): {
       const tail = buffer.trim();
       buffer = "";
       if (tail) speakOne(tail);
-      // Poll the synthesis flags. They flip to `false` when audio actually
-      // finishes — typically a beat before WebKit's lazy onend would fire.
-      while (
-        window.speechSynthesis.speaking ||
-        window.speechSynthesis.pending
-      ) {
-        await new Promise((r) => setTimeout(r, 50));
+      // Wait until either: (a) every queued utterance has settled
+      // (onend / onerror fired), or (b) WebKit's speaking/pending both
+      // read false for two consecutive 30ms ticks. (a) is the truthful
+      // signal but onend is laggy on JP voices; (b) is faster but flaps.
+      // Combining them in a settled-count check that's also gated on the
+      // flags going quiet gives us the earlier of the two.
+      let consecutiveQuiet = 0;
+      while (settledCount < queuedCount) {
+        const quiet =
+          !window.speechSynthesis.speaking && !window.speechSynthesis.pending;
+        consecutiveQuiet = quiet ? consecutiveQuiet + 1 : 0;
+        // 60ms quiet (two 30ms ticks with both flags down) — safe margin
+        // against transient false flips between utterances. If the flags
+        // say quiet, audio is really done; we don't have to wait for the
+        // late onend.
+        if (consecutiveQuiet >= 2) break;
+        await new Promise((r) => setTimeout(r, 30));
       }
     },
   };
