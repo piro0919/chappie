@@ -80,17 +80,34 @@ More tools coming over time.
 > without a user gesture, so audio is captured at the OS layer in Rust and
 > only the resulting transcription is forwarded to the renderer as a `speech` event.
 
-## Platform
+## Platform support
 
-macOS only, Apple Silicon (`aarch64-apple-darwin`). Tested on macOS 14+. The mic
-capture and Whisper inference rely on macOS-specific APIs (AVFoundation /
-Metal); a Windows port is technically feasible but not on the roadmap.
+**macOS** — primary target. Apple Silicon (`aarch64-apple-darwin`), tested on macOS 14+. All features below are available.
+
+**Windows** — incremental port in progress. The Tauri / Rust / WebView layer is cross-platform, but each macOS-specific integration (osascript, pmset, `screencapture`, EventKit, ScreenCaptureKit, AVFoundation) needs a Windows equivalent (`windows-rs` SMTC, `GetSystemPowerStatus`, `SetThreadExecutionState`, etc.). Core loop first, then features ported by usage frequency.
+
+### Feature availability
+
+| Feature | macOS | Windows |
+| --- | --- | --- |
+| Wake word + STT (Whisper) | ✅ | 🚧 planned |
+| LLM chat (OpenAI / Anthropic / Gemini) | ✅ | 🚧 planned |
+| TTS (system voices) | ✅ | 🚧 planned |
+| Tray icon + states | ✅ | 🚧 planned |
+| Timers / reminders | ✅ | 🚧 planned |
+| Volume control | ✅ | 🚧 planned |
+| Screenshot | ✅ | 🚧 planned |
+| Music control (Spotify / Music.app) | ✅ | 🚧 planned (SMTC) |
+| Battery / sleep prevention / lock | ✅ | 🚧 planned |
+| Calendar (read-only) | ✅ (EventKit) | ❌ not planned for v1 |
+| Clipboard / notes / open URL / open app / open Finder | ✅ | 🚧 planned |
+| Auto-update | ✅ | 🚧 planned |
 
 ## Development
 
 ### Requirements
 
-- macOS 14+ on Apple Silicon (M1 or later)
+- macOS 14+ on Apple Silicon (M1 or later) — Windows support is in progress; see the table above for current feature parity
 - [pnpm](https://pnpm.io/)
 - [Rust](https://rustup.rs/) (stable toolchain)
 

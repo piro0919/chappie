@@ -1,19 +1,19 @@
 {
   "meta": {
-    "title": "Chappie — Hands-free voice AI assistant for macOS",
-    "description": "A hands-free voice AI assistant that lives in your menu bar. Just say \"chappie\" — the rest is voice only.",
+    "title": "Chappie — Hands-free voice AI assistant for Mac",
+    "description": "A hands-free voice AI assistant that lives in your menu bar. Just say \"chappie\" — the rest is voice only. Windows version coming soon.",
     "ogTagline": "Just say \"chappie\".",
     "ogLead": "A hands-free voice AI assistant that lives in your menu bar."
   },
   "hero": {
-    "badge": "Hands-free voice AI for macOS",
+    "badge": "Hands-free voice AI for Mac",
     "title": "Chappie",
     "taglineLine1": "Just say \"chappie\".",
     "taglineLine2": "The rest is voice only.",
     "lead": "A hands-free voice AI assistant that lives in your menu bar. No keyboard, no mouse — just talk.",
-    "downloadButton": "Download for macOS",
+    "downloadButton": "Download for Mac",
     "githubButton": "GitHub",
-    "footnote": "Apple Silicon (M1 or later) · Open source · Indie made"
+    "footnote": "Mac (Apple Silicon) · Windows version coming soon · Open source · Indie made"
   },
   "capabilities": {
     "eyebrow": "WHAT IT CAN DO",

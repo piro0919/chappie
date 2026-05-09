@@ -1,19 +1,19 @@
 {
   "meta": {
     "title": "Chappie — ハンズフリーの音声 AI アシスタント",
-    "description": "「チャッピー」と呼ぶだけで起動する、Mac の menubar 常駐型 AI アシスタント。声で話しかけて、声で返ってきます。",
+    "description": "「チャッピー」と呼ぶだけで起動する、Mac の menubar 常駐型 AI アシスタント。声で話しかけて、声で返ってきます。Windows 版も順次対応予定。",
     "ogTagline": "「チャッピー」と呼びかけるだけ。",
-    "ogLead": "macOS のメニューバーに常駐する、ハンズフリー音声 AI アシスタント。"
+    "ogLead": "Mac のメニューバーに常駐する、ハンズフリー音声 AI アシスタント。"
   },
   "hero": {
-    "badge": "macOS 向けハンズフリー音声 AI",
+    "badge": "Mac 向けハンズフリー音声 AI",
     "title": "Chappie",
     "taglineLine1": "「チャッピー」と呼びかけるだけ。",
     "taglineLine2": "あとは声だけで完結する。",
     "lead": "メニューバーに常駐する、ハンズフリー音声 AI アシスタント。キーボードもマウスもいらない、声で話しかけるだけの新しい使い方。",
-    "downloadButton": "ダウンロード（macOS）",
+    "downloadButton": "ダウンロード（Mac）",
     "githubButton": "GitHub",
-    "footnote": "M1 以降の Mac で動きます / オープンソース / 個人開発"
+    "footnote": "Mac (M1 以降) で動きます / Windows 版は順次対応予定 / オープンソース / 個人開発"
   },
   "capabilities": {
     "eyebrow": "CHAPPIE でできること",
