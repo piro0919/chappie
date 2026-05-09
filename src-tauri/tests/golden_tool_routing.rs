@@ -79,7 +79,7 @@ const CASES: &[Case] = &[
     Case { label: "calendar/tomorrow", utterance: "明日のスケジュール教えて", expected_first: "list_events" },
     Case { label: "music/now", utterance: "いま何の曲?", expected_first: "get_now_playing" },
     Case { label: "music/next", utterance: "次の曲", expected_first: "control_music" },
-    Case { label: "music/pause", utterance: "ちょっと止めて", expected_first: "control_music" },
+    Case { label: "music/pause", utterance: "音楽ちょっと止めて", expected_first: "control_music" },
     Case { label: "battery", utterance: "バッテリー何%?", expected_first: "get_battery_status" },
     Case { label: "clipboard/read", utterance: "クリップボード読んで", expected_first: "read_clipboard" },
     Case { label: "screenshot", utterance: "スクショ撮って", expected_first: "take_screenshot" },

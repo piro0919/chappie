@@ -91,7 +91,7 @@ pub fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "end_conversation",
-                "description": "ユーザーが会話を終わらせたとき（「ありがとう」「またね」「じゃあね」）。アシスタントは聞き取りを停止しウェイクワード待ちに戻る。",
+                "description": "ユーザーが**会話そのものを終わらせた**とき（「ありがとう」「またね」「じゃあね」「おやすみ」）に呼ぶ。アシスタントは聞き取りを停止しウェイクワード待ちに戻る。**音楽・タイマー・メモ等の操作を「止めて／キャンセル」する指示には絶対に使わない**（それらは control_music / cancel_timer 等の専用 tool を使う）。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -319,7 +319,7 @@ pub fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "list_capabilities",
-                "description": "Chappie ができることの一覧を返す。「何ができるの?」「使い方教えて」など自己紹介系の質問で呼ぶ。応答は 2〜3 カテゴリに絞って自然な会話調で。",
+                "description": "Chappie ができることの一覧を返す。「何ができるの?」「使い方教えて」「どんな機能があるの?」など自己紹介系の質問では**必ずこの tool を先に呼んでから**答える（自分の記憶で適当に答えない）。応答は 2〜3 カテゴリに絞って自然な会話調で。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -456,7 +456,7 @@ pub fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "control_music",
-                "description": "起動中の Spotify / Apple Music を操作。「再生」=play、「止めて」=pause、「次」=next、「前」=previous、「切り替え」=toggle。app=auto は Spotify 優先、なければ Music。**勝手にアプリは起動しない**ので両方未起動ならエラー。",
+                "description": "起動中の Spotify / Apple Music を操作。「再生して」「流して」=play、「音楽止めて」「曲止めて」「一時停止」=pause、「次の曲」「スキップ」=next、「前の曲」「戻して」=previous、「切り替え」=toggle。**「止めて」が音楽文脈ならこの tool（end_conversation ではない）**。app=auto は Spotify 優先、なければ Music。**勝手にアプリは起動しない**ので両方未起動ならエラー。**直接呼ぶこと**: 何が再生中かや他のタイマー類を事前に確認する必要は一切ない（get_now_playing / list_timers / list_reminders を先に呼ばない）。",
                 "parameters": {
                     "type": "object",
                     "properties": {
