@@ -48,7 +48,7 @@ impl Provider {
     pub fn default_model(self) -> &'static str {
         match self {
             Self::OpenAI => "gpt-4o-mini",
-            Self::Anthropic => "claude-3-5-haiku-latest",
+            Self::Anthropic => "claude-haiku-4-5",
             Self::Gemini => "gemini-2.5-flash",
         }
     }
