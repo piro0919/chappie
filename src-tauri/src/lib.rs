@@ -13,6 +13,7 @@ mod log_event;
 mod mic_permission;
 mod model;
 mod location;
+mod memory;
 mod music;
 mod notes;
 pub mod openai;

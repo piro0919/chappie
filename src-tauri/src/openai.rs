@@ -397,7 +397,7 @@ pub fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "add_note",
-                "description": "ボイスメモを保存。「これメモして: ○○」「○○を覚えて」。text は本文そのもの（前置き付けない）。再起動後も保持。",
+                "description": "**ボイスメモ**を保存（買い物リスト・アイデア書き留め・引用文など、ユーザーが書き取らせる本文）。「これメモして: ○○」のような明示指示で呼ぶ。text は本文そのもの（前置き付けない）。再起動後も保持。**ユーザー自身の継続的なプロフィール（名前・好み・家族・職業など）を覚えるなら add_note ではなく save_memory を使う**。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -445,6 +445,95 @@ pub fn all_tools() -> Value {
                         "id": {
                             "type": "integer",
                             "description": "削除するメモの ID。"
+                        }
+                    },
+                    "required": ["id"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "save_memory",
+                "description": "ユーザーに関する**継続的な事実**を記憶（次回以降の会話でも参照される）。例: 「私は piro です」→ kind=profile、「息子の名前は太郎」→ profile、「コーヒーより紅茶派」→ preference、「来週の月曜に歯医者の予約」→ episode。**ボイスメモ（買い物リスト・アイデア・引用）は add_note を使う**。明示指示（「○○って覚えといて」）でも、ユーザーが自然に語った重要そうな情報でも、自分の判断で能動的に保存してよい（**遠慮せず使う**）。重複する事実は自動でデデュープされる。text は短く簡潔に（一文で要約）。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "覚える事実を一文で要約。例: \"息子の誕生日は 6/15\""
+                        },
+                        "kind": {
+                            "type": "string",
+                            "enum": ["profile", "preference", "episode"],
+                            "description": "profile=身元/家族/職業/住んでる場所など恒常的事実、preference=好み/嗜好、episode=一度きりの出来事や約束。"
+                        }
+                    },
+                    "required": ["text", "kind"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "recall_memory",
+                "description": "保存済みの記憶を検索して返す。profile / preference は system prompt で常時見えているので普段は recall 不要だが、**episode（過去の約束・出来事）や言い回しがズレて埋もれている可能性のある情報**を引きたい時に呼ぶ。例: ユーザーが「あの件どうなった?」「前話してた○○」と参照してきた時。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "検索クエリ。ユーザー発話そのまま or キーワードに要約でもよい。"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "最大件数（既定 5）。",
+                            "minimum": 1,
+                            "maximum": 20
+                        }
+                    },
+                    "required": ["query"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "list_memories",
+                "description": "保存済み記憶の一覧。「何覚えてる?」「私について何知ってる?」と聞かれた時に呼ぶ。kind で種別絞り込み可能。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "enum": ["profile", "preference", "episode"],
+                            "description": "種別フィルタ。未指定で全種別。"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "最大件数（既定 20）。",
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "forget_memory",
+                "description": "記憶を削除。「○○忘れて」「あの記憶消して」。id 不明なら **先に list_memories で特定** してから呼ぶ。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "description": "削除する記憶の ID。"
                         }
                     },
                     "required": ["id"],
@@ -964,6 +1053,60 @@ pub(crate) async fn execute_tool(
             let deleted = crate::notes::delete(id as u32);
             json!({ "ok": deleted, "id": id }).to_string()
         }
+        "save_memory" => {
+            let Some(text) = args.get("text").and_then(|v| v.as_str()) else {
+                return json!({ "ok": false, "error": "text is required" }).to_string();
+            };
+            let kind = args.get("kind").and_then(|v| v.as_str()).unwrap_or("profile");
+            match crate::memory::save(text.to_string(), kind) {
+                Ok(m) => json!({
+                    "ok": true,
+                    "id": m.id,
+                    "text": m.text,
+                    "kind": crate::memory::kind_label(m.kind)
+                })
+                .to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "recall_memory" => {
+            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
+            if query.trim().is_empty() {
+                return json!({ "ok": false, "error": "query is required" }).to_string();
+            }
+            let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
+            let entries = crate::memory::recall(query, limit.clamp(1, 20));
+            json!({
+                "ok": true,
+                "entries": entries.iter().map(|m| json!({
+                    "id": m.id,
+                    "text": m.text,
+                    "kind": crate::memory::kind_label(m.kind)
+                })).collect::<Vec<_>>()
+            })
+            .to_string()
+        }
+        "list_memories" => {
+            let kind = args.get("kind").and_then(|v| v.as_str());
+            let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(20) as usize;
+            let entries = crate::memory::list_all(kind, limit.clamp(1, 100));
+            json!({
+                "ok": true,
+                "entries": entries.iter().map(|m| json!({
+                    "id": m.id,
+                    "text": m.text,
+                    "kind": crate::memory::kind_label(m.kind)
+                })).collect::<Vec<_>>()
+            })
+            .to_string()
+        }
+        "forget_memory" => {
+            let Some(id) = args.get("id").and_then(|v| v.as_u64()) else {
+                return json!({ "ok": false, "error": "id is required" }).to_string();
+            };
+            let deleted = crate::memory::forget(id as u32);
+            json!({ "ok": deleted, "id": id }).to_string()
+        }
         "control_music" => {
             let action = args.get("action").and_then(|v| v.as_str()).unwrap_or("");
             let app_arg = args.get("app").and_then(|v| v.as_str());
@@ -1165,6 +1308,16 @@ pub async fn chat_complete(
         // sessions but is stable within a session.
         let pos = if working.first().and_then(|m| m.get("role")).and_then(|r| r.as_str()) == Some("system") { 1 } else { 0 };
         working.insert(pos, json!({"role": "system", "content": context}));
+    }
+
+    // Inject the user's saved profile / preferences. Goes AFTER the
+    // persona prompt so the leading prefix used for prompt caching stays
+    // stable; the profile changes only when save_memory / forget_memory
+    // is called, which causes a single cache miss and then warms again.
+    let profile = crate::memory::profile_summary();
+    if !profile.is_empty() {
+        let pos = if working.first().and_then(|m| m.get("role")).and_then(|r| r.as_str()) == Some("system") { 1 } else { 0 };
+        working.insert(pos, json!({"role": "system", "content": profile}));
     }
 
     let mut end_conversation = false;

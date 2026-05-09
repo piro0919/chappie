@@ -78,6 +78,13 @@ fn capabilities_pt() -> String {
             &["Anota isso: ___", "Acha as notas sobre ___, lê as notas recentes"],
         ),
         (
+            "Memória de longo prazo",
+            &[
+                "Lembra de você (nome, família, preferências, profissão)",
+                "\"Lembra que ___\", \"O que você sabe sobre mim?\", \"Esquece isso\"",
+            ],
+        ),
+        (
             "Status do Mac",
             &["Quanta bateria?, quanto falta para carregar?"],
         ),
@@ -153,6 +160,13 @@ fn capabilities_ko() -> String {
             "메모",
             &["이거 메모해 줘: ___", "___ 관련 메모 찾아줘, 최근 메모 읽어줘"],
         ),
+        (
+            "장기 기억",
+            &[
+                "당신을 기억해요 (이름, 가족, 취향, 직업)",
+                "\"___ 기억해 줘\", \"나에 대해 뭐 알고 있어?\", \"그거 잊어\"",
+            ],
+        ),
         ("Mac 상태", &["배터리 몇 %?, 충전 얼마나 남았어?"]),
         (
             "잠금과 절전",
@@ -225,6 +239,13 @@ fn capabilities_it() -> String {
         (
             "Note",
             &["Annota questo: ___", "Trova le note su ___, leggi le note recenti"],
+        ),
+        (
+            "Memoria a lungo termine",
+            &[
+                "Si ricorda di te (nome, famiglia, preferenze, lavoro)",
+                "\"Ricorda che ___\", \"Cosa sai di me?\", \"Dimentica quello\"",
+            ],
         ),
         (
             "Stato Mac",
@@ -306,6 +327,13 @@ fn capabilities_es() -> String {
             &["Apunta esto: ___", "Busca notas sobre ___, lee mis notas recientes"],
         ),
         (
+            "Memoria a largo plazo",
+            &[
+                "Te recuerda (nombre, familia, preferencias, profesión)",
+                "\"Recuerda que ___\", \"¿Qué sabes de mí?\", \"Olvida eso\"",
+            ],
+        ),
+        (
             "Estado del Mac",
             &["¿Cuánta batería?, ¿cuánto falta para cargar?"],
         ),
@@ -383,6 +411,13 @@ fn capabilities_fr() -> String {
         (
             "Notes",
             &["Note ceci : ___", "Cherche les notes sur ___, lis mes notes récentes"],
+        ),
+        (
+            "Mémoire à long terme",
+            &[
+                "Se souvient de toi (nom, famille, préférences, métier)",
+                "\"Souviens-toi que ___\", \"Que sais-tu de moi ?\", \"Oublie ça\"",
+            ],
         ),
         (
             "État du Mac",
@@ -467,6 +502,13 @@ fn capabilities_de() -> String {
             ],
         ),
         (
+            "Langzeitgedächtnis",
+            &[
+                "Merkt sich Dinge über dich (Name, Familie, Vorlieben, Beruf)",
+                "\"Merk dir ___\", \"Was weißt du über mich?\", \"Vergiss das\"",
+            ],
+        ),
+        (
             "Mac-Status",
             &["Wie viel Akku?, wie lange noch bis voll?"],
         ),
@@ -545,6 +587,13 @@ fn capabilities_zh() -> String {
                 "找一下关于 ___ 的备忘, 读最近的备忘",
             ],
         ),
+        (
+            "长期记忆",
+            &[
+                "记住你的事(名字、家人、喜好、职业)",
+                "\"记住 ___\", \"你了解我什么?\", \"忘掉那个\"",
+            ],
+        ),
         ("Mac 状态", &["电量多少?, 还要多久充满?"]),
         (
             "锁定和睡眠",
@@ -619,6 +668,13 @@ fn capabilities_ja() -> String {
             &[
                 "これメモして: ○○",
                 "○○のメモ探して、最近のメモ読んで",
+            ],
+        ),
+        (
+            "長期記憶",
+            &[
+                "私のことを覚えてくれる（名前、家族、好み、職業など）",
+                "「○○って覚えといて」「私について何知ってる？」「あの記憶忘れて」",
             ],
         ),
         (
@@ -704,6 +760,13 @@ fn capabilities_en() -> String {
             &[
                 "Make a note: ___",
                 "Find notes about ___, read my recent notes",
+            ],
+        ),
+        (
+            "Long-term memory",
+            &[
+                "Remembers things about you (name, family, preferences, role)",
+                "\"Remember that ___\", \"What do you know about me?\", \"Forget that\"",
             ],
         ),
         (

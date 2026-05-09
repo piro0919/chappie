@@ -176,6 +176,18 @@ pub async fn chat_complete(
         );
     }
 
+    let profile = crate::memory::profile_summary();
+    if !profile.is_empty() {
+        let pos = if messages.first().map(|m| m.role.as_str()) == Some("system") { 1 } else { 0 };
+        messages.insert(
+            pos,
+            ChatMessage {
+                role: "system".to_string(),
+                content: profile,
+            },
+        );
+    }
+
     let (mut contents, system_instruction) = translate_messages(messages);
     let tools = translate_tools(&crate::openai::all_tools());
 

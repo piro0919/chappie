@@ -152,6 +152,18 @@ pub async fn chat_complete(
         );
     }
 
+    let profile = crate::memory::profile_summary();
+    if !profile.is_empty() {
+        let pos = if messages.first().map(|m| m.role.as_str()) == Some("system") { 1 } else { 0 };
+        messages.insert(
+            pos,
+            ChatMessage {
+                role: "system".to_string(),
+                content: profile,
+            },
+        );
+    }
+
     let (mut working, system) = translate_messages(messages);
     // Mark the last tool with cache_control so Anthropic caches the entire
     // tools array (and everything before it: system, model). Cache hits
