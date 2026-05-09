@@ -137,6 +137,36 @@ fn menu_label_settings(lang: Lang) -> &'static str {
     }
 }
 
+fn menu_label_help(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Ja => "使い方",
+        Lang::En => "How to use",
+        Lang::Es => "Cómo usar",
+        Lang::Fr => "Comment l'utiliser",
+        Lang::De => "Anleitung",
+        Lang::Zh => "使用方法",
+        Lang::Pt => "Como usar",
+        Lang::Ko => "사용법",
+        Lang::It => "Come si usa",
+    }
+}
+
+fn help_url(lang: Lang) -> String {
+    // LP routes en at the root, every other locale under /{locale}/.
+    let segment: &str = match lang {
+        Lang::En => "",
+        Lang::Ja => "ja/",
+        Lang::Es => "es/",
+        Lang::Fr => "fr/",
+        Lang::De => "de/",
+        Lang::Zh => "zh/",
+        Lang::Pt => "pt/",
+        Lang::Ko => "ko/",
+        Lang::It => "it/",
+    };
+    format!("https://chappie.kkweb.io/{segment}capabilities")
+}
+
 fn menu_label_check_update(lang: Lang) -> &'static str {
     match lang {
         Lang::Ja => "アップデートを確認",
@@ -218,6 +248,14 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
             "open_settings" => {
                 let _ = open_settings_window(app);
             }
+            "open_help" => {
+                let url = help_url(crate::i18n::current());
+                if let Err(e) =
+                    tauri_plugin_opener::OpenerExt::opener(app).open_url(&url, None::<&str>)
+                {
+                    eprintln!("[tray] open_help failed: {e}");
+                }
+            }
             "check_update" => {
                 let app_clone = app.clone();
                 tauri::async_runtime::spawn(async move {
@@ -264,6 +302,7 @@ fn build_menu(
         .build(app)?;
     let settings =
         MenuItemBuilder::with_id("open_settings", menu_label_settings(lang)).build(app)?;
+    let help = MenuItemBuilder::with_id("open_help", menu_label_help(lang)).build(app)?;
     let check_update =
         MenuItemBuilder::with_id("check_update", menu_label_check_update(lang)).build(app)?;
     let quit = MenuItemBuilder::with_id("quit", menu_label_quit(lang)).build(app)?;
@@ -273,6 +312,7 @@ fn build_menu(
         .item(&mic)
         .item(&PredefinedMenuItem::separator(app)?)
         .item(&settings)
+        .item(&help)
         .item(&check_update)
         .item(&quit)
         .build()
