@@ -53,10 +53,13 @@ objc2-event-kit = { version = "0.3.2", features = [
     "EKEventStore",
 ] }
 block2 = "0.6"
+# Metal-accelerated Whisper on macOS. Cargo unions features across target
+# sections, so the macOS build still gets `metal` even though the base
+# whisper-rs dep above doesn't enable it.
+whisper-rs = { version = "0.14", features = ["metal"] }
 
 [features]
-# Enable Metal acceleration on macOS for whisper-rs.
-default = ["whisper-rs/metal"]
+default = []
 
 [profile.release]
 panic = "unwind"
