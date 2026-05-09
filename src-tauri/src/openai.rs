@@ -150,7 +150,7 @@ pub fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "open_url",
-                "description": "既定ブラウザで URL を開く。「○○のサイト開いて」「YouTube 開いて」。url は http(s):// で始まる完全な URL。",
+                "description": "既定ブラウザで URL を開く。「○○のサイト開いて」「YouTube 開いて」など、**サイト/サービスを開きたい指示**で使う。url は http(s):// で始まる完全な URL。**特定の動画/ジャンルを見たい意図がある**とき（「YouTube で○○の動画」「作業用 BGM 流して」など）は open_url ではなく open_youtube を使う。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -160,6 +160,36 @@ pub fn all_tools() -> Value {
                         }
                     },
                     "required": ["url"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "open_youtube",
+                "description": "YouTube の**特定の動画やジャンルを見たい/流したい**指示で使う。常に手前に出る小窓（ミニプレイヤー）で再生する。「YouTube で猫の動画」「作業用 BGM 流して」「○○のレシピ動画見ながら作業したい」のように **何を見たいか具体的に決まっている**とき。**「YouTube 開いて」のように単にサイトを開くだけの指示は open_url を使う**（その場合は普通のブラウザで開く）。query は検索キーワード or YouTube URL or 動画 ID。既存のミニプレイヤーが開いてれば新しい URL に切り替える。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "検索キーワード or YouTube URL or 動画 ID。"
+                        }
+                    },
+                    "required": ["query"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "close_youtube",
+                "description": "ミニプレイヤーを閉じる（「YouTube 閉じて」「ミニプレイヤー消して」「動画もういい」）。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
                     "additionalProperties": false
                 }
             }
@@ -824,6 +854,20 @@ pub(crate) async fn execute_tool(
                 Ok(()) => json!({ "ok": true, "url": url }).to_string(),
                 Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
             }
+        }
+        "open_youtube" => {
+            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
+            if query.trim().is_empty() {
+                return json!({ "ok": false, "error": "query is empty" }).to_string();
+            }
+            match crate::miniplayer::show_youtube(app, query) {
+                Ok(()) => json!({ "ok": true, "query": query }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "close_youtube" => {
+            let was_open = crate::miniplayer::hide(app);
+            json!({ "ok": true, "was_open": was_open }).to_string()
         }
         "web_search" => {
             let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");

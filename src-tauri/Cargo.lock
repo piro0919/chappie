@@ -623,6 +623,7 @@ dependencies = [
  "tauri-plugin-store",
  "tauri-plugin-updater",
  "tokio",
+ "url",
  "urlencoding",
  "voice_activity_detector",
  "whisper-rs",

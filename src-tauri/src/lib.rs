@@ -14,6 +14,7 @@ mod mic_permission;
 mod model;
 mod location;
 mod memory;
+mod miniplayer;
 mod music;
 mod notes;
 pub mod openai;

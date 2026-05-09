@@ -638,6 +638,14 @@ fn capabilities_ja() -> String {
             ],
         ),
         (
+            "YouTube ミニプレイヤー",
+            &[
+                "YouTube で猫の動画流して（小窓で常に手前に表示）",
+                "作業用 BGM 流して",
+                "YouTube 閉じて",
+            ],
+        ),
+        (
             "アプリ・フォルダ",
             &[
                 "Slack 開いて、Spotify 起動して、メモ開いて",
@@ -724,6 +732,14 @@ fn capabilities_en() -> String {
             &[
                 "Open YouTube, open Apple's site",
                 "Google ___ (searches in your default browser)",
+            ],
+        ),
+        (
+            "YouTube mini player",
+            &[
+                "Play cat videos on YouTube (always-on-top mini window)",
+                "Put on some focus music",
+                "Close YouTube",
             ],
         ),
         (
