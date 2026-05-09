@@ -42,6 +42,7 @@
 | 🎵 | Music control | "Next track", "Pause", "What song is this?" (Spotify / Apple Music) |
 | 📋 | Clipboard | "Read what I just copied", "Copy that for me" |
 | 📝 | Voice notes | "Note this down: parking B3", "Find the Wi-Fi note" (persisted) |
+| 🧠 | Long-term memory | Picks up details about you (name, family, preferences) and carries them across sessions. "What do you know about me?", "Forget that" |
 | 🔋 | Battery status | "What's my battery at?", "How much charge is left?" |
 | 🔒 | Lock / sleep / stay-awake | "Lock the screen", "Put the Mac to sleep", "Stay awake for 30 minutes" |
 | 📸 | Screenshot | "Take a screenshot", "Capture the whole screen and save it to my desktop" |
@@ -101,6 +102,7 @@ More tools coming over time.
 | Battery / sleep prevention / lock | ✅ | 🚧 planned |
 | Calendar (read-only) | ✅ (EventKit) | ❌ not planned for v1 |
 | Clipboard / notes / open URL / open app / open Finder | ✅ | 🚧 planned |
+| Long-term memory (profile / preference / episode) | ✅ | 🚧 planned (no OS deps, easy port) |
 | Auto-update | ✅ | 🚧 planned |
 
 ## Development

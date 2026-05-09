@@ -109,6 +109,13 @@
         "example3": "\"Find the Wi-Fi note\"",
         "body": "Capture quick thoughts by voice. Ask later — \"find the X note\" — and Chappie pulls just the matching ones. They stick around even after you quit the app."
       },
+      "memory": {
+        "title": "Remembers you across sessions",
+        "example1": "\"My name is piro\"",
+        "example2": "\"What do you know about me?\"",
+        "example3": "\"Forget that\"",
+        "body": "Name, family, role, preferences — Chappie quietly picks them up from everyday conversation and carries them forward to the next session. No need to say \"remember this\" every time, no need to reintroduce yourself. Say \"forget that\" anytime to drop a memory."
+      },
       "music": {
         "title": "Control your music",
         "example1": "\"Next track\"",
@@ -158,8 +165,8 @@
         "body": "Speech is transcribed entirely on your Mac. The raw audio never leaves the device."
       },
       "memory": {
-        "title": "Remembers the conversation",
-        "body": "Chappie keeps the last 20 turns of context, so \"about what we just said\" continues naturally."
+        "title": "Remembers what matters",
+        "body": "Within a session: keeps the last 20 turns so \"about what we just said\" continues naturally. Across sessions: quietly picks up names, preferences, and other durable facts so you don't reintroduce yourself every time."
       },
       "menubar": {
         "title": "Menu bar resident, no Dock clutter",
