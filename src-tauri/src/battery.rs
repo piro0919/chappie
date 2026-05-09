@@ -16,6 +16,9 @@ pub struct BatteryStatus {
     pub state: Option<String>,
     pub time_remaining: Option<String>,
     pub power_source: Option<String>,
+    pub is_plugged_in: bool,
+    pub is_charging: bool,
+    pub is_full: bool,
 }
 
 pub fn status() -> Result<BatteryStatus, String> {
@@ -42,6 +45,11 @@ pub fn status() -> Result<BatteryStatus, String> {
         });
 
     let battery_line = text.lines().find(|l| l.contains("InternalBattery"));
+    let is_plugged_in_top = power_source
+        .as_deref()
+        .map(|s| s.eq_ignore_ascii_case("AC Power"))
+        .unwrap_or(false);
+
     let Some(line) = battery_line else {
         return Ok(BatteryStatus {
             has_battery: false,
@@ -49,6 +57,9 @@ pub fn status() -> Result<BatteryStatus, String> {
             state: None,
             time_remaining: None,
             power_source,
+            is_plugged_in: is_plugged_in_top,
+            is_charging: false,
+            is_full: false,
         });
     };
 
@@ -70,11 +81,21 @@ pub fn status() -> Result<BatteryStatus, String> {
         }
     });
 
+    let state_lower = state.as_deref().unwrap_or("").to_ascii_lowercase();
+    let is_charging = state_lower.contains("charging") && !state_lower.contains("not charging")
+        || state_lower.contains("finishing charge");
+    let is_full = state_lower.contains("charged")
+        || (is_plugged_in_top && percent == Some(100))
+        || state_lower.contains("not charging") && is_plugged_in_top;
+
     Ok(BatteryStatus {
         has_battery: true,
         percent,
         state,
         time_remaining,
         power_source,
+        is_plugged_in: is_plugged_in_top,
+        is_charging,
+        is_full,
     })
 }

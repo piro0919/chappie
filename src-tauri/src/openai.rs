@@ -385,7 +385,7 @@ pub fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "get_battery_status",
-                "description": "バッテリー残量・充電状態・残り時間。「バッテリー何%?」「充電あとどれくらい?」「電源繋いでる?」。バッテリーなしの Mac は has_battery=false。",
+                "description": "バッテリー残量・充電状態・残り時間。「バッテリー何%?」「充電あとどれくらい?」「電源繋いでる?」。状態判定は必ず is_plugged_in / is_charging / is_full の真偽値を見る（state は pmset 生文字列で曖昧）。time_remaining が null は「残り時間不明」であって「切れかけ」ではない。バッテリーなしの Mac は has_battery=false。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -907,7 +907,10 @@ pub(crate) async fn execute_tool(
                 "percent": b.percent,
                 "state": b.state,
                 "time_remaining": b.time_remaining,
-                "power_source": b.power_source
+                "power_source": b.power_source,
+                "is_plugged_in": b.is_plugged_in,
+                "is_charging": b.is_charging,
+                "is_full": b.is_full
             })
             .to_string(),
             Err(e) => json!({ "ok": false, "error": e }).to_string(),
