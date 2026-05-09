@@ -14,10 +14,16 @@ import Link from "next/link";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CapabilityCard } from "@/components/capability-card";
-import { HERO_CAPABILITY_IDS } from "@/lib/capabilities";
+import { getHeroCapabilities } from "@/lib/capabilities";
 
 const GITHUB_URL = "https://github.com/piro0919/chappie";
 const RELEASE_URL = "https://github.com/piro0919/chappie/releases/latest";
+
+// Regenerate the page once a day so the date-seeded hero capability
+// rotation actually advances in production. Without this, Next captures
+// `new Date()` at build time and the hero stays frozen until the next
+// deploy.
+export const revalidate = 86400;
 
 const FEATURE_IDS = [
   "wake",
@@ -121,7 +127,7 @@ export default async function Page({
             {t("capabilities.lead")}
           </p>
           <div className="grid gap-5 sm:grid-cols-2">
-            {HERO_CAPABILITY_IDS.map((id) => (
+            {getHeroCapabilities().map((id) => (
               <CapabilityCard key={id} id={id} />
             ))}
           </div>
