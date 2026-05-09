@@ -1,13 +1,13 @@
 // Voice-launched mini player. Opens a small always-on-top webview window
-// pointed at a YouTube URL (or any other URL we end up wanting to support
-// in the future). The webview loads the page directly — no chappie
-// renderer in the loop — so YouTube's own player UI is what the user sees
-// and interacts with. The chappie value-add is the voice trigger and the
-// window management (size, position, close).
+// hosting our own MiniplayerView, which embeds the YouTube IFrame Player
+// API and uses `loadPlaylist({listType:'search'})` to autoplay the top
+// match for whatever the user said. Going through the IFrame API rather
+// than just opening youtube.com means a single voice command actually
+// starts a video playing — no extra click on the search results page.
 //
 // Design notes vs hud.rs:
 // - Interactive (no `set_ignore_cursor_events`) so users can play / pause
-//   / scrub via the YouTube UI.
+//   / scrub via the YouTube player UI.
 // - Persistent: no auto-dismiss timer. Closes via voice ("YouTube 閉じて")
 //   or by clicking the OS close button on the window.
 // - Decorated: keeps the OS chrome so users can drag, resize, and close
@@ -25,19 +25,30 @@ const DEFAULT_W: f64 = 480.0;
 const DEFAULT_H: f64 = 300.0;
 const MARGIN_PX: f64 = 24.0;
 
-fn ensure_window(app: &AppHandle, url: url::Url) -> Option<WebviewWindow> {
+fn build_app_url(query: &str) -> String {
+    // Renderer route (handled in main.tsx). The query goes through as a
+    // URL param so the view can pick it up via window.location.search.
+    let q = urlencoding::encode(query);
+    format!("index.html?view=miniplayer&q={q}")
+}
+
+fn ensure_window(app: &AppHandle, query: &str) -> Option<WebviewWindow> {
+    let path = build_app_url(query);
     if let Some(win) = app.get_webview_window(MINIPLAYER_LABEL) {
-        // Reuse the existing window — just navigate it to the new URL.
-        // Tauri's webview navigation is via the underlying webkit shell;
-        // hiding then showing a fresh build would lose the user's window
+        // Reuse the existing window — just re-navigate so the new query
+        // takes effect. Hiding/destroying would lose the user's window
         // position if they'd dragged it.
-        let _ = win.eval(&format!("window.location.href = {}", json_string(url.as_str())));
+        let target = format!("/{}", path); // App URL is relative to the app:// root
+        let _ = win.eval(&format!(
+            "window.location.replace({})",
+            serde_json::to_string(&target).unwrap_or_else(|_| "\"\"".into())
+        ));
         return Some(win);
     }
     let win = WebviewWindowBuilder::new(
         app,
         MINIPLAYER_LABEL,
-        WebviewUrl::External(url),
+        WebviewUrl::App(path.into()),
     )
     .title("Chappie Mini Player")
     .inner_size(DEFAULT_W, DEFAULT_H)
@@ -50,11 +61,6 @@ fn ensure_window(app: &AppHandle, url: url::Url) -> Option<WebviewWindow> {
     .build()
     .ok()?;
     Some(win)
-}
-
-fn json_string(s: &str) -> String {
-    // Tiny helper so we can interpolate a URL safely into a JS expression.
-    serde_json::to_string(s).unwrap_or_else(|_| "\"\"".to_string())
 }
 
 fn pick_monitor(win: &WebviewWindow) -> Option<tauri::Monitor> {
@@ -97,30 +103,105 @@ fn position_bottom_right(win: &WebviewWindow) {
     let _ = win.set_position(LogicalPosition::new(x, y));
 }
 
-/// Build a YouTube URL from a free-form query. If `query` already looks
-/// like a YouTube URL or a bare 11-char video id, route it as a direct
-/// watch URL; otherwise treat it as a search query.
-fn youtube_url(query: &str) -> String {
-    let q = query.trim();
-    if q.starts_with("http://") || q.starts_with("https://") {
-        return q.to_string();
+const VIDEO_ID_RE_LEN: usize = 11;
+
+fn extract_video_id(input: &str) -> Option<String> {
+    let s = input.trim();
+    if s.len() == VIDEO_ID_RE_LEN
+        && s.chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Some(s.to_string());
     }
-    // Bare video id (YouTube ids are exactly 11 chars from a known set).
-    if q.len() == 11 && q.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-        return format!("https://www.youtube.com/watch?v={q}");
+    let url = url::Url::parse(s).ok()?;
+    let host = url.host_str()?;
+    if host == "youtu.be" {
+        let id = url.path().trim_start_matches('/');
+        if id.len() == VIDEO_ID_RE_LEN {
+            return Some(id.to_string());
+        }
     }
-    let encoded = urlencoding::encode(q);
-    format!("https://www.youtube.com/results?search_query={encoded}")
+    if host.ends_with("youtube.com") {
+        if let Some((_, v)) = url.query_pairs().find(|(k, _)| k == "v") {
+            if v.len() == VIDEO_ID_RE_LEN {
+                return Some(v.into_owned());
+            }
+        }
+        if let Some(stripped) = url.path().strip_prefix("/embed/") {
+            let id: String = stripped.chars().take(VIDEO_ID_RE_LEN).collect();
+            if id.len() == VIDEO_ID_RE_LEN {
+                return Some(id);
+            }
+        }
+    }
+    None
 }
 
-pub fn show_youtube(app: &AppHandle, query: &str) -> Result<(), String> {
-    let url_str = youtube_url(query);
-    let url = url::Url::parse(&url_str).map_err(|e| format!("invalid url: {e}"))?;
-    let win = ensure_window(app, url).ok_or_else(|| "failed to create miniplayer window".to_string())?;
-    let _ = win.set_size(LogicalSize::new(DEFAULT_W, DEFAULT_H));
-    position_bottom_right(&win);
-    let _ = win.show();
-    Ok(())
+/// Hit the YouTube oEmbed endpoint to verify a video both exists AND is
+/// embeddable from a third-party origin. Returns `true` for 200, `false`
+/// for any error / non-200 (404 = doesn't exist, 401 = private, 403/etc =
+/// embed disabled). Short timeout because we're often validating multiple
+/// candidates and the user is waiting for playback to start.
+async fn is_embeddable(client: &reqwest::Client, video_id: &str) -> bool {
+    let watch_url = format!("https://www.youtube.com/watch?v={video_id}");
+    let oembed = format!(
+        "https://www.youtube.com/oembed?url={}&format=json",
+        urlencoding::encode(&watch_url)
+    );
+    match client
+        .get(&oembed)
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+    {
+        Ok(r) => r.status().is_success(),
+        Err(_) => false,
+    }
+}
+
+/// Try a list of candidate video URLs/IDs from the LLM and play the
+/// first one that's actually embeddable. Returns the chosen video id on
+/// success, or `None` if nothing was playable.
+pub async fn show_first_playable(
+    app: &AppHandle,
+    candidates: &[String],
+) -> Option<String> {
+    crate::linfo!(
+        app,
+        "miniplayer",
+        "show_first_playable: {} candidate(s)",
+        candidates.len()
+    );
+    if candidates.is_empty() {
+        return None;
+    }
+    let client = reqwest::Client::new();
+    for raw in candidates {
+        let Some(video_id) = extract_video_id(raw) else {
+            crate::linfo!(
+                app,
+                "miniplayer",
+                "  skip {raw:?} (could not extract video id)"
+            );
+            continue;
+        };
+        let ok = is_embeddable(&client, &video_id).await;
+        crate::linfo!(
+            app,
+            "miniplayer",
+            "  {} {video_id} (from {raw:?})",
+            if ok { "OK" } else { "embed-blocked" }
+        );
+        if ok {
+            if let Some(win) = ensure_window(app, &video_id) {
+                let _ = win.set_size(LogicalSize::new(DEFAULT_W, DEFAULT_H));
+                position_bottom_right(&win);
+                let _ = win.show();
+                return Some(video_id);
+            }
+        }
+    }
+    None
 }
 
 pub fn hide(app: &AppHandle) -> bool {

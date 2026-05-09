@@ -168,16 +168,21 @@ pub fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "open_youtube",
-                "description": "YouTube の**特定の動画やジャンルを見たい/流したい**指示で使う。常に手前に出る小窓（ミニプレイヤー）で再生する。「YouTube で猫の動画」「作業用 BGM 流して」「○○のレシピ動画見ながら作業したい」のように **何を見たいか具体的に決まっている**とき。**「YouTube 開いて」のように単にサイトを開くだけの指示は open_url を使う**（その場合は普通のブラウザで開く）。query は検索キーワード or YouTube URL or 動画 ID。既存のミニプレイヤーが開いてれば新しい URL に切り替える。",
+                "description": "YouTube の**特定の動画やジャンルを見たい/流したい**指示で使う。常に手前に出る小窓（ミニプレイヤー）で再生する。「YouTube で猫の動画」「作業用 BGM 流して」「○○のレシピ動画見ながら作業したい」のように **何を見たいか具体的に決まっている**とき。**「YouTube 開いて」のように単にサイトを開くだけの指示は open_url を使う**。\n\n**呼び方**: `candidates` には自分の知識から **3〜5 個の YouTube 動画 URL / ID 候補**を入れる（例: lofi なら `https://www.youtube.com/watch?v=jfKfPfyJRdk` 等）。Rust 側で oEmbed API で「存在 + 埋め込み可能」を順に確認 → 最初に通ったやつを再生する。**自信ある具体的な定番 URL から並べる**こと。`fallback_search_query` には全候補が外れた時用のユーザー意図に近い検索語を入れる（その場合既定ブラウザで YouTube 検索を開く）。**自分が一切知らないジャンル**なら candidates は空配列でも OK（その場合 fallback_search_query だけが使われる）。",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "query": {
+                        "candidates": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "description": "自分が知ってる関連 YouTube 動画 URL or 動画 ID。3〜5 個推奨。確信度が高い順に並べる。"
+                        },
+                        "fallback_search_query": {
                             "type": "string",
-                            "description": "検索キーワード or YouTube URL or 動画 ID。"
+                            "description": "全候補が embed 不可だった時に既定ブラウザで開く YouTube 検索語。ユーザーが言った内容そのまま or 短く要約。"
                         }
                     },
-                    "required": ["query"],
+                    "required": ["candidates", "fallback_search_query"],
                     "additionalProperties": false
                 }
             }
@@ -856,13 +861,57 @@ pub(crate) async fn execute_tool(
             }
         }
         "open_youtube" => {
-            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
-            if query.trim().is_empty() {
-                return json!({ "ok": false, "error": "query is empty" }).to_string();
+            let candidates: Vec<String> = args
+                .get("candidates")
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let fallback = args
+                .get("fallback_search_query")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_string();
+
+            if let Some(played_id) = crate::miniplayer::show_first_playable(app, &candidates).await
+            {
+                return json!({
+                    "ok": true,
+                    "mode": "miniplayer",
+                    "played_video_id": played_id,
+                    "tried": candidates.len()
+                })
+                .to_string();
             }
-            match crate::miniplayer::show_youtube(app, query) {
-                Ok(()) => json!({ "ok": true, "query": query }).to_string(),
-                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+
+            // No candidate worked — fall back to opening YouTube search
+            // results in the user's default browser. This preserves the
+            // intent ("user wanted to find something on YouTube") even
+            // when the LLM had no good candidate.
+            if fallback.is_empty() {
+                return json!({
+                    "ok": false,
+                    "error": "no playable candidate and no fallback query"
+                })
+                .to_string();
+            }
+            let url = format!(
+                "https://www.youtube.com/results?search_query={}",
+                urlencoding::encode(&fallback)
+            );
+            match tauri_plugin_opener::OpenerExt::opener(app).open_url(&url, None::<&str>) {
+                Ok(()) => json!({
+                    "ok": true,
+                    "mode": "browser_search",
+                    "fallback_query": fallback,
+                    "tried": candidates.len()
+                })
+                .to_string(),
+                Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
             }
         }
         "close_youtube" => {
