@@ -622,17 +622,22 @@ pub fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "add_reminder_at",
-                "description": "絶対時刻のリマインダー。「明日7時に起こして」「20時に薬」など。**先に get_current_time で現在時刻を確認**してから at に未来の絶対時刻を組み立てる。at はローカルタイムで `YYYY-MM-DD HH:MM`。「明日」「来週」は現在時刻基準で解決。再起動後も保持。秒単位の相対（「3分後」）は set_timer。",
+                "description": "絶対時刻のリマインダー。「明日7時に起こして」「20時に薬」「毎朝7時に起こして」「毎週月曜9時にミーティング」など。**先に get_current_time で現在時刻を確認**してから at に未来の絶対時刻を組み立てる。at はローカルタイムで `YYYY-MM-DD HH:MM`。「明日」「来週」は現在時刻基準で解決。**繰り返し**指示（「毎朝」「毎日」「毎週○曜」「毎月○日」）があれば recurrence を設定: daily（毎日同時刻）/ weekly（毎週同曜日同時刻）/ monthly（毎月同日同時刻）。一度きりは省略 or once。再起動後も保持。秒単位の相対（「3分後」）は set_timer。",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "at": {
                             "type": "string",
-                            "description": "ローカルタイム `YYYY-MM-DD HH:MM`（例: 2026-05-10 07:00）。"
+                            "description": "ローカルタイム `YYYY-MM-DD HH:MM`（例: 2026-05-10 07:00）。recurrence ありでも最初の発火時刻として未来の絶対時刻を入れる。"
                         },
                         "label": {
                             "type": "string",
                             "description": "内容ラベル（例: 起床、薬、会議）。発火時「○○の時間です」と読み上げ。"
+                        },
+                        "recurrence": {
+                            "type": "string",
+                            "enum": ["once", "daily", "weekly", "monthly"],
+                            "description": "繰り返し種別。once=一度きり（既定）、daily=毎日同時刻、weekly=毎週同曜日同時刻、monthly=毎月同日同時刻。"
                         }
                     },
                     "required": ["at", "label"],
@@ -1241,15 +1246,28 @@ pub(crate) async fn execute_tool(
             if at.is_empty() {
                 return json!({ "ok": false, "error": "at is required" }).to_string();
             }
+            let recurrence = match args.get("recurrence").and_then(|v| v.as_str()).unwrap_or("once")
+            {
+                "daily" => crate::reminder::Recurrence::Daily,
+                "weekly" => crate::reminder::Recurrence::Weekly,
+                "monthly" => crate::reminder::Recurrence::Monthly,
+                _ => crate::reminder::Recurrence::Once,
+            };
             let fires_at_unix_ms = match crate::reminder::parse_local_at(at) {
                 Ok(v) => v,
                 Err(e) => return json!({ "ok": false, "error": e }).to_string(),
             };
-            match crate::reminder::add(app, fires_at_unix_ms, label) {
+            match crate::reminder::add(app, fires_at_unix_ms, label, recurrence) {
                 Ok(r) => json!({
                     "ok": true,
                     "id": r.id,
                     "label": r.label,
+                    "recurrence": match r.recurrence {
+                        crate::reminder::Recurrence::Once => "once",
+                        crate::reminder::Recurrence::Daily => "daily",
+                        crate::reminder::Recurrence::Weekly => "weekly",
+                        crate::reminder::Recurrence::Monthly => "monthly",
+                    },
                     "fires_at_unix_ms": r.fires_at_unix_ms,
                     "fires_at_local": chrono::Local
                         .timestamp_millis_opt(r.fires_at_unix_ms)
@@ -1273,6 +1291,12 @@ pub(crate) async fn execute_tool(
                     json!({
                         "id": r.id,
                         "label": r.label,
+                        "recurrence": match r.recurrence {
+                            crate::reminder::Recurrence::Once => "once",
+                            crate::reminder::Recurrence::Daily => "daily",
+                            crate::reminder::Recurrence::Weekly => "weekly",
+                            crate::reminder::Recurrence::Monthly => "monthly",
+                        },
                         "fires_at_local": local
                     })
                 })

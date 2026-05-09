@@ -2,14 +2,21 @@
 // - timers are relative (in N seconds) and intentionally lost across restart
 // - reminders are absolute ("tomorrow 7am") and must survive app restart
 //
-// Storage: ~/.chappie/reminders.json (a flat array of {id, label, fires_at_unix_ms}).
-// On startup, `init` drops past-due entries and schedules each remaining one
-// with tokio::spawn. New reminders are written through immediately.
+// Storage: ~/.chappie/reminders.json (a flat array of {id, label, fires_at_unix_ms,
+// recurrence}). On startup, `init` schedules everything that's still in the
+// future and rolls past-due recurring reminders forward to their next fire
+// (so "毎朝 7 時" survives an overnight crash gracefully). Past-due one-shots
+// are dropped.
+//
+// Recurrence: a reminder can repeat daily / weekly (same weekday) /
+// monthly (same day-of-month). The scheduling task loops for recurring
+// reminders, computing the next fire time after each emit. One-shots
+// fire once and remove themselves.
 //
 // Fires `reminder:fired` (separate from `timer:fired`) so the renderer can
 // pick a phrasing tuned for "○○の時間です" instead of "○○のタイマーです".
 
-use chrono::TimeZone;
+use chrono::{Months, TimeZone};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -18,11 +25,30 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::task::JoinHandle;
 
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Recurrence {
+    /// Fire once and forget. The original behavior.
+    #[default]
+    Once,
+    /// Same wall-clock time every day. DST-safe via local-tz arithmetic.
+    Daily,
+    /// Same weekday + wall-clock time every week.
+    Weekly,
+    /// Same day-of-month + wall-clock time. End-of-month days roll back
+    /// (Jan 31 → Feb 28/29) per `chrono::Months`.
+    Monthly,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Reminder {
     pub id: u32,
     pub label: String,
     pub fires_at_unix_ms: i64,
+    /// Defaults to `Once` so reminders.json files written before this
+    /// field existed deserialize cleanly.
+    #[serde(default)]
+    pub recurrence: Recurrence,
 }
 
 struct Active {
@@ -64,14 +90,28 @@ pub fn init(app: &AppHandle) {
     };
     let now_ms = chrono::Local::now().timestamp_millis();
     let mut max_id: u32 = 0;
-    for r in entries {
+    for mut r in entries {
         max_id = max_id.max(r.id);
         if r.fires_at_unix_ms <= now_ms {
+            if r.recurrence == Recurrence::Once {
+                eprintln!(
+                    "[reminder] dropping past-due id={} label={:?}",
+                    r.id, r.label
+                );
+                continue;
+            }
+            // Recurring: roll forward to the next fire time after now.
+            // Without this, "毎朝 7 時" silently dies if the app was
+            // shut down past 7am.
+            let mut next = compute_next_fire(r.fires_at_unix_ms, r.recurrence);
+            while next <= now_ms {
+                next = compute_next_fire(next, r.recurrence);
+            }
             eprintln!(
-                "[reminder] dropping past-due id={} label={:?}",
+                "[reminder] rolled recurring id={} label={:?} forward",
                 r.id, r.label
             );
-            continue;
+            r.fires_at_unix_ms = next;
         }
         schedule(app, r);
     }
@@ -83,20 +123,50 @@ fn schedule(app: &AppHandle, info: Reminder) {
     let app_clone = app.clone();
     let id = info.id;
     let label = info.label.clone();
-    let fires_at = info.fires_at_unix_ms;
+    let recurrence = info.recurrence;
+    let initial_fires_at = info.fires_at_unix_ms;
     let handle = tokio::spawn(async move {
-        let now_ms = chrono::Local::now().timestamp_millis();
-        let delay_ms = (fires_at - now_ms).max(0) as u64;
-        tokio::time::sleep(Duration::from_millis(delay_ms)).await;
-        let _ = app_clone.emit("reminder:fired", FiredEvent { id, label });
-        let mut list = REMINDERS.lock().unwrap();
-        list.retain(|x| x.info.id != id);
-        persist_locked(&list);
+        let mut next_fires_at = initial_fires_at;
+        loop {
+            let now_ms = chrono::Local::now().timestamp_millis();
+            let delay_ms = (next_fires_at - now_ms).max(0) as u64;
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+            let _ = app_clone.emit(
+                "reminder:fired",
+                FiredEvent {
+                    id,
+                    label: label.clone(),
+                },
+            );
+            if recurrence == Recurrence::Once {
+                let mut list = REMINDERS.lock().unwrap();
+                list.retain(|x| x.info.id != id);
+                persist_locked(&list);
+                return;
+            }
+            // Compute the next fire and update our persisted entry.
+            // Don't break out of the task — we own this reminder for
+            // its entire lifetime.
+            next_fires_at = compute_next_fire(next_fires_at, recurrence);
+            let mut list = REMINDERS.lock().unwrap();
+            if let Some(active) = list.iter_mut().find(|x| x.info.id == id) {
+                active.info.fires_at_unix_ms = next_fires_at;
+            } else {
+                // Cancelled while firing — exit cleanly.
+                return;
+            }
+            persist_locked(&list);
+        }
     });
     REMINDERS.lock().unwrap().push(Active { info, handle });
 }
 
-pub fn add(app: &AppHandle, fires_at_unix_ms: i64, label: String) -> Result<Reminder, String> {
+pub fn add(
+    app: &AppHandle,
+    fires_at_unix_ms: i64,
+    label: String,
+    recurrence: Recurrence,
+) -> Result<Reminder, String> {
     let now_ms = chrono::Local::now().timestamp_millis();
     if fires_at_unix_ms <= now_ms {
         return Err("fires_at_unix_ms must be in the future".into());
@@ -111,10 +181,29 @@ pub fn add(app: &AppHandle, fires_at_unix_ms: i64, label: String) -> Result<Remi
         id,
         label,
         fires_at_unix_ms,
+        recurrence,
     };
     schedule(app, info.clone());
     persist_locked(&REMINDERS.lock().unwrap());
     Ok(info)
+}
+
+/// Step `current_ms` forward by one period of `recurrence`. Uses the
+/// system local timezone so DST shifts don't drift the wall-clock time.
+fn compute_next_fire(current_ms: i64, recurrence: Recurrence) -> i64 {
+    let dt = chrono::Local
+        .timestamp_millis_opt(current_ms)
+        .single()
+        .unwrap_or_else(chrono::Local::now);
+    let next = match recurrence {
+        Recurrence::Once => dt,
+        Recurrence::Daily => dt + chrono::Duration::days(1),
+        Recurrence::Weekly => dt + chrono::Duration::days(7),
+        Recurrence::Monthly => dt
+            .checked_add_months(Months::new(1))
+            .unwrap_or(dt + chrono::Duration::days(30)),
+    };
+    next.timestamp_millis()
 }
 
 pub fn list() -> Vec<Reminder> {

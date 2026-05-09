@@ -618,7 +618,8 @@ fn capabilities_ja() -> String {
             &[
                 "今何時？／今日の日付",
                 "3分タイマー、5分タイマー（複数同時 OK）",
-                "明日7時に起こして、20時に薬って言って（リマインダーは再起動後も保持）",
+                "明日7時に起こして、20時に薬って言って（再起動後も保持）",
+                "毎朝7時に起こして、毎週月曜9時にミーティング（繰り返しリマインダー）",
             ],
         ),
         (
@@ -713,6 +714,7 @@ fn capabilities_en() -> String {
                 "What time is it? / What's today's date?",
                 "Set a 3-minute timer, set a 5-minute timer (multiple at once is fine)",
                 "Wake me at 7 tomorrow, remind me to take meds at 8 PM (reminders survive restart)",
+                "Wake me every morning at 7, every Monday 9 AM stand-up (recurring reminders)",
             ],
         ),
         (
