@@ -663,6 +663,12 @@ export function useConversationLoop(): { state: State; error: string | null } {
           // startup on the result because the rest of Chappie works
           // fine without it.
           void invoke("request_screen_recording_access").catch(() => {});
+          // Same for Calendar (`list_events` tool). User pref is to ask
+          // for everything upfront rather than the macOS-Sequoia-style
+          // "ask in context", so we batch all three TCC prompts at
+          // startup and let the user decide once. Fire-and-forget for
+          // the same reason — Chappie still works without it.
+          void invoke("request_calendar_access").catch(() => {});
           await invoke<string>("ensure_model");
         } catch (e) {
           setError(
