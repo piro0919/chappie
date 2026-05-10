@@ -57,4 +57,48 @@ describe("detectWake", () => {
     expect(detectWake("")).toEqual({ matched: false });
     expect(detectWake("   ")).toEqual({ matched: false });
   });
+
+  // VOICEVOX speaker names act as wake-words and additionally request a
+  // speaker switch — see voicevox-speakers.ts for the curated list.
+
+  it("matches 'ずんだもん' as a wake-word and includes speakerId=3", () => {
+    expect(detectWake("ずんだもん、最新ニュース教えて")).toEqual({
+      matched: true,
+      body: "最新ニュース教えて",
+      speakerId: 3,
+    });
+  });
+
+  it("matches the alias 'めたん' and includes speakerId=2", () => {
+    expect(detectWake("めたん、明日の予定")).toEqual({
+      matched: true,
+      body: "明日の予定",
+      speakerId: 2,
+    });
+  });
+
+  it("prefers the longer name '四国めたん' over the alias 'めたん' on tie", () => {
+    expect(detectWake("四国めたん、こんにちは")).toEqual({
+      matched: true,
+      body: "こんにちは",
+      speakerId: 2,
+    });
+  });
+
+  it("matches a speaker name uttered alone (body empty)", () => {
+    expect(detectWake("つむぎ")).toEqual({
+      matched: true,
+      body: "",
+      speakerId: 8,
+    });
+  });
+
+  it("does not include speakerId for plain 'チャッピー'", () => {
+    const result = detectWake("チャッピー、何時？");
+    expect(result.matched).toBe(true);
+    if (result.matched) {
+      expect(result.speakerId).toBeUndefined();
+      expect(result.body).toBe("何時?");
+    }
+  });
 });

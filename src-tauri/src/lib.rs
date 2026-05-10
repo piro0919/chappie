@@ -27,6 +27,7 @@ mod screenshot;
 mod timer;
 mod tray;
 mod updater;
+mod voicevox;
 mod volume;
 mod weather;
 
@@ -106,7 +107,14 @@ pub(crate) fn run_whisper(audio: Vec<f32>) -> Result<String, String> {
     params.set_print_realtime(false);
     params.set_print_special(false);
     params.set_print_timestamps(false);
-    params.set_initial_prompt("チャッピー、はい、チャッピーです。");
+    // The initial prompt biases Whisper toward our wake-words. The
+    // character names are listed so saying "めたん" / "ずんだもん" /
+    // "つむぎ" doesn't get mistranscribed as 目玉 / 目タン / 紬 etc.
+    // Order doesn't matter much; total length kept under a few dozen
+    // tokens to avoid biasing real content.
+    params.set_initial_prompt(
+        "チャッピー、はい、チャッピーです。ずんだもん、めたん、つむぎ、ひまり、さよ、うさぎ、ずんこ、きりたん、いたこ、あんこもん。",
+    );
     params.set_no_speech_thold(0.6);
     params.set_temperature(0.0);
 
@@ -187,6 +195,11 @@ pub fn run() {
             hud::hud_show,
             volume::is_muted,
             tray::set_update_available,
+            voicevox::voicevox_speakers_list,
+            voicevox::voicevox_synthesize,
+            voicevox::voicevox_install_status,
+            voicevox::voicevox_install,
+            voicevox::voicevox_uninstall,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -196,6 +209,11 @@ pub fn run() {
             timer::start_tray_title_ticker(&app.handle());
             calendar::init();
             reminder::init(&app.handle());
+            // Auto-spawn the bundled VOICEVOX engine if installed. No-op on
+            // platforms without the .app bundle or when nothing is found —
+            // the renderer falls back to the default 50021 endpoint in that
+            // case (legacy manual-launch path).
+            voicevox::init_engine(&app.handle());
 
             // Auto-update check in Rust so the dialog is window-independent
             // (the JS `ask()` API attaches to the current window as a sheet,

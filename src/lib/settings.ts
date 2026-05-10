@@ -34,7 +34,10 @@ export async function loadSettings(): Promise<Settings> {
   const apiKey =
     (await store.get<string>("openaiApiKey")) ?? DEFAULTS.openaiApiKey;
   const language = (await store.get<Language>("language")) ?? DEFAULTS.language;
-  return { openaiApiKey: apiKey, language };
+  return {
+    openaiApiKey: apiKey,
+    language,
+  };
 }
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {

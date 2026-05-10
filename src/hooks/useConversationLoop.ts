@@ -13,6 +13,7 @@ import { type ChatClient, createChatClient } from "../lib/openai-client";
 import { type Language, loadSettings } from "../lib/settings";
 import {
   createStreamingSpeaker,
+  setEngineOpts,
   speak,
   speakQueued,
 } from "../lib/speech-synthesis";
@@ -23,6 +24,7 @@ import {
   type State,
   transition,
 } from "../lib/state-machine";
+import { VOICEVOX_CURATED_SPEAKERS } from "../lib/voicevox-speakers";
 import { detectWake } from "../lib/wake-word";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
@@ -97,6 +99,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const followupTimerRef = useRef<number | null>(null);
   const ttsActiveRef = useRef(false);
   const errorRecoveryTimerRef = useRef<number | null>(null);
+  // VOICEVOX speaker active for the current/next turn (set by
+  // applyVoiceForWake). undefined = use chappie's own voice/persona, no
+  // 口調 override. Used by runTurn to inject the per-character persona as a
+  // 2nd system message.
+  const voicevoxSpeakerIdRef = useRef<number | undefined>(undefined);
 
   // When the system is muted, Chappie's TTS is inaudible — route the reply
   // to the HUD as text instead. Duration scales with length so longer text
@@ -193,6 +200,51 @@ export function useConversationLoop(): { state: State; error: string | null } {
         content: tRaw(langRef.current, "systemPrompt.formatHud"),
       });
     }
+    // Per-character 口調 override for VOICEVOX wake-words. Inserted
+    // immediately BEFORE the current user message (not at the top, after
+    // base persona) so it sits as the most recent context. Putting it at
+    // index 1 instead lets prior-turn assistant messages (still in the
+    // sliding window with the previous character's 口調) drown it out —
+    // we measured the model continuing the previous character's voice
+    // with only the new character's 二人称 mixed in. Right before the
+    // user message, it dominates.
+    const vvSpeakerId = voicevoxSpeakerIdRef.current;
+    let perTurnOverride: string | null = null;
+    // Common rules for every per-turn persona injection (both character
+    // and chappie reset). Prevents two failure modes we observed:
+    //  - meta acknowledgments like 「もう一回聞いてくれたんだ」 when the user
+    //    repeats a question — the model picks up the repetition from
+    //    history and comments on it.
+    //  - overly long replies (especially Anthropic) that bury the answer
+    //    in flavor text.
+    const turnRules =
+      "【共通ルール】\n" +
+      "・直前のターンや繰り返し質問への meta コメント（「また」「もう一回」「さっきも」等）はしない。新しい質問として答える。\n" +
+      "・返答は短く、原則 1〜2 文。占い・ニュース要約など内容上必要な場合のみ伸ばしてよい。\n" +
+      "・前置き（「うーんとね」「ちょっと待ってよ」等のフィラー）は不要。本題から入る。";
+    if (vvSpeakerId !== undefined) {
+      const speaker = VOICEVOX_CURATED_SPEAKERS.find(
+        (s) => s.id === vvSpeakerId,
+      );
+      if (speaker) {
+        perTurnOverride = `${speaker.persona}\n\n${turnRules}\n\n（重要：前のターンが別キャラの口調だったとしても、このターンは上記の設定で答えてください。）`;
+      }
+    } else {
+      // Chappie wake: history may still contain assistant messages from a
+      // prior VOICEVOX-character turn (e.g. ずんだもん's 「〜なのだ」). Without
+      // a reset, the model bleeds that 口調 into the next chappie reply.
+      // Reinforce the base persona right before the user message so it
+      // outweighs the recent character-style assistant turns.
+      perTurnOverride =
+        "このターンは「チャッピー」本来の口調で答えてください。直前のターンが別キャラ（ずんだもんやめたん等）の口調だったとしても、その口調・一人称・語尾を引き継がないでください。冒頭のチャッピーのペルソナに従って、フラットで親しみやすい話し方に戻してください。\n\n" +
+        turnRules;
+    }
+    if (perTurnOverride) {
+      requestMessages.splice(requestMessages.length - 1, 0, {
+        role: "system",
+        content: perTurnOverride,
+      });
+    }
 
     // Output routing (TTS vs HUD) is decided when the first text chunk
     // arrives, not at turn start — the model may mute the system mid-turn
@@ -212,6 +264,12 @@ export function useConversationLoop(): { state: State; error: string | null } {
     let routeToHud: boolean | null = null;
     let speaker: Speaker | null = null;
     const pendingChunks: string[] = [];
+    // Track total characters fed into the streaming pipeline (pending +
+    // direct). After complete() resolves we compare this to the
+    // authoritative reply length to detect chunks that landed via
+    // Tauri Channel AFTER the invoke response — in that case we feed the
+    // missing tail before flush so it isn't dropped.
+    let fedText = "";
 
     const ensureSpeaker = () => {
       if (speaker) return;
@@ -230,6 +288,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       const result = await chatClientRef.current.complete(
         requestMessages,
         (chunk) => {
+          fedText += chunk;
           if (!firstChunkSeen) {
             firstChunkSeen = true;
             // Decide routing once. Mid-turn toggling would strand us with
@@ -254,6 +313,28 @@ export function useConversationLoop(): { state: State; error: string | null } {
       );
       reply = result.text;
       endConversation = result.endConversation;
+      // Recover from a Channel-vs-invoke-response race: if the trailing
+      // chunks arrived AFTER complete() resolved (so they hit the queue
+      // post-flush), feed the missing tail now so it's part of this turn's
+      // audio. The authoritative reply is in result.text.
+      if (speaker && fedText !== reply) {
+        if (reply.startsWith(fedText)) {
+          const missing = reply.slice(fedText.length);
+          if (missing) {
+            console.info(
+              `[loop] late-chunk recovery: feeding ${missing.length} missed chars`,
+            );
+            (speaker as Speaker).feed(missing);
+            fedText = reply;
+          }
+        } else {
+          // Diverged (rare; would mean reply was edited after the fact —
+          // e.g. tool-call rounds rewrote things). Log so we notice.
+          console.warn(
+            `[loop] reply mismatch: fed=${fedText.length}chars, reply=${reply.length}chars — not safe to recover`,
+          );
+        }
+      }
     } catch (e) {
       console.error("openai failed", e);
       // Tear down a partial speaker if we got chunks before the error.
@@ -320,6 +401,21 @@ export function useConversationLoop(): { state: State; error: string | null } {
     }
   }
 
+  // Wake-word determines voice per turn. No Settings persistence:
+  //   chappie / チャッピー   → Web Speech (Chappie's own voice)
+  //   ずんだもん / めたん etc → VOICEVOX with that speaker
+  // The next wake overwrites whatever the previous turn set.
+  function applyVoiceForWake(speakerId: number | undefined): void {
+    voicevoxSpeakerIdRef.current = speakerId;
+    if (speakerId === undefined) {
+      console.info("[loop] applyVoiceForWake -> WebSpeech (chappie)");
+      setEngineOpts({ voicevox: { enabled: false, speakerId: 0 } });
+    } else {
+      console.info(`[loop] applyVoiceForWake -> VOICEVOX speaker=${speakerId}`);
+      setEngineOpts({ voicevox: { enabled: true, speakerId } });
+    }
+  }
+
   function startContinuationWindow() {
     clearFollowupTimer();
     dispatch({ type: "wakeDetected" });
@@ -359,16 +455,32 @@ export function useConversationLoop(): { state: State; error: string | null } {
         dispatch({ type: "speechTimeout" });
         return;
       }
-      dispatch({ type: "speechCaptured", text: body });
-      await runTurn(body);
+      // Continuation window: a character-name prefix in the body still
+      // switches the voice for this turn. A plain body (no wake-word)
+      // keeps whichever voice the previous wake set — the conversation
+      // continues with the same speaker.
+      const cw = detectWake(body);
+      let promptText = body;
+      if (cw.matched) {
+        applyVoiceForWake(cw.speakerId);
+        if (cw.body) promptText = cw.body;
+      }
+      dispatch({ type: "speechCaptured", text: promptText });
+      await runTurn(promptText);
       return;
     }
 
     const m = detectWake(text);
     console.info(
-      `[loop] wake match: matched=${m.matched} body="${m.matched ? m.body : ""}"`,
+      `[loop] wake match: matched=${m.matched} body="${m.matched ? m.body : ""}"${m.matched && m.speakerId !== undefined ? ` speakerId=${m.speakerId}` : ""}`,
     );
     if (!m.matched) return;
+
+    // Each wake-word picks the voice for this turn. Plain chappie wake
+    // routes to Web Speech, a character-name wake routes to that
+    // character's VOICEVOX voice. No persistence; the next wake decides
+    // again.
+    applyVoiceForWake(m.speakerId);
 
     if (m.body === "") {
       dispatch({ type: "wakeDetected" });

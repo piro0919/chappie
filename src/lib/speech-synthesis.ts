@@ -1,3 +1,18 @@
+// TTS abstraction. The renderer talks to one `SpeechEngine` at a time.
+// Today there are two implementations: `WebSpeechEngine` (browser
+// speechSynthesis, the default for every language) and `VoicevoxEngine`
+// (HTTP to a locally-running VOICEVOX engine, opt-in via Settings,
+// Japanese-only).
+//
+// The legacy top-level functions (`speak`, `speakQueued`, `cancelSpeech`,
+// `createStreamingSpeaker`) are kept as thin wrappers so existing call
+// sites in `useConversationLoop.ts` don't have to know which engine is
+// active. Engine selection happens inside `getEngine()`, keyed off the
+// current `EngineOpts` set via `setEngineOpts()` from the conversation
+// loop on settings load and on `settings:updated`.
+
+import { invoke } from "@tauri-apps/api/core";
+
 /** Massage text just before it goes to the synthesizer so cosmetic glitches
  *  in model output don't bleed into the spoken reply. Currently only the
  *  Japanese path needs help: weaker models (flash-lite, in particular)
@@ -27,63 +42,10 @@ function pickVoice(lang: string): SpeechSynthesisVoice | null {
   return local ?? matches[0];
 }
 
-/** Speak a single utterance and resolve when it ends. Calls cancel() first
- *  so a previously wedged synthesis queue doesn't hold this one back.
- *  Use `speakQueued` for streaming where you want sentences to play
- *  back-to-back without canceling each other. */
-export function speak(text: string, lang: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    window.speechSynthesis.cancel();
-    speakInternal(text, lang, resolve, reject);
-  });
-}
-
-/** Like `speak`, but does NOT cancel any in-flight speech. Multiple calls
- *  in sequence form a continuous read-out — the WebKit synthesis queue
- *  itself plays them back-to-back. */
-export function speakQueued(text: string, lang: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    speakInternal(text, lang, resolve, reject);
-  });
-}
-
 // Slightly faster than the default 1.0 rate. WebKit's Japanese voices
 // sound a touch slow at 1.0, but 1.15 felt rushed in practice — 1.05
 // keeps responsiveness without losing intelligibility.
 const TTS_RATE = 1.05;
-
-function speakInternal(
-  text: string,
-  lang: string,
-  resolve: () => void,
-  reject: (err: Error) => void,
-): void {
-  const utter = new SpeechSynthesisUtterance(sanitizeForTTS(text, lang));
-  utter.rate = TTS_RATE;
-  const voice = pickVoice(lang);
-  if (voice) {
-    utter.voice = voice;
-    utter.lang = voice.lang;
-  } else {
-    utter.lang = lang;
-  }
-  utter.onend = () => resolve();
-  utter.onerror = (e) => {
-    // The interrupted/canceled errors fire when cancelSpeech() is called
-    // (e.g. for barge-in). Treat as a successful cancellation rather than
-    // a hard failure so the conversation loop can move on.
-    if (e.error === "interrupted" || e.error === "canceled") {
-      resolve();
-      return;
-    }
-    reject(new Error(`speech synthesis error: ${e.error}`));
-  };
-  window.speechSynthesis.speak(utter);
-}
-
-export function cancelSpeech(): void {
-  window.speechSynthesis.cancel();
-}
 
 /** Sentence terminators we split streaming output on. Includes Japanese
  *  full-stop, exclamation, question, and ASCII variants. The ASCII period
@@ -92,97 +54,502 @@ export function cancelSpeech(): void {
  *  helpfully split them into "39." and "6". */
 const SENTENCE_TERMINATORS = /[。！？!?]+|(?<!\d)\.(?!\d)/g;
 
-/** Streaming speaker. Feed it text chunks as they arrive; it accumulates
- *  until a sentence terminator is seen, then queues the sentence for TTS.
- *  Returns a `flush` that you must await after no more chunks will come —
- *  it speaks any remaining buffer and resolves once everything has played.
- *
- *  Sentences are pushed straight into WebKit's native synthesis queue
- *  (rather than chained via JS Promises) so they play back-to-back without
- *  the per-utterance gap that `chain.then(speakQueued(...))` introduced.
- *  Completion is detected by polling `synthesis.speaking / pending` —
- *  `utter.onend` fires 1-3 s late on macOS Japanese voices (Kyoko / Otoya),
- *  which used to leave the tray stuck in "speaking" after audio actually
- *  ended. */
-export function createStreamingSpeaker(lang: string): {
+/** After the first utterance fires (the latency-sensitive one), we batch
+ *  subsequent sentences until we've accumulated at least this many chars
+ *  before speaking. Both backends have a per-utterance gap (WebKit's
+ *  macOS Japanese voices add audible silence; VOICEVOX adds an HTTP RTT
+ *  and decode), so larger chunks past the first means fewer gaps per
+ *  reply. 120 was tuned to feel continuous on multi-paragraph output
+ *  (e.g. tarot readings) without making the 2nd chunk wait too long
+ *  after the 1st. */
+const FOLLOWUP_MIN_CHARS = 120;
+
+/** Pulls the next "ready to speak" segment off the front of `buffer`,
+ *  using the same one-fast-then-batch policy for both engines. Returns
+ *  null when nothing is ready (no terminator, or the leading run is
+ *  shorter than `FOLLOWUP_MIN_CHARS` after the first utterance). */
+function takeReadySegment(
+  buffer: string,
+  alreadySpoken: boolean,
+): { segment: string; remaining: string } | null {
+  SENTENCE_TERMINATORS.lastIndex = 0;
+  const first = SENTENCE_TERMINATORS.exec(buffer);
+  if (!first) return null;
+  let end = first.index + first[0].length;
+
+  if (alreadySpoken) {
+    while (end < FOLLOWUP_MIN_CHARS) {
+      SENTENCE_TERMINATORS.lastIndex = end;
+      const next = SENTENCE_TERMINATORS.exec(buffer);
+      if (!next) return null;
+      end = next.index + next[0].length;
+    }
+  }
+
+  return {
+    segment: buffer.slice(0, end).trim(),
+    remaining: buffer.slice(end),
+  };
+}
+
+/** Streaming speaker handle returned by `SpeechEngine.createStreamingSpeaker`.
+ *  Feed it text chunks as they arrive; flush after no more chunks come. */
+export interface StreamingSpeaker {
   feed: (chunk: string) => void;
   flush: () => Promise<void>;
-} {
-  // Clear any wedged queue from a previous turn before we start adding to it.
-  window.speechSynthesis.cancel();
+}
 
-  let buffer = "";
-  const cachedVoice = pickVoice(lang);
+/** Common surface every TTS backend implements. Engines may translate the
+ *  semantics differently (Web Speech uses the browser's native queue,
+ *  VOICEVOX fans out per-sentence HTTP calls and plays via Web Audio),
+ *  but call sites only see this interface. */
+export interface SpeechEngine {
+  speak(text: string, lang: string): Promise<void>;
+  speakQueued(text: string, lang: string): Promise<void>;
+  cancel(): void;
+  createStreamingSpeaker(lang: string): StreamingSpeaker;
+}
 
-  // Track utterances explicitly. WebKit's speaking/pending flags get
-  // wedged true for up to a few seconds after audio actually ends on
-  // macOS Japanese voices (Kyoko / Otoya), and onend can fire late.
-  // Using our own per-utterance settled count plus a wall-clock cap is
-  // more reliable than trusting either WebKit signal alone.
-  let queuedCount = 0;
-  let settledCount = 0;
+class WebSpeechEngine implements SpeechEngine {
+  speak(text: string, lang: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      window.speechSynthesis.cancel();
+      this.speakInternal(text, lang, resolve, reject);
+    });
+  }
 
-  const speakOne = (sentence: string) => {
-    const utter = new SpeechSynthesisUtterance(sanitizeForTTS(sentence, lang));
+  speakQueued(text: string, lang: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.speakInternal(text, lang, resolve, reject);
+    });
+  }
+
+  cancel(): void {
+    window.speechSynthesis.cancel();
+  }
+
+  private speakInternal(
+    text: string,
+    lang: string,
+    resolve: () => void,
+    reject: (err: Error) => void,
+  ): void {
+    const utter = new SpeechSynthesisUtterance(sanitizeForTTS(text, lang));
     utter.rate = TTS_RATE;
-    if (cachedVoice) {
-      utter.voice = cachedVoice;
-      utter.lang = cachedVoice.lang;
+    const voice = pickVoice(lang);
+    if (voice) {
+      utter.voice = voice;
+      utter.lang = voice.lang;
     } else {
       utter.lang = lang;
     }
-    queuedCount++;
-    const settle = () => {
-      settledCount++;
-    };
-    utter.onend = settle;
+    utter.onend = () => resolve();
     utter.onerror = (e) => {
-      if (e.error !== "interrupted" && e.error !== "canceled") {
-        console.error("speak failed", e.error);
+      // The interrupted/canceled errors fire when cancelSpeech() is called
+      // (e.g. for barge-in). Treat as a successful cancellation rather than
+      // a hard failure so the conversation loop can move on.
+      if (e.error === "interrupted" || e.error === "canceled") {
+        resolve();
+        return;
       }
-      settle();
+      reject(new Error(`speech synthesis error: ${e.error}`));
     };
     window.speechSynthesis.speak(utter);
-  };
+  }
 
-  return {
-    feed(chunk: string) {
-      buffer += chunk;
-      // Greedy: extract every complete sentence visible in buffer right now.
-      let lastEnd = 0;
-      SENTENCE_TERMINATORS.lastIndex = 0;
-      let match: RegExpExecArray | null = SENTENCE_TERMINATORS.exec(buffer);
-      while (match !== null) {
-        const end = match.index + match[0].length;
-        const sentence = buffer.slice(lastEnd, end).trim();
-        if (sentence) speakOne(sentence);
-        lastEnd = end;
-        match = SENTENCE_TERMINATORS.exec(buffer);
+  /** Streaming speaker. Feed it text chunks as they arrive; it accumulates
+   *  until a sentence terminator is seen, then queues the sentence for TTS.
+   *  Returns a `flush` that you must await after no more chunks will come —
+   *  it speaks any remaining buffer and resolves once everything has played.
+   *
+   *  Sentences are pushed straight into WebKit's native synthesis queue
+   *  (rather than chained via JS Promises) so they play back-to-back without
+   *  the per-utterance gap that `chain.then(speakQueued(...))` introduced.
+   *  Completion is detected by polling `synthesis.speaking / pending` —
+   *  `utter.onend` fires 1-3 s late on macOS Japanese voices (Kyoko / Otoya),
+   *  which used to leave the tray stuck in "speaking" after audio actually
+   *  ended. */
+  createStreamingSpeaker(lang: string): StreamingSpeaker {
+    // Clear any wedged queue from a previous turn before we start adding to it.
+    window.speechSynthesis.cancel();
+
+    let buffer = "";
+    const cachedVoice = pickVoice(lang);
+
+    // Track utterances explicitly. WebKit's speaking/pending flags get
+    // wedged true for up to a few seconds after audio actually ends on
+    // macOS Japanese voices (Kyoko / Otoya), and onend can fire late.
+    // Using our own per-utterance settled count plus a wall-clock cap is
+    // more reliable than trusting either WebKit signal alone.
+    let queuedCount = 0;
+    let settledCount = 0;
+    // Wall-clock estimate of when the queued audio should be done playing.
+    // Updated as each utterance is queued; used as a fallback exit
+    // condition in flush() because macOS Japanese voices wedge the
+    // speaking/pending flags true and fire onend several seconds late
+    // after audio actually ends — without this the tray sits in
+    // "speaking" state long after silence.
+    //
+    // Char rates are ballpark from observation:
+    //   JP: ~7 chars/sec at rate 1.05 ≈ 145ms/char
+    //   EN: ~15 chars/sec at rate 1.05 ≈ 67ms/char
+    // Better to overshoot than undershoot — a too-small estimate cuts the
+    // tail off; the +400ms padding gives margin.
+    const isJa = lang.toLowerCase().startsWith("ja");
+    const MS_PER_CHAR = isJa ? 145 : 70;
+    const ESTIMATE_PADDING_MS = 400;
+    let firstSpeakAt: number | null = null;
+    let estimatedTotalDurationMs = 0;
+
+    const speakOne = (sentence: string) => {
+      const utter = new SpeechSynthesisUtterance(
+        sanitizeForTTS(sentence, lang),
+      );
+      utter.rate = TTS_RATE;
+      if (cachedVoice) {
+        utter.voice = cachedVoice;
+        utter.lang = cachedVoice.lang;
+      } else {
+        utter.lang = lang;
       }
-      buffer = buffer.slice(lastEnd);
-    },
-    async flush() {
-      const tail = buffer.trim();
-      buffer = "";
-      if (tail) speakOne(tail);
-      // Wait until either: (a) every queued utterance has settled
-      // (onend / onerror fired), or (b) WebKit's speaking/pending both
-      // read false for two consecutive 30ms ticks. (a) is the truthful
-      // signal but onend is laggy on JP voices; (b) is faster but flaps.
-      // Combining them in a settled-count check that's also gated on the
-      // flags going quiet gives us the earlier of the two.
-      let consecutiveQuiet = 0;
-      while (settledCount < queuedCount) {
-        const quiet =
-          !window.speechSynthesis.speaking && !window.speechSynthesis.pending;
-        consecutiveQuiet = quiet ? consecutiveQuiet + 1 : 0;
-        // 60ms quiet (two 30ms ticks with both flags down) — safe margin
-        // against transient false flips between utterances. If the flags
-        // say quiet, audio is really done; we don't have to wait for the
-        // late onend.
-        if (consecutiveQuiet >= 2) break;
-        await new Promise((r) => setTimeout(r, 30));
+      queuedCount++;
+      estimatedTotalDurationMs += sentence.length * MS_PER_CHAR;
+      if (firstSpeakAt === null) firstSpeakAt = Date.now();
+      const settle = () => {
+        settledCount++;
+      };
+      utter.onend = settle;
+      utter.onerror = (e) => {
+        if (e.error !== "interrupted" && e.error !== "canceled") {
+          console.error("speak failed", e.error);
+        }
+        settle();
+      };
+      window.speechSynthesis.speak(utter);
+    };
+
+    return {
+      feed(chunk: string) {
+        buffer += chunk;
+        while (true) {
+          const ready = takeReadySegment(buffer, queuedCount > 0);
+          if (!ready) break;
+          if (ready.segment) speakOne(ready.segment);
+          buffer = ready.remaining;
+        }
+      },
+      async flush() {
+        const tail = buffer.trim();
+        buffer = "";
+        if (tail) speakOne(tail);
+        // Three exit conditions, whichever comes first:
+        //   (a) every queued utterance has settled (onend/onerror) AND
+        //       the flags read quiet — truthful but onend is slow on JP;
+        //   (b) flags read quiet for 2 consecutive 30ms ticks — faster
+        //       but can flap during inter-utterance gaps;
+        //   (c) wall-clock exceeded the estimated audio duration + pad —
+        //       last resort for when the macOS JP voices wedge their
+        //       flags true past the actual audio end (the bug this
+        //       block primarily exists to work around).
+        let consecutiveQuiet = 0;
+        while (settledCount < queuedCount) {
+          const quiet =
+            !window.speechSynthesis.speaking && !window.speechSynthesis.pending;
+          consecutiveQuiet = quiet ? consecutiveQuiet + 1 : 0;
+          if (consecutiveQuiet >= 2) break;
+          if (
+            firstSpeakAt !== null &&
+            Date.now() - firstSpeakAt >
+              estimatedTotalDurationMs + ESTIMATE_PADDING_MS
+          ) {
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 30));
+        }
+      },
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// VOICEVOX engine. Opt-in via wake-word; Japanese only.
+//
+// Each utterance is synthesized via the Rust `voicevox_synthesize` Tauri
+// command (which talks to `localhost:50021`), the resulting WAV bytes
+// are wrapped in a Blob URL and played via a plain `HTMLAudioElement`.
+//
+// Why HTMLAudioElement instead of Web Audio API: the AudioContext
+// approach was repeatedly fragile in the hidden-window WKWebView
+// environment — context state would read "running" while the underlying
+// output pipeline silently dropped audio after backgrounding (e.g. when
+// the Settings window took focus), and there was no reliable signal to
+// detect it. HTMLAudioElement bypasses all of that: each <audio> is an
+// independent media session, the browser handles output device routing,
+// and `onended` is the truthful signal. The cost is ~50–100ms gap
+// between consecutive segments instead of the precise sample-accurate
+// chaining Web Audio gave us; for conversational TTS that's invisible.
+//
+// Sequential ordering is enforced by chaining each segment's `play()`
+// onto the previous segment's `onended`. Synthesis still runs in
+// parallel (the latency win) — only the playback step is serialized.
+//
+// Failure mode (engine not running, synthesis error, play() rejection)
+// is silent + a brief HUD via `hud_show`. We deliberately do NOT fall
+// back to Web Speech: the user picked a VOICEVOX character explicitly,
+// hearing the system voice mid-conversation would be more confusing
+// than silence.
+
+const VOICEVOX_HUD_DURATION_MS = 2500;
+
+async function showVoicevoxError(detail: string): Promise<void> {
+  console.error("[voicevox]", detail);
+  try {
+    await invoke("hud_show", {
+      text: "VOICEVOX が応答しません",
+      durationMs: VOICEVOX_HUD_DURATION_MS,
+    });
+  } catch (e) {
+    console.error("[voicevox] hud_show invoke failed", e);
+  }
+}
+
+function bytesToBlobUrl(bytes: number[] | Uint8Array | ArrayBuffer): string {
+  let buf: ArrayBuffer | Uint8Array;
+  if (bytes instanceof ArrayBuffer) {
+    buf = bytes;
+  } else if (bytes instanceof Uint8Array) {
+    buf = bytes;
+  } else if (Array.isArray(bytes)) {
+    buf = new Uint8Array(bytes);
+  } else {
+    throw new Error("unexpected bytes shape");
+  }
+  return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+}
+
+class VoicevoxEngine implements SpeechEngine {
+  private speakerId: number;
+  // Audio elements currently playing or queued. cancel() pauses each
+  // and revokes its blob URL. Removed when `ended` fires naturally.
+  private active: Set<HTMLAudioElement> = new Set();
+  // Resolves when the last queued segment finishes playing. New
+  // submissions chain their own play() onto this so segments play in
+  // submit order without overlapping. Reset to a resolved promise on
+  // cancel() so the next segment can start immediately.
+  private playChain: Promise<void> = Promise.resolve();
+
+  constructor(speakerId: number) {
+    this.speakerId = speakerId;
+  }
+
+  async speak(text: string, _lang: string): Promise<void> {
+    this.cancel();
+    return this.synthAndPlay(text);
+  }
+
+  async speakQueued(text: string, _lang: string): Promise<void> {
+    return this.synthAndPlay(text);
+  }
+
+  cancel(): void {
+    for (const audio of this.active) {
+      try {
+        audio.pause();
+        audio.src = "";
+      } catch {
+        // Already stopped — ignore.
       }
-    },
-  };
+    }
+    this.active.clear();
+    this.playChain = Promise.resolve();
+  }
+
+  createStreamingSpeaker(_lang: string): StreamingSpeaker {
+    // Don't cancel — let any in-flight audio from a previous turn play
+    // out. New segments queue via playChain so they slot in after
+    // existing audio without overlap. For one-shot barge-in semantics,
+    // use speak() instead — it cancels first by design.
+    let buffer = "";
+    let queued = 0;
+    const inflight: Promise<void>[] = [];
+
+    const submit = (segment: string) => {
+      queued++;
+      inflight.push(this.synthAndPlay(segment));
+    };
+
+    return {
+      feed: (chunk: string) => {
+        buffer += chunk;
+        while (true) {
+          const ready = takeReadySegment(buffer, queued > 0);
+          if (!ready) break;
+          if (ready.segment) submit(ready.segment);
+          buffer = ready.remaining;
+        }
+      },
+      flush: async () => {
+        const tail = buffer.trim();
+        buffer = "";
+        if (tail) submit(tail);
+        // Each synthAndPlay resolves on the audio element's `ended`
+        // event, so awaiting all inflight = waiting for every segment
+        // to finish playing. No extra wall-clock fudge needed.
+        await Promise.all(inflight);
+      },
+    };
+  }
+
+  private async synthAndPlay(text: string): Promise<void> {
+    const tag = `[voicevox] spk=${this.speakerId} len=${text.length}`;
+    console.info(`${tag} synth start "${text.slice(0, 20)}…"`);
+    const t0 = performance.now();
+    let bytes: number[] | Uint8Array | ArrayBuffer;
+    try {
+      bytes = await invoke("voicevox_synthesize", {
+        text,
+        speakerId: this.speakerId,
+      });
+    } catch (e) {
+      await showVoicevoxError(`synthesize failed: ${e}`);
+      return;
+    }
+    console.info(`${tag} synth done ${(performance.now() - t0).toFixed(0)}ms`);
+
+    let url: string;
+    try {
+      url = bytesToBlobUrl(bytes);
+    } catch (e) {
+      console.error("[voicevox] blob conversion failed", bytes);
+      await showVoicevoxError(`blob conversion failed: ${e}`);
+      return;
+    }
+
+    // Capture the previous chain end and chain THIS segment's play()
+    // onto it. Update playChain so the next submit chains onto us.
+    // Synthesis already ran in parallel; only playback is serialized.
+    const myPrev = this.playChain;
+    let resolveMine: () => void = () => {};
+    this.playChain = new Promise<void>((r) => {
+      resolveMine = r;
+    });
+
+    try {
+      await myPrev;
+    } catch {
+      // Previous failed; we still play ours.
+    }
+
+    const audio = new Audio(url);
+    this.active.add(audio);
+    const tStart = performance.now();
+
+    return new Promise<void>((resolve) => {
+      const settle = () => {
+        console.info(
+          `${tag} ended after ${(performance.now() - tStart).toFixed(0)}ms`,
+        );
+        this.active.delete(audio);
+        try {
+          URL.revokeObjectURL(url);
+        } catch {}
+        resolveMine();
+        resolve();
+      };
+      audio.addEventListener("ended", settle, { once: true });
+      audio.addEventListener(
+        "error",
+        () => {
+          console.error(`[voicevox] audio error`, audio.error);
+          settle();
+        },
+        { once: true },
+      );
+      audio.play().catch((e) => {
+        console.error(`[voicevox] audio.play() rejected`, e);
+        settle();
+      });
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Engine selection + module-level state.
+
+/** Engine selection inputs. Set by `setEngineOpts()` from the conversation
+ *  loop on settings load and on `settings:updated`. `voicevox.enabled`
+ *  alone doesn't force VOICEVOX — `getEngine()` also checks `lang`, since
+ *  VOICEVOX only does Japanese. */
+export interface EngineOpts {
+  voicevox?: { enabled: boolean; speakerId: number };
+}
+
+const webSpeech = new WebSpeechEngine();
+let activeOpts: EngineOpts | undefined;
+
+// Cached VOICEVOX engine instance, recreated when speakerId changes so
+// consecutive turns reuse the same Web Audio scheduling state.
+let cachedVoicevox: VoicevoxEngine | null = null;
+let cachedVoicevoxSpeakerId: number | null = null;
+
+export function setEngineOpts(opts: EngineOpts | undefined): void {
+  const prevSpeaker = cachedVoicevoxSpeakerId;
+  const nextEnabled = opts?.voicevox?.enabled ?? false;
+  const nextSpeaker = opts?.voicevox?.speakerId;
+  console.info(
+    `[voicevox] setEngineOpts enabled=${nextEnabled} speaker=${nextSpeaker} prev=${prevSpeaker} cached=${cachedVoicevox !== null}`,
+  );
+  activeOpts = opts;
+  // Speaker changed (or VOICEVOX disabled): cancel the prior engine's
+  // in-flight audio. Without this, two voices overlap on the shared
+  // AudioContext when the user chains different character wake-words.
+  // For SAME-speaker consecutive wakes we DON'T hit this branch — the
+  // cached engine is reused and its scheduled audio plays out, with the
+  // new turn's segments queued after via `nextStartTime` chaining.
+  if (cachedVoicevox && (!nextEnabled || nextSpeaker !== prevSpeaker)) {
+    cachedVoicevox.cancel();
+    cachedVoicevox = null;
+    cachedVoicevoxSpeakerId = null;
+  }
+}
+
+/** Pick the engine for this utterance. VOICEVOX only kicks in for `ja`
+ *  when explicitly enabled in Settings; everything else stays on
+ *  `WebSpeechEngine`. Call sites should not cache the result — settings
+ *  can change between utterances (Settings hot-reload). */
+export function getEngine(lang: string, opts?: EngineOpts): SpeechEngine {
+  const vv = opts?.voicevox;
+  if (vv?.enabled && lang.toLowerCase().startsWith("ja")) {
+    if (!cachedVoicevox || cachedVoicevoxSpeakerId !== vv.speakerId) {
+      console.info(
+        `[voicevox] getEngine creating new engine for speaker=${vv.speakerId}`,
+      );
+      cachedVoicevox = new VoicevoxEngine(vv.speakerId);
+      cachedVoicevoxSpeakerId = vv.speakerId;
+    }
+    return cachedVoicevox;
+  }
+  return webSpeech;
+}
+
+// ---------------------------------------------------------------------------
+// Backward-compatible top-level exports. Existing call sites in
+// `useConversationLoop.ts` use these directly; they delegate to whichever
+// engine `getEngine()` selects.
+
+export function speak(text: string, lang: string): Promise<void> {
+  return getEngine(lang, activeOpts).speak(text, lang);
+}
+
+export function speakQueued(text: string, lang: string): Promise<void> {
+  return getEngine(lang, activeOpts).speakQueued(text, lang);
+}
+
+export function cancelSpeech(): void {
+  webSpeech.cancel();
+  cachedVoicevox?.cancel();
+}
+
+export function createStreamingSpeaker(lang: string): StreamingSpeaker {
+  return getEngine(lang, activeOpts).createStreamingSpeaker(lang);
 }

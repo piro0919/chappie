@@ -9,6 +9,7 @@ import {
 } from "@tauri-apps/plugin-autostart";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
+import { resolveLanguage } from "../i18n/messages";
 import { useT } from "../i18n/useT";
 import { detectProvider, providerLabel } from "../lib/provider";
 import {
@@ -17,6 +18,12 @@ import {
   type Settings,
   saveSettings,
 } from "../lib/settings";
+import {
+  getInstallStatus,
+  onInstallProgress,
+  startInstall,
+  uninstall,
+} from "../lib/voicevox-install";
 import styles from "./SettingsView.module.css";
 
 type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
@@ -31,6 +38,22 @@ export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
   const [language, setLanguage] = useState<Language>("auto");
   const [autostart, setAutostart] = useState(false);
+  const [voicevoxStatus, setVoicevoxStatus] = useState<
+    "checking" | "connected" | "unreachable"
+  >("checking");
+  const [voicevoxInstallKind, setVoicevoxInstallKind] = useState<
+    "managed" | "bundled_app" | "missing" | "checking"
+  >("checking");
+  // null = idle. Otherwise the active install phase + progress.
+  const [voicevoxInstallProgress, setVoicevoxInstallProgress] = useState<{
+    phase: "download" | "extract" | "verify";
+    received: number;
+    total: number;
+  } | null>(null);
+  const [voicevoxInstallError, setVoicevoxInstallError] = useState<
+    string | null
+  >(null);
+  const [voicevoxBusy, setVoicevoxBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [version, setVersion] = useState("");
@@ -126,6 +149,50 @@ export function SettingsView() {
     }
   }
 
+  async function refreshVoicevoxStatus() {
+    setVoicevoxStatus("checking");
+    try {
+      await invoke("voicevox_speakers_list");
+      setVoicevoxStatus("connected");
+    } catch {
+      setVoicevoxStatus("unreachable");
+    }
+    try {
+      const s = await getInstallStatus();
+      setVoicevoxInstallKind(s.kind);
+    } catch {
+      setVoicevoxInstallKind("missing");
+    }
+  }
+
+  async function handleVoicevoxInstall() {
+    setVoicevoxBusy(true);
+    setVoicevoxInstallError(null);
+    setVoicevoxInstallProgress({ phase: "download", received: 0, total: 0 });
+    try {
+      await startInstall();
+      await refreshVoicevoxStatus();
+    } catch (e) {
+      setVoicevoxInstallError(String(e));
+    } finally {
+      setVoicevoxInstallProgress(null);
+      setVoicevoxBusy(false);
+    }
+  }
+
+  async function handleVoicevoxUninstall() {
+    setVoicevoxBusy(true);
+    setVoicevoxInstallError(null);
+    try {
+      await uninstall();
+      await refreshVoicevoxStatus();
+    } catch (e) {
+      setVoicevoxInstallError(String(e));
+    } finally {
+      setVoicevoxBusy(false);
+    }
+  }
+
   async function requestMic() {
     setRequestingMic(true);
     try {
@@ -146,15 +213,28 @@ export function SettingsView() {
       await refreshMicStatus();
       await refreshScreenStatus();
       await refreshCalendarStatus();
+      await refreshVoicevoxStatus();
       setLoaded(true);
     })();
     getVersion()
       .then(setVersion)
       .catch(() => {});
+    let unlisten: (() => void) | undefined;
+    void onInstallProgress((p) => {
+      setVoicevoxInstallProgress(p);
+    }).then((u) => {
+      unlisten = u;
+    });
+    return () => {
+      unlisten?.();
+    };
   }, []);
 
   const onSave = async () => {
-    await saveSettings({ openaiApiKey: apiKey, language });
+    await saveSettings({
+      openaiApiKey: apiKey,
+      language,
+    });
     try {
       if (autostart) await enableAutostart();
       else await disableAutostart();
@@ -378,6 +458,113 @@ export function SettingsView() {
           </select>
         </div>
       </section>
+
+      {/* VOICEVOX — Japanese only. Hide entirely when the active UI
+          language is anything else, since the engine doesn't speak it.
+          Uses the same resolution as the conversation loop so "auto"
+          falls back to navigator.language. */}
+      {resolveLanguage(language).startsWith("ja") && (
+        <section className={styles.card}>
+          <div className={styles.statusRow}>
+            <span className={styles.statusLabel}>
+              {t("settings.voicevoxLabel")}
+            </span>
+            <span
+              className={`${styles.badge} ${
+                voicevoxInstallKind === "managed" ||
+                voicevoxInstallKind === "bundled_app"
+                  ? styles.badgeGranted
+                  : voicevoxInstallKind === "missing"
+                    ? styles.badgeNeutral
+                    : styles.badgeNeutral
+              }`}
+            >
+              <span className={styles.badgeDot} />
+              {voicevoxInstallKind === "managed"
+                ? t("settings.voicevoxStatusManaged")
+                : voicevoxInstallKind === "bundled_app"
+                  ? t("settings.voicevoxStatusBundledApp")
+                  : voicevoxInstallKind === "missing"
+                    ? t("settings.voicevoxStatusMissing")
+                    : t("settings.voicevoxStatusChecking")}
+            </span>
+          </div>
+          {voicevoxInstallProgress && (
+            <p className={styles.note}>
+              {voicevoxInstallProgress.phase === "download"
+                ? t("settings.voicevoxInstallProgress", {
+                    received: (
+                      voicevoxInstallProgress.received /
+                      1024 /
+                      1024
+                    ).toFixed(0),
+                    total:
+                      voicevoxInstallProgress.total > 0
+                        ? (voicevoxInstallProgress.total / 1024 / 1024).toFixed(
+                            0,
+                          )
+                        : "?",
+                  })
+                : voicevoxInstallProgress.phase === "extract"
+                  ? t("settings.voicevoxExtracting")
+                  : t("settings.voicevoxVerifying")}
+            </p>
+          )}
+          {voicevoxInstallError && (
+            <p className={styles.note}>{voicevoxInstallError}</p>
+          )}
+          <div className={styles.actions}>
+            {voicevoxInstallKind === "missing" && (
+              <button
+                type="button"
+                className={styles.button}
+                onClick={handleVoicevoxInstall}
+                disabled={voicevoxBusy}
+              >
+                {voicevoxBusy
+                  ? t("settings.voicevoxInstalling")
+                  : t("settings.voicevoxInstall")}
+              </button>
+            )}
+            {voicevoxInstallKind === "managed" && (
+              <button
+                type="button"
+                className={styles.button}
+                onClick={handleVoicevoxUninstall}
+                disabled={voicevoxBusy}
+              >
+                {t("settings.voicevoxUninstall")}
+              </button>
+            )}
+            {voicevoxInstallKind === "bundled_app" && (
+              <button
+                type="button"
+                className={styles.button}
+                onClick={handleVoicevoxInstall}
+                disabled={voicevoxBusy}
+              >
+                {voicevoxBusy
+                  ? t("settings.voicevoxInstalling")
+                  : t("settings.voicevoxInstallExtra")}
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles.button}
+              onClick={refreshVoicevoxStatus}
+              disabled={voicevoxBusy}
+            >
+              {t("settings.voicevoxRecheck")}
+            </button>
+          </div>
+          {voicevoxStatus === "unreachable" && (
+            <p className={styles.note}>
+              {t("settings.voicevoxStatusUnreachable")}
+            </p>
+          )}
+          <p className={styles.note}>{t("settings.voicevoxCredits")}</p>
+        </section>
+      )}
 
       {/* Autostart */}
       <section className={styles.card}>
