@@ -213,6 +213,20 @@ pub async fn chat_complete(
             "generationConfig": {
                 "thinkingConfig": { "thinkingBudget": 0 }
             },
+            // Personal voice assistant talking only to its owner: relax
+            // Gemini's default safety filters so common chit-chat ("占い
+            // して" / fortune-telling, dark jokes, mock arguments, etc.)
+            // doesn't get refused mid-stream. The default thresholds
+            // (`BLOCK_MEDIUM_AND_ABOVE` for dangerous-content) flagged
+            // 占い as superstition/dangerous and forced refusals despite
+            // the persona prompt asking for generation.
+            "safetySettings": [
+                { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" },
+                { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE" },
+                { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE" },
+                { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE" },
+                { "category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "BLOCK_NONE" },
+            ],
         });
         if let Some(sys) = &system_instruction {
             body["system_instruction"] = json!({ "parts": [{ "text": sys }] });
