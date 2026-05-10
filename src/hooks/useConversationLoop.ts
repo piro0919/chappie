@@ -12,6 +12,7 @@ import {
 import { type ChatClient, createChatClient } from "../lib/openai-client";
 import { type Language, loadSettings } from "../lib/settings";
 import {
+  cancelSpeech,
   createStreamingSpeaker,
   setEngineOpts,
   speak,
@@ -47,6 +48,33 @@ function pickWakeAck(lang: Language): string {
 // Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
 // room for speaker reverb and ensures Chappie doesn't re-trigger on its tail.
 const POST_TTS_COOLDOWN_MS = 350;
+
+// Voice barge-in: utterances accepted as "stop talking" while Chappie is
+// speaking. Matched against the normalized (NFKC + lowercase) Whisper
+// transcript with substring containment, so "もうストップ" / "stop please"
+// both fire. Kept short on purpose — the audio.rs barge-in mode also caps
+// utterance length, so longer phrases don't reach this filter anyway.
+const BARGE_IN_PATTERNS: RegExp[] = [
+  /ストップ/,
+  /すとっぷ/,
+  /やめて/,
+  /止めて/,
+  /止まって/,
+  /とまって/,
+  /もういい/,
+  /うるさい/,
+  /だまって/,
+  /黙って/,
+  /\bstop\b/i,
+  /\bquiet\b/i,
+  /\bshut up\b/i,
+];
+
+function isBargeInCommand(text: string): boolean {
+  const norm = text.normalize("NFKC").toLowerCase().trim();
+  if (!norm) return false;
+  return BARGE_IN_PATTERNS.some((p) => p.test(norm));
+}
 
 // Common Whisper Japanese hallucinations on silence/noise. Drop these utterances
 // instead of letting them flow to wake-word detection.
@@ -98,6 +126,12 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const awaitingBodyRef = useRef(false);
   const followupTimerRef = useRef<number | null>(null);
   const ttsActiveRef = useRef(false);
+  // True while the renderer is in voice-barge-in mode — TTS is playing,
+  // mic stays hot via `enter_barge_in_mode` (audio.rs raises VAD/RMS
+  // thresholds), and incoming speech events are filtered through
+  // `isBargeInCommand`. Mutually exclusive with the wake-ack /
+  // timer-announcement paths, which still use full pause_listening.
+  const bargeInActiveRef = useRef(false);
   const errorRecoveryTimerRef = useRef<number | null>(null);
   // VOICEVOX speaker active for the current/next turn (set by
   // applyVoiceForWake). undefined = use chappie's own voice/persona, no
@@ -281,7 +315,13 @@ export function useConversationLoop(): { state: State; error: string | null } {
     const ensureSpeaker = () => {
       if (speaker) return;
       ttsActiveRef.current = true;
-      void invoke("pause_listening").catch(() => {});
+      // Voice barge-in: keep the mic active during this turn's TTS so
+      // the user can interrupt by saying "ストップ / やめて / stop".
+      // audio.rs raises VAD + RMS thresholds in this mode to reject
+      // speaker reverb; the renderer further filters events through
+      // `isBargeInCommand` in handleSpeech.
+      bargeInActiveRef.current = true;
+      void invoke("enter_barge_in_mode").catch(() => {});
       dispatch({ type: "responseReady", reply: "" });
       speaker = createStreamingSpeaker(resolveLanguage(langRef.current));
     };
@@ -394,9 +434,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
       } catch (e) {
         console.error("tts flush failed", e);
       }
-      // Cooldown + resume — match the contract of `withMutedCapture`.
+      // Cooldown + exit barge-in mode — restores normal VAD/RMS bars
+      // and lets full-length wake utterances through again.
       await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
-      await invoke("resume_listening").catch(() => {});
+      bargeInActiveRef.current = false;
+      await invoke("exit_barge_in_mode").catch(() => {});
       ttsActiveRef.current = false;
     }
     dispatch({ type: "speechDone" });
@@ -448,7 +490,25 @@ export function useConversationLoop(): { state: State; error: string | null } {
       `[loop] speech recv: "${text}" tts=${ttsActiveRef.current} state=${machineRef.current.state} awaiting=${awaitingBodyRef.current}`,
     );
     if (ttsActiveRef.current) {
-      console.info("[loop] dropped: tts active");
+      // Voice barge-in: while runTurn's streaming TTS is playing the mic
+      // stays hot, but only short whitelisted commands are honored as
+      // "stop talking". Anything else is almost certainly Chappie's own
+      // speaker reverb leaking through Whisper, so drop it silently.
+      if (bargeInActiveRef.current && isBargeInCommand(text)) {
+        console.info(`[loop] BARGE-IN matched: "${text}" — cancelling TTS`);
+        cancelSpeech();
+        bargeInActiveRef.current = false;
+        ttsActiveRef.current = false;
+        void invoke("exit_barge_in_mode").catch(() => {});
+        // Drop into idle and arm a continuation window so the user can
+        // re-issue without saying the wake-word again. The runTurn flow
+        // will see the cancelled engine when it reaches `flush()` and
+        // return promptly without producing any more audio.
+        dispatch({ type: "speechDone" });
+        startContinuationWindow();
+        return;
+      }
+      console.info(`[loop] dropped: tts active (text="${text.slice(0, 30)}")`);
       return;
     }
     const cur = machineRef.current.state;

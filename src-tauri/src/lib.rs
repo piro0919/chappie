@@ -190,6 +190,8 @@ pub fn run() {
             audio::stop_listening,
             audio::pause_listening,
             audio::resume_listening,
+            audio::enter_barge_in_mode,
+            audio::exit_barge_in_mode,
             openai::chat_complete,
             hud::hud_dismiss,
             hud::hud_show,

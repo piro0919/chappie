@@ -28,6 +28,12 @@ const FRAME_SAMPLES: usize = 512;
 // recommends 0.5 but real rooms with quieter speakers benefit from a much
 // lower bar — we drop weak segments via MIN_SPEECH_FRAMES instead.
 const VAD_THRESHOLD: f32 = 0.25;
+// Higher VAD threshold used during barge-in mode (TTS playing; mic is
+// hot but we want to ignore speaker reverb of Chappie's own voice). The
+// gap to the normal threshold is what gives us the "echo rejection";
+// genuine user speech still clears 0.6 easily, while loopback usually
+// hovers around 0.3-0.5.
+const VAD_THRESHOLD_BARGE_IN: f32 = 0.6;
 // Consecutive non-speech frames to terminate an utterance (~700ms at 32ms/frame).
 const SILENCE_FRAMES_TO_END: usize = 22;
 // Minimum speech frames before accepting an utterance (~95ms) — filters
@@ -43,6 +49,15 @@ const PREROLL_FRAMES: usize = 5;
 // dropped before Whisper inference, since whisper-small Japanese is prone to
 // hallucinating phrases like "ご視聴ありがとうございました" on near-silence.
 const MIN_RMS_ENERGY: f32 = 0.003;
+// Higher RMS gate during barge-in mode. Speaker reverb at conversational
+// volume usually peaks around 0.005-0.015; raising the bar to 0.02 keeps
+// it out while genuine user speech (which is much closer to the mic and
+// directional) typically lands at 0.04+.
+const MIN_RMS_ENERGY_BARGE_IN: f32 = 0.02;
+// Cap utterance length during barge-in. Real interrupt commands are
+// short ("ストップ", "やめて", "もういい") — anything longer is
+// almost certainly transcribed Chappie-output, drop it early.
+const MAX_UTTERANCE_FRAMES_BARGE_IN: usize = 110; // ~3.5s
 
 // Replaceable handle to the current capture thread's "keep running" flag.
 // Re-assigned every time start_listening kicks off a new capture run, so
@@ -52,6 +67,13 @@ static RUNNING: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
 // Transient mute, flipped on/off by the conversation loop while TTS is
 // playing so we don't transcribe Chappie's own voice.
 static MUTED: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
+// Barge-in mode: TTS is playing and the renderer wants the mic to stay
+// hot to catch a "stop / やめて" interrupt. Mutually exclusive with MUTED
+// — pause_listening / enter_barge_in_mode pick one of the two paths.
+// When set, the segmenter uses the BARGE_IN-suffixed thresholds and keeps
+// emitting `speech` events; the renderer filters them through a keyword
+// whitelist.
+static BARGE_IN: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
 static STARTED: Mutex<bool> = Mutex::new(false);
 
 fn muted_flag() -> Arc<AtomicBool> {
@@ -60,8 +82,18 @@ fn muted_flag() -> Arc<AtomicBool> {
         .clone()
 }
 
+fn barge_in_flag() -> Arc<AtomicBool> {
+    BARGE_IN
+        .get_or_init(|| Arc::new(AtomicBool::new(false)))
+        .clone()
+}
+
 pub fn is_effectively_muted() -> bool {
     muted_flag().load(Ordering::SeqCst)
+}
+
+pub fn is_barge_in_active() -> bool {
+    barge_in_flag().load(Ordering::SeqCst)
 }
 
 pub fn is_listening() -> bool {
@@ -77,6 +109,25 @@ pub fn pause_listening() -> Result<(), String> {
 #[tauri::command]
 pub fn resume_listening() -> Result<(), String> {
     muted_flag().store(false, Ordering::SeqCst);
+    Ok(())
+}
+
+/// Enter barge-in mode: mic stays active during TTS but the segmenter
+/// uses raised VAD / RMS thresholds and a shorter utterance cap so
+/// Chappie's own speaker reverb is rejected. Only short, loud user
+/// utterances make it through to the renderer's keyword filter.
+#[tauri::command]
+pub fn enter_barge_in_mode() -> Result<(), String> {
+    barge_in_flag().store(true, Ordering::SeqCst);
+    // Make sure MUTED isn't lingering from a previous TTS — they're
+    // exclusive. If both got set we'd silently end up muted.
+    muted_flag().store(false, Ordering::SeqCst);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn exit_barge_in_mode() -> Result<(), String> {
+    barge_in_flag().store(false, Ordering::SeqCst);
     Ok(())
 }
 
@@ -311,10 +362,27 @@ fn run_segmenter(
             }
         }
 
+        let barge_in_now = is_barge_in_active();
+        let vad_threshold = if barge_in_now {
+            VAD_THRESHOLD_BARGE_IN
+        } else {
+            VAD_THRESHOLD
+        };
+        let min_rms = if barge_in_now {
+            MIN_RMS_ENERGY_BARGE_IN
+        } else {
+            MIN_RMS_ENERGY
+        };
+        let max_utterance_frames = if barge_in_now {
+            MAX_UTTERANCE_FRAMES_BARGE_IN
+        } else {
+            MAX_UTTERANCE_FRAMES
+        };
+
         while accum_out.len() >= FRAME_SAMPLES {
             let frame: Vec<f32> = accum_out.drain(..FRAME_SAMPLES).collect();
             let prob = vad.predict(frame.iter().copied());
-            let voiced = prob >= VAD_THRESHOLD;
+            let voiced = prob >= vad_threshold;
 
             if !in_speech {
                 if voiced {
@@ -342,13 +410,13 @@ fn run_segmenter(
                     silence_frames += 1;
                 }
 
-                let too_long = speech_frames + silence_frames >= MAX_UTTERANCE_FRAMES;
+                let too_long = speech_frames + silence_frames >= max_utterance_frames;
                 let ended = silence_frames >= SILENCE_FRAMES_TO_END;
                 if ended || too_long {
                     let buf = std::mem::take(&mut speech_buf);
                     let frame_count_ok = speech_frames >= MIN_SPEECH_FRAMES;
                     let rms_value = rms(&buf);
-                    let rms_ok = rms_value >= MIN_RMS_ENERGY;
+                    let rms_ok = rms_value >= min_rms;
                     let decision = if frame_count_ok && rms_ok {
                         "transcribe"
                     } else if !frame_count_ok {

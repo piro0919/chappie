@@ -385,6 +385,12 @@ class VoicevoxEngine implements SpeechEngine {
   // submit order without overlapping. Reset to a resolved promise on
   // cancel() so the next segment can start immediately.
   private playChain: Promise<void> = Promise.resolve();
+  // Set true by cancel() (e.g. voice barge-in). synthAndPlay and the
+  // streaming flush check this and return immediately so a cancelled
+  // turn doesn't keep synthesizing / waiting on already-stopped audio.
+  // Reset to false at the start of each new speak / streaming session
+  // so subsequent turns work normally.
+  private aborted = false;
 
   constructor(
     speakerId: number,
@@ -406,17 +412,25 @@ class VoicevoxEngine implements SpeechEngine {
 
   async speak(text: string, _lang: string): Promise<void> {
     this.cancel();
+    this.aborted = false;
     return this.synthAndPlay(text, this.resolveStyleId(text));
   }
 
   async speakQueued(text: string, _lang: string): Promise<void> {
+    if (this.aborted) this.aborted = false;
     return this.synthAndPlay(text, this.resolveStyleId(text));
   }
 
   cancel(): void {
+    this.aborted = true;
     for (const audio of this.active) {
       try {
         audio.pause();
+        // Force the once-bound 'error' handler to settle the awaiting
+        // synthAndPlay promise. Without this dispatch, pause() + src=""
+        // typically don't fire 'ended' or 'error', leaving any
+        // `await flush()` chain hanging.
+        audio.dispatchEvent(new Event("error"));
         audio.src = "";
       } catch {
         // Already stopped — ignore.
@@ -431,17 +445,20 @@ class VoicevoxEngine implements SpeechEngine {
     // out. New segments queue via playChain so they slot in after
     // existing audio without overlap. For one-shot barge-in semantics,
     // use speak() instead — it cancels first by design.
+    this.aborted = false;
     let buffer = "";
     let queued = 0;
     const inflight: Promise<void>[] = [];
 
     const submit = (segment: string) => {
+      if (this.aborted) return;
       queued++;
       inflight.push(this.synthAndPlay(segment, this.resolveStyleId(segment)));
     };
 
     return {
       feed: (chunk: string) => {
+        if (this.aborted) return;
         buffer += chunk;
         while (true) {
           const ready = takeReadySegment(buffer, queued > 0);
@@ -451,18 +468,21 @@ class VoicevoxEngine implements SpeechEngine {
         }
       },
       flush: async () => {
+        if (this.aborted) return;
         const tail = buffer.trim();
         buffer = "";
         if (tail) submit(tail);
         // Each synthAndPlay resolves on the audio element's `ended`
-        // event, so awaiting all inflight = waiting for every segment
-        // to finish playing. No extra wall-clock fudge needed.
+        // event (or the dispatched 'error' event in cancel()), so
+        // awaiting all inflight = waiting for every segment to finish
+        // or be aborted. No extra wall-clock fudge needed.
         await Promise.all(inflight);
       },
     };
   }
 
   private async synthAndPlay(text: string, styleId?: number): Promise<void> {
+    if (this.aborted) return;
     const effectiveSpeakerId = styleId ?? this.speakerId;
     const tag = `[voicevox] spk=${effectiveSpeakerId}${
       effectiveSpeakerId !== this.speakerId ? `(base=${this.speakerId})` : ""
