@@ -10,6 +10,7 @@ mod gemini;
 mod hud;
 mod i18n;
 mod log_event;
+mod mcp;
 mod mic_permission;
 mod model;
 mod location;

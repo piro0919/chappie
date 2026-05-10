@@ -86,6 +86,14 @@ struct AccumulatedToolCall {
 }
 
 pub fn all_tools() -> Value {
+    let mut tools = native_tools();
+    if let Some(arr) = tools.as_array_mut() {
+        arr.extend(crate::mcp::tools_openai_schema());
+    }
+    tools
+}
+
+fn native_tools() -> Value {
     json!([
         {
             "type": "function",
@@ -354,7 +362,7 @@ pub fn all_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "list_capabilities",
-                "description": "Chappie ができることの一覧を返す。「何ができるの?」「使い方教えて」「どんな機能があるの?」など自己紹介系の質問では**必ずこの tool を先に呼んでから**答える（自分の記憶で適当に答えない）。応答は 2〜3 カテゴリに絞って自然な会話調で。",
+                "description": "Chappie ができることの一覧を返す。「何ができるの?」「使い方教えて」「どんな機能があるの?」など**自己紹介系の質問だけ**この tool を先に呼んで答える（自分の記憶で適当に答えない）。応答は 2〜3 カテゴリに絞って自然な会話調で。**呼ばない場面**: 占い・ジョーク・創作・翻訳・要約・雑談・相談・気休めなど tool 不要のリクエストにはこの tool を呼ばず**直接生成で応じる**（リストに無い＝対応してない、ではない）。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -750,6 +758,9 @@ pub(crate) async fn execute_tool(
     args: &Value,
     end_conversation: &mut bool,
 ) -> String {
+    if let Some(result) = crate::mcp::try_execute(name, args).await {
+        return result;
+    }
     match name {
         "end_conversation" => {
             *end_conversation = true;

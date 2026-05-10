@@ -22,7 +22,7 @@ pub fn capabilities_text() -> String {
 
 fn capabilities_pt() -> String {
     let categories: &[(&str, &[&str])] = &[
-        ("Conversa", &["Bate-papo, conselhos, perguntas (lembra do recente)"]),
+        ("Conversa", &["Bate-papo, conselhos, perguntas, leitura de sorte, piadas, escrita criativa (histórias, letras, nomes), tradução, resumo (lembra do recente)"]),
         (
             "Tempo",
             &[
@@ -40,6 +40,33 @@ fn capabilities_pt() -> String {
             ],
         ),
         ("Clima", &["Clima aqui, vai chover amanhã?, clima em São Paulo"]),
+        (
+            "Notícias",
+            &[
+                "Últimas notícias (NHK principais)",
+                "Notícias de tecnologia (Hacker News), notícias do mundo (BBC)",
+            ],
+        ),
+        (
+            "Wikipédia",
+            &["O que é ___?, me fala sobre ___", "Pega até o que veio depois do corte de conhecimento do modelo"],
+        ),
+        (
+            "Terremotos",
+            &["Sismos recentes?, acabei de sentir um tremor?", "Lista mais recente da JMA — epicentro, magnitude, intensidade"],
+        ),
+        (
+            "Câmbio",
+            &["1 dólar em iene?, e o euro?", "Quanto são 100 dólares em ienes? (amount converte na hora)"],
+        ),
+        (
+            "Sol / lua",
+            &["Que horas o sol se põe hoje?, e o nascer?", "Hoje é lua cheia? (idade da lua + rótulo)"],
+        ),
+        (
+            "Resumo de página",
+            &["Lê a URL da área de transferência, resume esse link", "Pega só o corpo e resume em 2–4 frases"],
+        ),
         (
             "Web",
             &[
@@ -105,7 +132,7 @@ fn capabilities_pt() -> String {
 
 fn capabilities_ko() -> String {
     let categories: &[(&str, &[&str])] = &[
-        ("수다", &["잡담, 상담, 질문 답변 (최근 흐름 기억)"]),
+        ("수다", &["잡담, 상담, 질문 답변, 운세, 농담, 창작 (이야기·가사·이름 짓기), 번역, 요약 (최근 흐름 기억)"]),
         (
             "시간",
             &[
@@ -123,6 +150,33 @@ fn capabilities_ko() -> String {
             ],
         ),
         ("날씨", &["여기 날씨, 내일 우산 필요해?, 서울 날씨"]),
+        (
+            "뉴스",
+            &[
+                "최신 뉴스 알려줘 (NHK 주요 뉴스)",
+                "테크 뉴스 (Hacker News), 해외 뉴스 (BBC)",
+            ],
+        ),
+        (
+            "위키백과",
+            &["○○가 뭐야?, ○○에 대해 알려줘", "모델 학습 컷오프 이후의 인물·사건도 잡힘"],
+        ),
+        (
+            "지진 정보",
+            &["최근 지진?, 방금 흔들렸어?", "JMA 최신 지진 목록 — 진원·규모·최대 진도"],
+        ),
+        (
+            "환율",
+            &["1달러 얼마야?, 유로는?", "100달러는 얼마야? (amount 지정 시 즉시 환산)"],
+        ),
+        (
+            "일출 / 일몰 / 달",
+            &["오늘 일몰 몇 시?, 일출은?", "오늘 밤 보름달이야? (월령 + 라벨)"],
+        ),
+        (
+            "페이지 요약",
+            &["클립보드 URL 읽어줘, 이 링크 요약해줘", "본문만 뽑아 2–4문장으로 요약"],
+        ),
         (
             "웹",
             &[
@@ -185,7 +239,7 @@ fn capabilities_ko() -> String {
 
 fn capabilities_it() -> String {
     let categories: &[(&str, &[&str])] = &[
-        ("Chiacchiere", &["Conversazione, consigli, domande (ricorda il recente)"]),
+        ("Chiacchiere", &["Conversazione, consigli, domande, oroscopo / lettura della fortuna, battute, scrittura creativa (storie, testi, nomi), traduzione, riassunti (ricorda il recente)"]),
         (
             "Tempo",
             &[
@@ -203,6 +257,33 @@ fn capabilities_it() -> String {
             ],
         ),
         ("Meteo", &["Meteo qui, devo prendere l'ombrello domani?, meteo a Roma"]),
+        (
+            "Notizie",
+            &[
+                "Ultime notizie (NHK principali)",
+                "Notizie tech (Hacker News), notizie dal mondo (BBC)",
+            ],
+        ),
+        (
+            "Wikipedia",
+            &["Cos'è ___?, parlami di ___", "Coglie anche ciò che esce dopo il cutoff del modello"],
+        ),
+        (
+            "Terremoti",
+            &["Terremoti recenti?, ho appena sentito una scossa?", "Lista JMA più recente — epicentro, magnitudo, intensità"],
+        ),
+        (
+            "Cambio",
+            &["1 dollaro in yen?, e l'euro?", "Quanti yen sono 100 dollari? (amount converte al volo)"],
+        ),
+        (
+            "Sole / luna",
+            &["A che ora tramonta oggi?, e l'alba?", "Stanotte c'è la luna piena? (età lunare + etichetta)"],
+        ),
+        (
+            "Riassunto pagina",
+            &["Leggi l'URL negli appunti, riassumi quel link", "Estrae solo il corpo e riassume in 2–4 frasi"],
+        ),
         (
             "Web",
             &[
@@ -268,7 +349,7 @@ fn capabilities_it() -> String {
 
 fn capabilities_es() -> String {
     let categories: &[(&str, &[&str])] = &[
-        ("Conversación", &["Charlar, consejos, preguntas (recuerda lo reciente)"]),
+        ("Conversación", &["Charlar, consejos, preguntas, lectura de la fortuna / horóscopo, chistes, escritura creativa (historias, letras, nombres), traducción, resúmenes (recuerda lo reciente)"]),
         (
             "Tiempo",
             &[
@@ -288,6 +369,33 @@ fn capabilities_es() -> String {
         (
             "Clima",
             &["Tiempo aquí, ¿lloverá mañana?, tiempo en Madrid"],
+        ),
+        (
+            "Noticias",
+            &[
+                "Últimas noticias (NHK principales)",
+                "Noticias de tecnología (Hacker News), noticias del mundo (BBC)",
+            ],
+        ),
+        (
+            "Wikipedia",
+            &["¿Qué es ___?, háblame de ___", "Capta hasta lo posterior al corte de conocimiento del modelo"],
+        ),
+        (
+            "Terremotos",
+            &["¿Sismos recientes?, ¿acabo de sentir un temblor?", "Lista más reciente de la JMA — epicentro, magnitud, intensidad"],
+        ),
+        (
+            "Tipo de cambio",
+            &["¿1 dólar en yenes?, ¿y el euro?", "¿Cuántos yenes son 100 dólares? (amount convierte al vuelo)"],
+        ),
+        (
+            "Sol / luna",
+            &["¿A qué hora se pone el sol hoy?, ¿y el amanecer?", "¿Esta noche hay luna llena? (edad lunar + etiqueta)"],
+        ),
+        (
+            "Resumen de página",
+            &["Lee la URL del portapapeles, resume ese enlace", "Extrae solo el cuerpo y resume en 2–4 frases"],
         ),
         (
             "Web",
@@ -354,7 +462,7 @@ fn capabilities_es() -> String {
 
 fn capabilities_fr() -> String {
     let categories: &[(&str, &[&str])] = &[
-        ("Conversation", &["Discuter, conseils, questions (se souvient du récent)"]),
+        ("Conversation", &["Discuter, conseils, questions, voyance / tirage, blagues, écriture créative (histoires, paroles, noms), traduction, résumés (se souvient du récent)"]),
         (
             "Temps",
             &[
@@ -374,6 +482,33 @@ fn capabilities_fr() -> String {
         (
             "Météo",
             &["Météo ici, faut-il un parapluie demain ?, météo à Paris"],
+        ),
+        (
+            "Actualités",
+            &[
+                "Dernières actualités (NHK principales)",
+                "Actu tech (Hacker News), actu monde (BBC)",
+            ],
+        ),
+        (
+            "Wikipédia",
+            &["C'est quoi ___ ?, parle-moi de ___", "Attrape aussi ce qui suit la coupure de connaissance du modèle"],
+        ),
+        (
+            "Séismes",
+            &["Des séismes récents ?, je viens de sentir une secousse ?", "Liste JMA la plus récente — épicentre, magnitude, intensité"],
+        ),
+        (
+            "Taux de change",
+            &["1 dollar en yens ?, et l'euro ?", "Combien font 100 dollars en yens ? (amount convertit à la volée)"],
+        ),
+        (
+            "Soleil / lune",
+            &["Coucher du soleil aujourd'hui ?, et le lever ?", "Pleine lune ce soir ? (âge lunaire + étiquette)"],
+        ),
+        (
+            "Résumé de page",
+            &["Lis l'URL du presse-papiers, résume ce lien", "Extrait seulement le corps et résume en 2–4 phrases"],
         ),
         (
             "Web",
@@ -440,7 +575,7 @@ fn capabilities_fr() -> String {
 
 fn capabilities_de() -> String {
     let categories: &[(&str, &[&str])] = &[
-        ("Plaudern", &["Smalltalk, Rat, Fragen (erinnert sich an Vorheriges)"]),
+        ("Plaudern", &["Smalltalk, Rat, Fragen, Wahrsagen / Horoskop, Witze, kreatives Schreiben (Geschichten, Songtexte, Namen), Übersetzung, Zusammenfassungen (erinnert sich an Vorheriges)"]),
         (
             "Zeit",
             &[
@@ -460,6 +595,33 @@ fn capabilities_de() -> String {
         (
             "Wetter",
             &["Wetter hier, brauche ich morgen einen Regenschirm?, Wetter in Berlin"],
+        ),
+        (
+            "Nachrichten",
+            &[
+                "Aktuelle Nachrichten (NHK Top-Stories)",
+                "Tech-News (Hacker News), Weltnachrichten (BBC)",
+            ],
+        ),
+        (
+            "Wikipedia",
+            &["Was ist ___?, erzähl mir von ___", "Fängt auch ein, was nach dem Wissens-Cutoff des Modells kommt"],
+        ),
+        (
+            "Erdbeben",
+            &["Aktuelle Erdbeben?, hab ich gerade was gespürt?", "Aktuellste JMA-Liste — Epizentrum, Magnitude, Intensität"],
+        ),
+        (
+            "Wechselkurs",
+            &["1 Dollar in Yen?, und der Euro?", "Wieviel sind 100 Dollar in Yen? (amount rechnet direkt um)"],
+        ),
+        (
+            "Sonne / Mond",
+            &["Wann geht die Sonne heute unter?, und auf?", "Ist heute Vollmond? (Mondalter + Label)"],
+        ),
+        (
+            "Seitenzusammenfassung",
+            &["Lies die URL aus der Zwischenablage, fasse diesen Link zusammen", "Holt nur den Body und fasst in 2–4 Sätzen zusammen"],
         ),
         (
             "Web",
@@ -529,7 +691,7 @@ fn capabilities_de() -> String {
 
 fn capabilities_zh() -> String {
     let categories: &[(&str, &[&str])] = &[
-        ("聊天", &["闲聊、咨询、回答问题(记得最近的话题)"]),
+        ("聊天", &["闲聊、咨询、回答问题、占卜·星座、笑话、创作（故事·歌词·起名）、翻译、摘要（记得最近的话题）"]),
         (
             "时间",
             &[
@@ -547,6 +709,33 @@ fn capabilities_zh() -> String {
             ],
         ),
         ("天气", &["这里的天气, 明天要带伞吗?, 北京的天气"]),
+        (
+            "新闻",
+            &[
+                "最新新闻 (NHK 主要新闻)",
+                "科技新闻 (Hacker News), 国际新闻 (BBC)",
+            ],
+        ),
+        (
+            "维基百科",
+            &["○○是什么？, 给我讲讲○○", "也能抓到模型知识截止之后的人和事"],
+        ),
+        (
+            "地震信息",
+            &["最近有地震吗？, 刚才晃了一下？", "气象厅最新地震列表 — 震源、震级、最大烈度"],
+        ),
+        (
+            "汇率",
+            &["1 美元多少日元？, 欧元呢？", "100 美元换多少日元？(amount 指定即时换算)"],
+        ),
+        (
+            "日出 / 日落 / 月相",
+            &["今天几点日落？, 日出呢？", "今晚是满月吗？(月龄 + 标签)"],
+        ),
+        (
+            "网页摘要",
+            &["读一下剪贴板里的链接, 总结这个链接", "只抽取正文，用 2–4 句概括"],
+        ),
         (
             "网页",
             &[
@@ -611,7 +800,10 @@ fn capabilities_ja() -> String {
     let categories: &[(&str, &[&str])] = &[
         (
             "おしゃべり",
-            &["雑談、相談、質問への回答（直前の話題は覚えてる）"],
+            &[
+                "雑談、相談、質問への回答（直前の話題は覚えてる）",
+                "占い、ジョーク、創作（物語・歌詞・名前決め）、翻訳、要約",
+            ],
         ),
         (
             "時間",
@@ -631,6 +823,48 @@ fn capabilities_ja() -> String {
             ],
         ),
         ("天気", &["現在地の天気、明日の傘いる？、東京の天気"]),
+        (
+            "ニュース",
+            &[
+                "最新ニュース教えて（NHK 主要ニュース）",
+                "テックニュース（Hacker News）、海外ニュース（BBC）",
+            ],
+        ),
+        (
+            "ウィキペディア",
+            &[
+                "○○ってなに？／○○について教えて",
+                "知識カットオフ後の人物・出来事も拾える",
+            ],
+        ),
+        (
+            "地震情報",
+            &[
+                "最近の地震は？／さっき揺れた？",
+                "気象庁の最新地震一覧から、震源・マグニチュード・最大震度を読み上げ",
+            ],
+        ),
+        (
+            "為替",
+            &[
+                "ドル円教えて、ユーロは？",
+                "100 ドルは何円？（amount 指定で換算）",
+            ],
+        ),
+        (
+            "日の出・日の入り・月",
+            &[
+                "今日の日の入り何時？、日の出は？",
+                "今夜は満月？（月齢 + 8 段階の和名ラベル）",
+            ],
+        ),
+        (
+            "ページ要約",
+            &[
+                "クリップボードの URL 読んで、このリンク要約して",
+                "本文だけ抜き出して 2-4 文で要約",
+            ],
+        ),
         (
             "ウェブ",
             &[
@@ -705,8 +939,11 @@ fn capabilities_ja() -> String {
 fn capabilities_en() -> String {
     let categories: &[(&str, &[&str])] = &[
         (
-            "Chat",
-            &["Casual chat, advice, Q&A (remembers the recent thread)"],
+            "Conversation",
+            &[
+                "Casual chat, advice, Q&A (remembers the recent thread)",
+                "Fortune-telling, jokes, creative writing (stories, lyrics, naming), translation, summarization",
+            ],
         ),
         (
             "Time",
@@ -728,6 +965,48 @@ fn capabilities_en() -> String {
         (
             "Weather",
             &["Weather here, do I need an umbrella tomorrow?, weather in Tokyo"],
+        ),
+        (
+            "News",
+            &[
+                "What's the latest news? (NHK top stories)",
+                "Tech news (Hacker News), world news (BBC)",
+            ],
+        ),
+        (
+            "Wikipedia",
+            &[
+                "What's ___?, tell me about ___",
+                "Catches people and events past the model's knowledge cutoff",
+            ],
+        ),
+        (
+            "Earthquakes",
+            &[
+                "Any recent quakes?, did I just feel one?",
+                "JMA's latest list — epicenter, magnitude, max intensity",
+            ],
+        ),
+        (
+            "Exchange rates",
+            &[
+                "USD to JPY, what's the euro at?",
+                "How much is 100 dollars in yen? (amount converts inline)",
+            ],
+        ),
+        (
+            "Sunrise / sunset / moon",
+            &[
+                "What time is sunset today?, when does the sun rise?",
+                "Is it a full moon tonight? (moon age + label)",
+            ],
+        ),
+        (
+            "Page summary",
+            &[
+                "Read the URL on my clipboard, summarize this link",
+                "Pulls just the body and condenses to 2–4 sentences",
+            ],
         ),
         (
             "Web",
