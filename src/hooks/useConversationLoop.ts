@@ -469,10 +469,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
     if (speakerId === undefined) {
       console.info("[loop] applyVoiceForWake -> WebSpeech (chappie)");
       setEngineOpts({ voicevox: { enabled: false, speakerId: 0 } });
+      // Reset tray icon set to Chappie. Wake-driven, fire-and-forget.
+      void invoke("set_tray_character", { character: "chappie" }).catch(
+        () => {},
+      );
     } else {
       const speaker = VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId);
       console.info(
-        `[loop] applyVoiceForWake -> VOICEVOX speaker=${speakerId} styles=${speaker?.styles ? Object.keys(speaker.styles).join(",") : "?"}`,
+        `[loop] applyVoiceForWake -> VOICEVOX speaker=${speakerId} styles=${speaker?.styles ? Object.keys(speaker.styles).join(",") : "?"} tray=${speaker?.trayCharacter ?? "chappie"}`,
       );
       setEngineOpts({
         voicevox: {
@@ -481,6 +485,13 @@ export function useConversationLoop(): { state: State; error: string | null } {
           styles: speaker?.styles,
         },
       });
+      // Swap tray icons to the character's set if we ship them; otherwise
+      // fall back to Chappie. The Rust side ignores unknown values via
+      // serde so even a future typo here just keeps the default icons.
+      const trayChar = speaker?.trayCharacter ?? "chappie";
+      void invoke("set_tray_character", { character: trayChar }).catch(
+        () => {},
+      );
     }
   }
 

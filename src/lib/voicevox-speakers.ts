@@ -71,6 +71,11 @@ export interface VoicevoxSpeaker {
   /** Logical-emotion → engine-style-id map. `normal` should always
    *  equal `id`. Missing keys fall back to `normal` at synth time. */
   styles: Partial<Record<VoicevoxStyleKey, number>> & { normal: number };
+  /** Tray icon set to swap to when this speaker becomes active. Must
+   *  match a `TrayCharacter` variant on the Rust side (lowercase). When
+   *  unset (or set to a value the Rust side doesn't recognize), the tray
+   *  stays on the default Chappie icons. */
+  trayCharacter?: "chappie" | "zundamon";
 }
 
 export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
@@ -89,6 +94,7 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "了解したのだ、まかせるのだ！",
     ],
     styles: { normal: 3, sweet: 1, tsun: 7, sad: 76, strong: 5 },
+    trayCharacter: "zundamon",
   },
   {
     id: 2,

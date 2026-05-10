@@ -19,10 +19,42 @@ pub enum TrayState {
     Error,
 }
 
-// Used to override the normal state icon while the user has toggled mic
-// input off from the tray menu. The cpal stream is fully released in this
-// mode so macOS no longer shows its "in-use" microphone indicator.
-const OFF_ICON_BYTES: &[u8] = include_bytes!("../icons/tray-muted.png");
+/// Visual identity for the tray icon set. Driven by the wake-word: when
+/// the user invokes a VOICEVOX character (e.g. ずんだもん), the renderer
+/// calls `set_tray_character` so the tray glyph matches the voice the
+/// user just summoned. Falls back to `Chappie` for every speaker we
+/// don't yet ship dedicated icons for. Adding a new character pack:
+/// (1) drop 7 PNGs into `src-tauri/icons/<name>-tray-*.png`,
+/// (2) add the variant here, (3) wire it in `icon_bytes` /
+/// `off_icon_bytes`, (4) extend the speakerId→character map in
+/// `useConversationLoop.ts`.
+#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum TrayCharacter {
+    Chappie,
+    Zundamon,
+}
+
+impl TrayCharacter {
+    fn off_icon_bytes(self) -> &'static [u8] {
+        match self {
+            Self::Chappie => include_bytes!("../icons/tray-muted.png"),
+            Self::Zundamon => include_bytes!("../icons/zundamon-tray-muted.png"),
+        }
+    }
+}
+
+// Active tray character. Default to Chappie until the renderer says
+// otherwise via `set_tray_character`. Wake-word switching writes here
+// every turn so the icon set always matches the voice currently in use.
+static TRAY_CHARACTER: Mutex<TrayCharacter> = Mutex::new(TrayCharacter::Chappie);
+
+fn current_character() -> TrayCharacter {
+    TRAY_CHARACTER
+        .lock()
+        .map(|g| *g)
+        .unwrap_or(TrayCharacter::Chappie)
+}
 
 fn off_label(lang: Lang) -> &'static str {
     match lang {
@@ -39,14 +71,40 @@ fn off_label(lang: Lang) -> &'static str {
 }
 
 impl TrayState {
-    fn icon_bytes(self) -> &'static [u8] {
-        match self {
-            Self::Initializing => include_bytes!("../icons/tray-initializing.png"),
-            Self::Idle => include_bytes!("../icons/tray-idle.png"),
-            Self::Listening => include_bytes!("../icons/tray-listening.png"),
-            Self::Thinking => include_bytes!("../icons/tray-thinking.png"),
-            Self::Speaking => include_bytes!("../icons/tray-speaking.png"),
-            Self::Error => include_bytes!("../icons/tray-error.png"),
+    fn icon_bytes(self, character: TrayCharacter) -> &'static [u8] {
+        match (character, self) {
+            (TrayCharacter::Chappie, Self::Initializing) => {
+                include_bytes!("../icons/tray-initializing.png")
+            }
+            (TrayCharacter::Chappie, Self::Idle) => include_bytes!("../icons/tray-idle.png"),
+            (TrayCharacter::Chappie, Self::Listening) => {
+                include_bytes!("../icons/tray-listening.png")
+            }
+            (TrayCharacter::Chappie, Self::Thinking) => {
+                include_bytes!("../icons/tray-thinking.png")
+            }
+            (TrayCharacter::Chappie, Self::Speaking) => {
+                include_bytes!("../icons/tray-speaking.png")
+            }
+            (TrayCharacter::Chappie, Self::Error) => include_bytes!("../icons/tray-error.png"),
+            (TrayCharacter::Zundamon, Self::Initializing) => {
+                include_bytes!("../icons/zundamon-tray-initializing.png")
+            }
+            (TrayCharacter::Zundamon, Self::Idle) => {
+                include_bytes!("../icons/zundamon-tray-idle.png")
+            }
+            (TrayCharacter::Zundamon, Self::Listening) => {
+                include_bytes!("../icons/zundamon-tray-listening.png")
+            }
+            (TrayCharacter::Zundamon, Self::Thinking) => {
+                include_bytes!("../icons/zundamon-tray-thinking.png")
+            }
+            (TrayCharacter::Zundamon, Self::Speaking) => {
+                include_bytes!("../icons/zundamon-tray-speaking.png")
+            }
+            (TrayCharacter::Zundamon, Self::Error) => {
+                include_bytes!("../icons/zundamon-tray-error.png")
+            }
         }
     }
     pub fn label(self, lang: Lang) -> &'static str {
@@ -211,10 +269,27 @@ pub fn set_update_available(available: bool) {
     UPDATE_AVAILABLE.store(available, std::sync::atomic::Ordering::Relaxed);
 }
 
+/// Switch the tray icon set to a character. Called by the renderer
+/// from `applyVoiceForWake` whenever the active VOICEVOX speaker
+/// changes (or back to Chappie on the chappie wake-word). Re-applies
+/// the current state so the icon updates immediately without waiting
+/// for the next state transition.
+#[tauri::command]
+pub fn set_tray_character(app: AppHandle, character: TrayCharacter) {
+    if let Ok(mut g) = TRAY_CHARACTER.lock() {
+        if *g == character {
+            return;
+        }
+        *g = character;
+    }
+    let cur_state = current_tray_state(&app).unwrap_or(TrayState::Idle);
+    let _ = apply_tray_state(&app, cur_state);
+}
+
 pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
     let lang = crate::i18n::current();
     let menu = build_menu(app, TrayState::Idle, true)?;
-    let icon = Image::from_bytes(TrayState::Idle.icon_bytes())?;
+    let icon = Image::from_bytes(TrayState::Idle.icon_bytes(current_character()))?;
     let tray = TrayIconBuilder::with_id("main")
         .icon(icon)
         .icon_as_template(false)
@@ -348,10 +423,11 @@ pub fn apply_tray_state(app: &AppHandle, state: TrayState) -> tauri::Result<()> 
     *handle.last_state.lock().unwrap() = state;
     let listening = crate::audio::is_listening();
     let lang = crate::i18n::current();
+    let character = current_character();
     let (icon_bytes, tooltip) = if listening {
-        (state.icon_bytes(), state.label(lang))
+        (state.icon_bytes(character), state.label(lang))
     } else {
-        (OFF_ICON_BYTES, off_label(lang))
+        (character.off_icon_bytes(), off_label(lang))
     };
     tray.set_icon(Some(Image::from_bytes(icon_bytes)?))?;
     tray.set_tooltip(Some(tooltip))?;

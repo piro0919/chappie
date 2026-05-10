@@ -197,6 +197,7 @@ pub fn run() {
             hud::hud_show,
             volume::is_muted,
             tray::set_update_available,
+            tray::set_tray_character,
             voicevox::voicevox_speakers_list,
             voicevox::voicevox_synthesize,
             voicevox::voicevox_install_status,
