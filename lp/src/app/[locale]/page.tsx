@@ -145,6 +145,70 @@ export default async function Page({
         </div>
       </section>
 
+      {/* Characters (VOICEVOX) — JA locale only. The feature speaks
+          Japanese; EN visitors don't benefit from it, so we hide the
+          whole section to keep their pitch focused. */}
+      {locale === "ja" && (
+        <section className="px-6 py-24">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="text-(--color-cocoa-500) mb-3 text-center text-xs font-bold tracking-[0.25em]">
+              {t("characters.eyebrow")}
+            </h2>
+            <p className="text-(--color-cocoa-700) mx-auto mb-4 max-w-2xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
+              {t("characters.heading")}
+            </p>
+            <p className="text-(--color-cocoa-500) mx-auto mb-10 max-w-2xl text-center text-base leading-relaxed">
+              {t("characters.lead")}
+            </p>
+
+            <div className="border-(--color-cream-200) mb-10 overflow-hidden rounded-3xl border bg-white shadow-[0_18px_40px_-20px_rgba(74,56,38,0.35)]">
+              <Image
+                src="/voicevox-cast.png"
+                alt={t("characters.imageAlt")}
+                width={1672}
+                height={941}
+                className="h-auto w-full"
+              />
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="border-(--color-cream-200) rounded-2xl border bg-white p-6">
+                <h3 className="text-(--color-cocoa-700) mb-3 text-sm font-bold tracking-[0.15em]">
+                  {t("characters.lineupHeading")}
+                </h3>
+                <p className="text-(--color-cocoa-600) text-sm leading-relaxed">
+                  {t("characters.lineupList")}
+                </p>
+              </div>
+
+              <div className="border-(--color-cream-200) rounded-2xl border bg-white p-6">
+                <h3 className="text-(--color-cocoa-700) mb-3 text-sm font-bold tracking-[0.15em]">
+                  {t("characters.examplesHeading")}
+                </h3>
+                <ul className="text-(--color-cocoa-600) space-y-2 text-sm leading-relaxed">
+                  <li>{t("characters.example1")}</li>
+                  <li>{t("characters.example2")}</li>
+                  <li>{t("characters.example3")}</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-(--color-cream-200) mt-5 rounded-2xl border bg-white p-6">
+              <h3 className="text-(--color-cocoa-700) mb-3 text-sm font-bold tracking-[0.15em]">
+                {t("characters.setupHeading")}
+              </h3>
+              <p className="text-(--color-cocoa-600) text-sm leading-relaxed">
+                {t("characters.setupBody")}
+              </p>
+            </div>
+
+            <p className="text-(--color-cocoa-400) mx-auto mt-6 max-w-2xl text-center text-xs leading-relaxed">
+              {t("characters.credits")}
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* Menubar showcase */}
       <section className="px-6 py-20">
         <div className="mx-auto max-w-4xl text-center">

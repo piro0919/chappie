@@ -60,6 +60,48 @@
         "example3": "\"How's the weather in Tokyo?\"",
         "body": "Skip the location and Chappie defaults to your area; name a city and you get that one instead. Current temp, plus today and tomorrow's highs, lows, and chance of rain."
       },
+      "news": {
+        "title": "Read the latest news",
+        "example1": "\"What's the latest news?\"",
+        "example2": "\"Read me some tech news.\"",
+        "example3": "\"Any world news?\"",
+        "body": "Switch between top stories, tech (Hacker News), and world (BBC). Chappie reads the headlines aloud — your morning briefing without opening an app."
+      },
+      "wikipedia": {
+        "title": "Look it up on Wikipedia",
+        "example1": "\"What's Apple Vision Pro?\"",
+        "example2": "\"Tell me about Marie Curie.\"",
+        "example3": "\"How tall is the Tokyo Tower?\"",
+        "body": "Throw any word, name, or place at Chappie and you get a Wikipedia-sourced summary read back to you. Particularly strong for recent people and events the model alone might be unsure about."
+      },
+      "quake": {
+        "title": "Tell you about earthquakes",
+        "example1": "\"Any recent quakes?\"",
+        "example2": "\"Did I just feel one? what magnitude?\"",
+        "example3": "\"Has there been a big one lately?\"",
+        "body": "Pulls the latest quake list from JMA (Japan Meteorological Agency) and reads epicenter, magnitude, max intensity, and time aloud. Quick reassurance when you feel a tremor."
+      },
+      "fx": {
+        "title": "Answer exchange rates",
+        "example1": "\"USD to JPY?\"",
+        "example2": "\"What's 100 euros in dollars?\"",
+        "example3": "\"How's the pound doing?\"",
+        "body": "Ask for any currency pair and Chappie answers instantly. Add an amount and it converts on the fly — handy before a trip or a purchase."
+      },
+      "astro": {
+        "title": "Sunrise, sunset, moon",
+        "example1": "\"What time is sunset today?\"",
+        "example2": "\"When does the sun rise tomorrow?\"",
+        "example3": "\"Is it a full moon tonight?\"",
+        "body": "Sunrise, sunset, solar noon, and day length for your location, plus tonight's moon phase by name (new / crescent / first quarter / full / etc.)."
+      },
+      "fetch": {
+        "title": "Summarize a page",
+        "example1": "\"Read the URL on my clipboard.\"",
+        "example2": "\"Summarize this link.\"",
+        "example3": "\"What does that ___ page say?\"",
+        "body": "Hand Chappie a URL and it pulls just the article body and condenses it into 2–4 spoken sentences. No need to scroll through a long post — get the gist with your ears. Pairs well with the clipboard tool."
+      },
       "calendar": {
         "title": "Read your schedule",
         "example1": "\"What's on my calendar today?\"",
@@ -123,6 +165,13 @@
         "example3": "\"What song is this?\"",
         "body": "Voice control for whichever of Spotify or Apple Music is already running. Play / pause / skip, plus \"what song is this?\" gets you the title and artist."
       },
+      "youtube": {
+        "title": "Float YouTube in a mini-player",
+        "example1": "\"Play some cat videos on YouTube\"",
+        "example2": "\"Put on some lofi to focus\"",
+        "example3": "\"Close YouTube\"",
+        "body": "Ask for a video or some background music and Chappie opens it in an always-on-top mini-player. Hands stay free, the player floats above whatever app you're working in."
+      },
       "clipboard": {
         "title": "Read & write the clipboard",
         "example1": "\"Read what's on my clipboard\"",
@@ -145,6 +194,21 @@
         "body": "Chappie picks up on goodbyes by itself and quietly returns to standby. No button to press — just say the next \"chappie\" when you need it again."
       }
     }
+  },
+  "characters": {
+    "eyebrow": "VOICEVOX integration",
+    "heading": "Reply in a character's voice.",
+    "lead": "Call out a character name (Zundamon, Metan, etc.) and Chappie replies in that voice. Japanese only.",
+    "imageAlt": "The three flagship VOICEVOX characters: Zundamon, Shikoku Metan, Kasukabe Tsumugi",
+    "lineupHeading": "Available characters",
+    "lineupList": "Zundamon / Shikoku Metan / Kasukabe Tsumugi / Meimei Himari / Sayo / Chugoku Usagi / Tohoku Zunko / Tohoku Kiritan / Tohoku Itako / Ankomon",
+    "examplesHeading": "Examples",
+    "example1": "\"Zundamon, how are you?\"",
+    "example2": "\"Metan, what's on today?\"",
+    "example3": "\"Tsumugi, give me a fortune\"",
+    "setupHeading": "Setup",
+    "setupBody": "Click \"Install character voices\" in Settings (~1.7 GB download). After that, the wake word switches voices automatically. If you already have the official VOICEVOX app installed, no extra download is needed.",
+    "credits": "Uses VOICEVOX (https://voicevox.hiroshiba.jp/). Each character voice has its own terms of use; videos and streams must credit the character (\"VOICEVOX:character name\")."
   },
   "menubar": {
     "eyebrow": "LIVES IN THE MENU BAR",
@@ -174,7 +238,7 @@
       },
       "languages": {
         "title": "Speaks 9 languages",
-        "body": "Japanese, English, plus Spanish, French, German, Italian, Portuguese, Korean, and Simplified Chinese (Beta). Pick one and Chappie automatically uses a matching macOS system voice."
+        "body": "Japanese and English are stable. Spanish, French, German, Italian, Portuguese, Korean, and Simplified Chinese are in Beta. Pick one and Chappie automatically uses a matching macOS system voice."
       },
       "update": {
         "title": "Auto-update",
