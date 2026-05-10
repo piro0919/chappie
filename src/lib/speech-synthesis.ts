@@ -482,6 +482,7 @@ class VoicevoxEngine implements SpeechEngine {
   }
 
   private async synthAndPlay(text: string, styleId?: number): Promise<void> {
+    // First abort gate: skip if cancelled before we even started.
     if (this.aborted) return;
     const effectiveSpeakerId = styleId ?? this.speakerId;
     const tag = `[voicevox] spk=${effectiveSpeakerId}${
@@ -500,6 +501,10 @@ class VoicevoxEngine implements SpeechEngine {
       return;
     }
     console.info(`${tag} synth done ${(performance.now() - t0).toFixed(0)}ms`);
+
+    // Second abort gate: cancel may have fired during the (typically
+    // multi-second) synthesis call. Bail before allocating a Blob.
+    if (this.aborted) return;
 
     let url: string;
     try {
@@ -525,6 +530,22 @@ class VoicevoxEngine implements SpeechEngine {
       // Previous failed; we still play ours.
     }
 
+    // Third abort gate: this is the critical one for voice barge-in.
+    // While we were waiting in the play chain, cancel() may have run.
+    // Without this check the segment would create a fresh <audio> and
+    // start playback AFTER the cancel — making barge-in look broken
+    // ("止まらない") because the head segment got cut but the queued
+    // ones rolled in immediately after. resolveMine() unblocks any
+    // segment further down the chain so they can also bail at this
+    // same gate (cascade).
+    if (this.aborted) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {}
+      resolveMine();
+      return;
+    }
+
     const audio = new Audio(url);
     this.active.add(audio);
     const tStart = performance.now();
@@ -545,13 +566,22 @@ class VoicevoxEngine implements SpeechEngine {
       audio.addEventListener(
         "error",
         () => {
-          console.error(`[voicevox] audio error`, audio.error);
+          // cancel() dispatches a synthetic 'error' to settle this
+          // promise; in that case audio.error is null. Only log when
+          // we have a real error object (real playback failure).
+          if (audio.error) {
+            console.error(`[voicevox] audio error`, audio.error);
+          }
           settle();
         },
         { once: true },
       );
       audio.play().catch((e) => {
-        console.error(`[voicevox] audio.play() rejected`, e);
+        // Likewise: if cancel() set src="" mid-play, the rejection is
+        // expected and not a real failure. Suppress the noise.
+        if (!this.aborted) {
+          console.error(`[voicevox] audio.play() rejected`, e);
+        }
         settle();
       });
     });
