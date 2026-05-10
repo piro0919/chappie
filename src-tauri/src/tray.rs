@@ -47,9 +47,10 @@ impl TrayCharacter {
     }
 }
 
-// Active tray character. Default to Chappie until the renderer says
-// otherwise via `set_tray_character`. Wake-word switching writes here
-// every turn so the icon set always matches the voice currently in use.
+// Active tray character. Default to Chappie until init_tray loads the
+// persisted last-used character or the renderer pushes one via
+// `set_tray_character`. Wake-word switching writes here every turn so
+// the icon set always matches the voice currently in use.
 static TRAY_CHARACTER: Mutex<TrayCharacter> = Mutex::new(TrayCharacter::Chappie);
 
 fn current_character() -> TrayCharacter {
@@ -57,6 +58,63 @@ fn current_character() -> TrayCharacter {
         .lock()
         .map(|g| *g)
         .unwrap_or(TrayCharacter::Chappie)
+}
+
+// Where the active tray character is persisted across launches. Sits
+// next to the other ~/.chappie/*.json state files (notes, reminders,
+// memory). Single-key JSON to keep the schema cheap to extend later
+// (e.g. for explicit "always-Chappie" / "always-zundamon" override
+// modes).
+fn tray_state_path() -> Option<std::path::PathBuf> {
+    dirs::home_dir().map(|h| h.join(".chappie").join("tray.json"))
+}
+
+fn character_to_str(c: TrayCharacter) -> &'static str {
+    match c {
+        TrayCharacter::Chappie => "chappie",
+        TrayCharacter::Zundamon => "zundamon",
+    }
+}
+
+fn character_from_str(s: &str) -> Option<TrayCharacter> {
+    match s {
+        "chappie" => Some(TrayCharacter::Chappie),
+        "zundamon" => Some(TrayCharacter::Zundamon),
+        _ => None,
+    }
+}
+
+fn load_persisted_character() -> TrayCharacter {
+    let path = match tray_state_path() {
+        Some(p) => p,
+        None => return TrayCharacter::Chappie,
+    };
+    let bytes = match std::fs::read(&path) {
+        Ok(b) => b,
+        Err(_) => return TrayCharacter::Chappie,
+    };
+    let v: serde_json::Value = match serde_json::from_slice(&bytes) {
+        Ok(v) => v,
+        Err(_) => return TrayCharacter::Chappie,
+    };
+    v.get("character")
+        .and_then(|x| x.as_str())
+        .and_then(character_from_str)
+        .unwrap_or(TrayCharacter::Chappie)
+}
+
+fn save_persisted_character(c: TrayCharacter) {
+    let path = match tray_state_path() {
+        Some(p) => p,
+        None => return,
+    };
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let payload = serde_json::json!({ "character": character_to_str(c) });
+    if let Ok(s) = serde_json::to_string(&payload) {
+        let _ = std::fs::write(&path, s);
+    }
 }
 
 fn off_label(lang: Lang) -> &'static str {
@@ -283,17 +341,29 @@ pub fn set_update_available(available: bool) {
 /// for the next state transition.
 #[tauri::command]
 pub fn set_tray_character(app: AppHandle, character: TrayCharacter) {
-    if let Ok(mut g) = TRAY_CHARACTER.lock() {
+    {
+        let mut g = match TRAY_CHARACTER.lock() {
+            Ok(g) => g,
+            Err(_) => return,
+        };
         if *g == character {
             return;
         }
         *g = character;
     }
+    save_persisted_character(character);
     let cur_state = current_tray_state(&app).unwrap_or(TrayState::Idle);
     let _ = apply_tray_state(&app, cur_state);
 }
 
 pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
+    // Restore the last-used character before building the icon so the
+    // initial glyph already matches the voice the user left off with,
+    // even before any wake-word in this session.
+    let persisted = load_persisted_character();
+    if let Ok(mut g) = TRAY_CHARACTER.lock() {
+        *g = persisted;
+    }
     let lang = crate::i18n::current();
     let menu = build_menu(app, TrayState::Idle, true)?;
     let icon = Image::from_bytes(TrayState::Idle.icon_bytes(current_character()))?;
