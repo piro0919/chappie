@@ -227,7 +227,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
         (s) => s.id === vvSpeakerId,
       );
       if (speaker) {
-        perTurnOverride = `${speaker.persona}\n\n${turnRules}\n\n（重要：前のターンが別キャラの口調だったとしても、このターンは上記の設定で答えてください。）`;
+        // Few-shot example utterances grounded in the character's official
+        // /calls/ page voice. Concrete instances keep weaker models
+        // (Gemini Flash / Anthropic Haiku) in character on long answers
+        // where a one-line description alone tends to drift back to neutral.
+        const samplesBlock = speaker.samples?.length
+          ? `\n\n【話し方の例（このキャラのトーン・語尾・一人称が自然に出るよう参考にしてください）】\n${speaker.samples.map((s) => `・「${s}」`).join("\n")}`
+          : "";
+        perTurnOverride = `${speaker.persona}${samplesBlock}\n\n${turnRules}\n\n（重要：前のターンが別キャラの口調だったとしても、このターンは上記の設定で答えてください。）`;
       }
     } else {
       // Chappie wake: history may still contain assistant messages from a
@@ -411,8 +418,17 @@ export function useConversationLoop(): { state: State; error: string | null } {
       console.info("[loop] applyVoiceForWake -> WebSpeech (chappie)");
       setEngineOpts({ voicevox: { enabled: false, speakerId: 0 } });
     } else {
-      console.info(`[loop] applyVoiceForWake -> VOICEVOX speaker=${speakerId}`);
-      setEngineOpts({ voicevox: { enabled: true, speakerId } });
+      const speaker = VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId);
+      console.info(
+        `[loop] applyVoiceForWake -> VOICEVOX speaker=${speakerId} styles=${speaker?.styles ? Object.keys(speaker.styles).join(",") : "?"}`,
+      );
+      setEngineOpts({
+        voicevox: {
+          enabled: true,
+          speakerId,
+          styles: speaker?.styles,
+        },
+      });
     }
   }
 

@@ -101,4 +101,41 @@ describe("detectWake", () => {
       expect(result.body).toBe("何時?");
     }
   });
+
+  // Natural greeting forms: honorific / nickname suffixes ("ちゃん", "さん"
+  // etc.) right after the wake-word are trimmed so they don't leak into
+  // the body sent to the LLM.
+
+  it("trims 'ちゃん' suffix after a speaker name", () => {
+    expect(detectWake("つむぎちゃん、最新ニュース教えて")).toEqual({
+      matched: true,
+      body: "最新ニュース教えて",
+      speakerId: 8,
+    });
+  });
+
+  it("trims 'さん' suffix after a speaker name", () => {
+    expect(detectWake("めたんさん、明日の予定")).toEqual({
+      matched: true,
+      body: "明日の予定",
+      speakerId: 2,
+    });
+  });
+
+  it("matches a polite-prefix form like 'ねぇ ずんだもん'", () => {
+    expect(detectWake("ねぇ ずんだもん、天気どう？")).toEqual({
+      matched: true,
+      body: "天気どう?",
+      speakerId: 3,
+    });
+  });
+
+  it("trims honorifics on the chappie wake-word too", () => {
+    const r = detectWake("チャッピーちゃん、ありがとう");
+    expect(r.matched).toBe(true);
+    if (r.matched) {
+      expect(r.speakerId).toBeUndefined();
+      expect(r.body).toBe("ありがとう");
+    }
+  });
 });

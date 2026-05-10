@@ -55,6 +55,14 @@ const ALL_WAKE_WORDS: WakeCandidate[] = (() => {
 
 const LEAD_TRIM_RE = /^[\s、。．，,.!！?？:：;；\-—–…]+/;
 const TRAIL_TRIM_RE = /\s+$/;
+// Honorific / nickname suffixes that often follow a wake-word in natural
+// speech ("つむぎちゃん、…" / "めたんさん、…" / "ずんだもんっち、…"). Trimmed
+// from the body so they don't get sent to the LLM as part of the question.
+// Only stripped when the suffix sits at the very start of the body
+// (immediately after the wake-word, before the punctuation/whitespace
+// trim cleans up the rest).
+const HONORIFIC_TRIM_RE =
+  /^(ちゃん|さん|様|さま|くん|君|たん|っち|ぴょん|どの|殿)/;
 
 function normalize(s: string): string {
   return s.normalize("NFKC").toLowerCase();
@@ -87,6 +95,7 @@ export function detectWake(input: string): WakeMatch {
 
   const body = normalized
     .slice(bestIdx + bestLen)
+    .replace(HONORIFIC_TRIM_RE, "")
     .replace(LEAD_TRIM_RE, "")
     .replace(TRAIL_TRIM_RE, "");
 

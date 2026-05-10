@@ -12,6 +12,7 @@
 // loop on settings load and on `settings:updated`.
 
 import { invoke } from "@tauri-apps/api/core";
+import type { VoicevoxStyleKey } from "./voicevox-speakers";
 
 /** Massage text just before it goes to the synthesizer so cosmetic glitches
  *  in model output don't bleed into the spoken reply. Currently only the
@@ -327,8 +328,55 @@ function bytesToBlobUrl(bytes: number[] | Uint8Array | ArrayBuffer): string {
   return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
 }
 
+/** Sentiment heuristic for VOICEVOX style auto-switching. Picks a logical
+ *  style key based on lexical markers in a single segment of synthesized
+ *  text. Conservative on purpose: defaults to `normal` whenever no
+ *  strong signal is present. The actual engine style id is resolved by
+ *  the caller via the speaker's `styles` map; if a key isn't available
+ *  for the active speaker it falls back to `normal` automatically. */
+function pickStyleKey(text: string): VoicevoxStyleKey {
+  // Order matters: tsun and sad both look "negative" in lexicon, but
+  // tsun-leaning markers (refusal / annoyance) win over sad (apology /
+  // weakness) when both fire — they sound more distinct on VOICEVOX
+  // characters that have ツンツン styles.
+  if (
+    /(うれし|嬉し|だいすき|大好き|すごい|凄い|ありがと|やった|かわい|可愛い|いいね|最高|たのし|楽し|だいじょうぶ)/.test(
+      text,
+    )
+  ) {
+    return "sweet";
+  }
+  if (
+    /(もう[!！。、 ]|だめ|ダメ|やだ|嫌|うるさ|しらない|知らない|べつに|別に|ふん[、。!！]|ふざけ)/.test(
+      text,
+    )
+  ) {
+    return "tsun";
+  }
+  if (
+    /(ごめん|すまな|すみません|残念|ざんねん|わからない|分からない|難しい|むずかし|つらい|辛い|だめだった|失敗)/.test(
+      text,
+    )
+  ) {
+    return "sad";
+  }
+  if (
+    /(絶対|ぜったい|まちがいない|間違いない|大事|だいじ|必ず|かならず|任せ|まかせ|やる[!！。])/.test(
+      text,
+    )
+  ) {
+    return "strong";
+  }
+  return "normal";
+}
+
 class VoicevoxEngine implements SpeechEngine {
   private speakerId: number;
+  // Logical-emotion → engine-style-id map. When set, per-segment
+  // synthesis picks an id from here based on `pickStyleKey(text)`;
+  // missing keys fall back to the base `speakerId`. When undefined,
+  // every segment uses `speakerId`.
+  private styles?: Partial<Record<VoicevoxStyleKey, number>>;
   // Audio elements currently playing or queued. cancel() pauses each
   // and revokes its blob URL. Removed when `ended` fires naturally.
   private active: Set<HTMLAudioElement> = new Set();
@@ -338,17 +386,31 @@ class VoicevoxEngine implements SpeechEngine {
   // cancel() so the next segment can start immediately.
   private playChain: Promise<void> = Promise.resolve();
 
-  constructor(speakerId: number) {
+  constructor(
+    speakerId: number,
+    styles?: Partial<Record<VoicevoxStyleKey, number>>,
+  ) {
     this.speakerId = speakerId;
+    this.styles = styles;
+  }
+
+  /** Resolve the engine style id for a segment using the heuristic and
+   *  the speaker's available style map. Falls back to the base
+   *  speakerId when no specialized style is available. */
+  private resolveStyleId(text: string): number {
+    if (!this.styles) return this.speakerId;
+    const key = pickStyleKey(text);
+    const id = this.styles[key];
+    return id ?? this.speakerId;
   }
 
   async speak(text: string, _lang: string): Promise<void> {
     this.cancel();
-    return this.synthAndPlay(text);
+    return this.synthAndPlay(text, this.resolveStyleId(text));
   }
 
   async speakQueued(text: string, _lang: string): Promise<void> {
-    return this.synthAndPlay(text);
+    return this.synthAndPlay(text, this.resolveStyleId(text));
   }
 
   cancel(): void {
@@ -375,7 +437,7 @@ class VoicevoxEngine implements SpeechEngine {
 
     const submit = (segment: string) => {
       queued++;
-      inflight.push(this.synthAndPlay(segment));
+      inflight.push(this.synthAndPlay(segment, this.resolveStyleId(segment)));
     };
 
     return {
@@ -400,15 +462,18 @@ class VoicevoxEngine implements SpeechEngine {
     };
   }
 
-  private async synthAndPlay(text: string): Promise<void> {
-    const tag = `[voicevox] spk=${this.speakerId} len=${text.length}`;
+  private async synthAndPlay(text: string, styleId?: number): Promise<void> {
+    const effectiveSpeakerId = styleId ?? this.speakerId;
+    const tag = `[voicevox] spk=${effectiveSpeakerId}${
+      effectiveSpeakerId !== this.speakerId ? `(base=${this.speakerId})` : ""
+    } len=${text.length}`;
     console.info(`${tag} synth start "${text.slice(0, 20)}…"`);
     const t0 = performance.now();
     let bytes: number[] | Uint8Array | ArrayBuffer;
     try {
       bytes = await invoke("voicevox_synthesize", {
         text,
-        speakerId: this.speakerId,
+        speakerId: effectiveSpeakerId,
       });
     } catch (e) {
       await showVoicevoxError(`synthesize failed: ${e}`);
@@ -479,9 +544,15 @@ class VoicevoxEngine implements SpeechEngine {
 /** Engine selection inputs. Set by `setEngineOpts()` from the conversation
  *  loop on settings load and on `settings:updated`. `voicevox.enabled`
  *  alone doesn't force VOICEVOX — `getEngine()` also checks `lang`, since
- *  VOICEVOX only does Japanese. */
+ *  VOICEVOX only does Japanese. `styles` is the per-character logical-
+ *  emotion → engine-style-id map; when present, the engine picks a
+ *  variant id per spoken segment based on a sentiment heuristic. */
 export interface EngineOpts {
-  voicevox?: { enabled: boolean; speakerId: number };
+  voicevox?: {
+    enabled: boolean;
+    speakerId: number;
+    styles?: Partial<Record<VoicevoxStyleKey, number>>;
+  };
 }
 
 const webSpeech = new WebSpeechEngine();
@@ -522,9 +593,9 @@ export function getEngine(lang: string, opts?: EngineOpts): SpeechEngine {
   if (vv?.enabled && lang.toLowerCase().startsWith("ja")) {
     if (!cachedVoicevox || cachedVoicevoxSpeakerId !== vv.speakerId) {
       console.info(
-        `[voicevox] getEngine creating new engine for speaker=${vv.speakerId}`,
+        `[voicevox] getEngine creating new engine for speaker=${vv.speakerId}${vv.styles ? ` styles=${Object.keys(vv.styles).join(",")}` : ""}`,
       );
-      cachedVoicevox = new VoicevoxEngine(vv.speakerId);
+      cachedVoicevox = new VoicevoxEngine(vv.speakerId, vv.styles);
       cachedVoicevoxSpeakerId = vv.speakerId;
     }
     return cachedVoicevox;
