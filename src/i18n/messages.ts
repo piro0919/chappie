@@ -57,7 +57,6 @@ type Messages = {
     voicevoxStatusBundledApp: string;
     voicevoxStatusMissing: string;
     voicevoxInstall: string;
-    voicevoxInstallExtra: string;
     voicevoxInstalling: string;
     voicevoxUninstall: string;
     voicevoxInstallProgress: string;
@@ -147,7 +146,6 @@ const ja: Messages = {
     voicevoxStatusBundledApp: "VOICEVOX 連携中",
     voicevoxStatusMissing: "未インストール",
     voicevoxInstall: "キャラ機能をインストール（約 1.7GB）",
-    voicevoxInstallExtra: "Chappie 専用にインストール（任意・約 1.7GB）",
     voicevoxInstalling: "インストール中…",
     voicevoxUninstall: "アンインストール（約 2GB 解放）",
     voicevoxInstallProgress: "ダウンロード中… {received}MB / {total}MB",
@@ -245,7 +243,6 @@ const en: Messages = {
     voicevoxStatusBundledApp: "Linked with VOICEVOX",
     voicevoxStatusMissing: "Not installed",
     voicevoxInstall: "Install character voices (~1.7 GB)",
-    voicevoxInstallExtra: "Install dedicated copy (optional, ~1.7 GB)",
     voicevoxInstalling: "Installing…",
     voicevoxUninstall: "Uninstall (~2 GB freed)",
     voicevoxInstallProgress: "Downloading… {received} MB / {total} MB",
@@ -343,7 +340,6 @@ const es: Messages = {
     voicevoxStatusBundledApp: "Conectado con VOICEVOX",
     voicevoxStatusMissing: "No instalado",
     voicevoxInstall: "Instalar voces de personajes (~1,7 GB)",
-    voicevoxInstallExtra: "Instalar copia dedicada (opcional, ~1,7 GB)",
     voicevoxInstalling: "Instalando…",
     voicevoxUninstall: "Desinstalar (~2 GB liberados)",
     voicevoxInstallProgress: "Descargando… {received} MB / {total} MB",
@@ -441,7 +437,6 @@ const fr: Messages = {
     voicevoxStatusBundledApp: "Connecté à VOICEVOX",
     voicevoxStatusMissing: "Non installé",
     voicevoxInstall: "Installer les voix (~1,7 Go)",
-    voicevoxInstallExtra: "Installer une copie dédiée (facultatif, ~1,7 Go)",
     voicevoxInstalling: "Installation…",
     voicevoxUninstall: "Désinstaller (~2 Go libérés)",
     voicevoxInstallProgress: "Téléchargement… {received} Mo / {total} Mo",
@@ -539,7 +534,6 @@ const de: Messages = {
     voicevoxStatusBundledApp: "Mit VOICEVOX verbunden",
     voicevoxStatusMissing: "Nicht installiert",
     voicevoxInstall: "Charakterstimmen installieren (~1,7 GB)",
-    voicevoxInstallExtra: "Eigene Kopie installieren (optional, ~1,7 GB)",
     voicevoxInstalling: "Wird installiert…",
     voicevoxUninstall: "Deinstallieren (~2 GB frei)",
     voicevoxInstallProgress: "Lädt herunter… {received} MB / {total} MB",
@@ -634,7 +628,6 @@ const zh: Messages = {
     voicevoxStatusBundledApp: "已连接 VOICEVOX",
     voicevoxStatusMissing: "未安装",
     voicevoxInstall: "安装角色语音（约 1.7GB）",
-    voicevoxInstallExtra: "安装独立副本（可选，约 1.7GB）",
     voicevoxInstalling: "正在安装…",
     voicevoxUninstall: "卸载（释放约 2GB）",
     voicevoxInstallProgress: "下载中… {received}MB / {total}MB",
@@ -730,7 +723,6 @@ const pt: Messages = {
     voicevoxStatusBundledApp: "Conectado ao VOICEVOX",
     voicevoxStatusMissing: "Não instalado",
     voicevoxInstall: "Instalar vozes (~1,7 GB)",
-    voicevoxInstallExtra: "Instalar cópia dedicada (opcional, ~1,7 GB)",
     voicevoxInstalling: "Instalando…",
     voicevoxUninstall: "Desinstalar (~2 GB liberados)",
     voicevoxInstallProgress: "Baixando… {received} MB / {total} MB",
@@ -828,7 +820,6 @@ const ko: Messages = {
     voicevoxStatusBundledApp: "VOICEVOX 연동 중",
     voicevoxStatusMissing: "설치되지 않음",
     voicevoxInstall: "캐릭터 음성 설치 (약 1.7GB)",
-    voicevoxInstallExtra: "전용 사본 설치 (선택, 약 1.7GB)",
     voicevoxInstalling: "설치 중…",
     voicevoxUninstall: "제거 (약 2GB 확보)",
     voicevoxInstallProgress: "다운로드 중… {received}MB / {total}MB",
@@ -926,7 +917,6 @@ const it: Messages = {
     voicevoxStatusBundledApp: "Connesso a VOICEVOX",
     voicevoxStatusMissing: "Non installato",
     voicevoxInstall: "Installa voci dei personaggi (~1,7 GB)",
-    voicevoxInstallExtra: "Installa copia dedicata (opzionale, ~1,7 GB)",
     voicevoxInstalling: "Installazione…",
     voicevoxUninstall: "Disinstalla (~2 GB liberati)",
     voicevoxInstallProgress: "Download… {received} MB / {total} MB",

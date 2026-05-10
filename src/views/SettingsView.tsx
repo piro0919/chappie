@@ -536,18 +536,8 @@ export function SettingsView() {
                 {t("settings.voicevoxUninstall")}
               </button>
             )}
-            {voicevoxInstallKind === "bundled_app" && (
-              <button
-                type="button"
-                className={styles.button}
-                onClick={handleVoicevoxInstall}
-                disabled={voicevoxBusy}
-              >
-                {voicevoxBusy
-                  ? t("settings.voicevoxInstalling")
-                  : t("settings.voicevoxInstallExtra")}
-              </button>
-            )}
+            {/* When VOICEVOX.app is already installed (kind === "bundled_app")
+                Chappie just uses it — no install button is needed. */}
             <button
               type="button"
               className={styles.button}
