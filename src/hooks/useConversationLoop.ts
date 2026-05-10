@@ -268,7 +268,17 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const samplesBlock = speaker.samples?.length
           ? `\n\n【話し方の例（このキャラのトーン・語尾・一人称が自然に出るよう参考にしてください）】\n${speaker.samples.map((s) => `・「${s}」`).join("\n")}`
           : "";
-        perTurnOverride = `${speaker.persona}${samplesBlock}\n\n${turnRules}\n\n（重要：前のターンが別キャラの口調だったとしても、このターンは上記の設定で答えてください。）`;
+        // Identity-question rule: without this, "自己紹介して" / "誰？" /
+        // "何歳？" gets answered as "I'm Chappie, the hands-free
+        // assistant, with X character's voice" instead of as the
+        // character themselves. The base persona keeps insisting the
+        // assistant is Chappie, so we have to be explicit that for
+        // identity-shaped questions, the character speaks as themselves.
+        const identityRule =
+          "【素性に関する質問の扱い】\n" +
+          "「自己紹介して」「あなた誰？」「名前は？」「何歳？」など本人の属性を聞かれた場合は、**Chappie ではなく上記キャラ本人として** 答える（名前・年齢・性格・特徴を上記設定から拾う）。例：めたん→「わたくしは四国めたん、17歳の高校2年生よ」、ずんだもん→「僕、ずんだもんなのだ。ずんだ餅の精なのだ」。\n" +
+          "Chappie 本体の機能紹介は「何ができるの？」「使い方教えて」と聞かれたときだけで、その場合もキャラの口調のまま喋る。";
+        perTurnOverride = `${speaker.persona}${samplesBlock}\n\n${identityRule}\n\n${turnRules}\n\n（重要：前のターンが別キャラの口調だったとしても、このターンは上記の設定で答えてください。）`;
       }
     } else {
       // Chappie wake: history may still contain assistant messages from a
