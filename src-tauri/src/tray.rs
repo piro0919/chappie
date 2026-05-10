@@ -39,10 +39,7 @@ impl TrayCharacter {
     fn off_icon_bytes(self) -> &'static [u8] {
         match self {
             Self::Chappie => include_bytes!("../icons/tray-muted.png"),
-            // No dedicated zundamon "muted" icon yet — substitute idle so
-            // the tray stays visually consistent. Replace with a real
-            // muted variant (closed eyes + 🚫) when one is added.
-            Self::Zundamon => include_bytes!("../icons/zundamon-tray-idle.png"),
+            Self::Zundamon => include_bytes!("../icons/zundamon-tray-muted.png"),
         }
     }
 }
@@ -148,12 +145,8 @@ impl TrayState {
                 include_bytes!("../icons/tray-speaking.png")
             }
             (TrayCharacter::Chappie, Self::Error) => include_bytes!("../icons/tray-error.png"),
-            // No dedicated zundamon "initializing" icon yet — substitute
-            // idle since startup is brief and a calm idle face reads
-            // about the same as "starting up". Replace when a real
-            // initializing variant is added.
             (TrayCharacter::Zundamon, Self::Initializing) => {
-                include_bytes!("../icons/zundamon-tray-idle.png")
+                include_bytes!("../icons/zundamon-tray-initializing.png")
             }
             (TrayCharacter::Zundamon, Self::Idle) => {
                 include_bytes!("../icons/zundamon-tray-idle.png")
