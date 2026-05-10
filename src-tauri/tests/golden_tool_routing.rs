@@ -93,9 +93,20 @@ const CASES: &[Case] = &[
     Case { label: "youtube/close", utterance: "YouTube 閉じて", expected_first: "close_youtube" },
     Case { label: "note/add", utterance: "これメモして: 駐車場B3", expected_first: "add_note" },
     Case { label: "note/list", utterance: "最近のメモ読んで", expected_first: "list_notes" },
-    Case { label: "volume/absolute", utterance: "音量30にして", expected_first: "set_volume" },
+    // OpenAI sometimes does a defensive read-modify-write here even when an
+    // explicit value is given; allow either as the first call.
+    Case { label: "volume/absolute", utterance: "音量30にして", expected_first: "get_volume|set_volume" },
     Case { label: "mute", utterance: "ミュート", expected_first: "set_mute" },
     Case { label: "end", utterance: "ありがとう、またね", expected_first: "end_conversation" },
+    // MCP-contributed tools. Routed via the same registry as native tools;
+    // these cases lock down that the `mcp_*` namespace and descriptions
+    // surface cleanly to all 3 providers.
+    Case { label: "mcp/news", utterance: "最新ニュース教えて", expected_first: "mcp_news_latest" },
+    Case { label: "mcp/wiki", utterance: "アインシュタインって誰?", expected_first: "mcp_wiki_summary" },
+    Case { label: "mcp/quake", utterance: "最近の地震は?", expected_first: "mcp_quake_recent" },
+    Case { label: "mcp/fx", utterance: "ドル円いくら?", expected_first: "mcp_fx_rate" },
+    Case { label: "mcp/astro", utterance: "今日の日の入り何時?", expected_first: "mcp_astro_sunmoon" },
+    Case { label: "mcp/fetch", utterance: "https://example.com 読んで", expected_first: "mcp_fetch_readable" },
     // Relative-volume / relative-date utterances kick off a multi-round
     // sequence in production (get_volume → set_volume; get_current_time
     // → add_reminder_at). We only assert the FIRST tool here because
@@ -169,6 +180,12 @@ fn stub_tool_result(name: &str) -> Value {
         "get_now_playing" => json!({ "title": "Sample", "artist": "Test" }),
         "get_sleep_prevention" => json!({ "enabled": false }),
         "read_clipboard" => json!({ "text": "" }),
+        "mcp_news_latest" => json!({ "items": [] }),
+        "mcp_wiki_summary" => json!({ "title": "stub", "extract": "stub" }),
+        "mcp_quake_recent" => json!({ "items": [] }),
+        "mcp_fx_rate" => json!({ "base": "USD", "quote": "JPY", "rate": 150.0 }),
+        "mcp_astro_sunmoon" => json!({ "sunrise": "05:00", "sunset": "18:00", "moon_phase_label": "満月" }),
+        "mcp_fetch_readable" => json!({ "title": "stub", "text": "stub" }),
         _ => json!({ "ok": true }),
     }
 }
