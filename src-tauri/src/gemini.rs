@@ -107,24 +107,44 @@ fn translate_tools(openai_tools: &Value) -> Value {
 }
 
 /// Split incoming OpenAI-style messages into a Gemini `contents` array and
-/// a `system_instruction`. System messages get concatenated into the
-/// instruction so all model-grounding context survives.
+/// a `system_instruction`. Only the FIRST contiguous run of system
+/// messages at the top is hoisted into the instruction (this is the
+/// stable persona / cached prefix). Any later "system" message is a
+/// per-turn directive (e.g. VOICEVOX character override, mute-time
+/// formatting hint) and must keep its position relative to the
+/// surrounding user/assistant turns — Gemini has no native role for
+/// mid-conversation system, so we inline it as a `user` turn with a
+/// `【system】` marker. Hoisting these to the top instead would silently
+/// bury per-turn instructions behind the cached prefix and the recent
+/// assistant turns, which is exactly the bug we hit when character
+/// switches kept producing the previous character's reply verbatim.
 fn translate_messages(messages: Vec<ChatMessage>) -> (Vec<Value>, Option<String>) {
     let mut contents: Vec<Value> = Vec::new();
     let mut system_parts: Vec<String> = Vec::new();
+    let mut prefix_done = false;
     for m in messages {
         match m.role.as_str() {
-            "system" => system_parts.push(m.content),
-            "user" => contents.push(json!({
+            "system" if !prefix_done => system_parts.push(m.content),
+            "system" => contents.push(json!({
                 "role": "user",
-                "parts": [{ "text": m.content }],
+                "parts": [{ "text": format!("【system】\n{}", m.content) }],
             })),
-            "assistant" => contents.push(json!({
-                "role": "model",
-                "parts": [{ "text": m.content }],
-            })),
+            "user" => {
+                prefix_done = true;
+                contents.push(json!({
+                    "role": "user",
+                    "parts": [{ "text": m.content }],
+                }));
+            }
+            "assistant" => {
+                prefix_done = true;
+                contents.push(json!({
+                    "role": "model",
+                    "parts": [{ "text": m.content }],
+                }));
+            }
             _ => {
-                // Unknown role — best-effort treat as user.
+                prefix_done = true;
                 contents.push(json!({
                     "role": "user",
                     "parts": [{ "text": m.content }],

@@ -49,11 +49,15 @@ const PREROLL_FRAMES: usize = 5;
 // dropped before Whisper inference, since whisper-small Japanese is prone to
 // hallucinating phrases like "ご視聴ありがとうございました" on near-silence.
 const MIN_RMS_ENERGY: f32 = 0.003;
-// Higher RMS gate during barge-in mode. Speaker reverb at conversational
-// volume usually peaks around 0.005-0.015; raising the bar to 0.02 keeps
-// it out while genuine user speech (which is much closer to the mic and
-// directional) typically lands at 0.04+.
-const MIN_RMS_ENERGY_BARGE_IN: f32 = 0.02;
+// RMS gate during barge-in mode. Initially set higher (0.02) on the
+// hypothesis that user voice would tower over reverb, but real-world
+// mic levels for normal speech come in around 0.006-0.012 — same range
+// as TTS reverb — so a raised gate just rejected the user. Keep the
+// default 0.003 here and rely on the much higher VAD threshold (0.6)
+// plus the keyword whitelist for echo rejection. (The wake-word
+// hallucinations whisper sometimes produces from quiet TTS reverb are
+// blocked one layer above by `isBargeInCommand` in the renderer.)
+const MIN_RMS_ENERGY_BARGE_IN: f32 = MIN_RMS_ENERGY;
 // Cap utterance length during barge-in. Real interrupt commands are
 // short ("ストップ", "やめて", "もういい") — anything longer is
 // almost certainly transcribed Chappie-output, drop it early.
@@ -327,8 +331,9 @@ fn run_segmenter(
             crate::linfo!(
                 &app,
                 "audio",
-                "heartbeat: chunks={chunks_seen} muted={} in_speech={in_speech}",
-                is_effectively_muted()
+                "heartbeat: chunks={chunks_seen} muted={} barge_in={} in_speech={in_speech}",
+                is_effectively_muted(),
+                is_barge_in_active()
             );
             last_log = std::time::Instant::now();
         }
