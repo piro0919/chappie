@@ -50,6 +50,10 @@ fn ensure_window(app: &AppHandle) -> Option<WebviewWindow> {
 pub struct HudPayload {
     pub text: String,
     pub duration_ms: u64,
+    // Active tray character at the time the HUD is shown. Used by the
+    // renderer to pick a portrait that matches whichever voice the user
+    // is conversing with. Sourced from `tray::current_character()`.
+    pub character: crate::tray::TrayCharacter,
 }
 
 fn pick_monitor(win: &WebviewWindow) -> Option<tauri::Monitor> {
@@ -107,6 +111,7 @@ pub fn show(app: &AppHandle, text: impl Into<String>, duration_ms: u64) {
     let payload = HudPayload {
         text: text.into(),
         duration_ms,
+        character: crate::tray::current_character(),
     };
     // The window may not be ready to receive events immediately on first
     // launch (webview still loading). Re-emit a couple of times to cover

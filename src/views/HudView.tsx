@@ -22,7 +22,23 @@ function applyHudGlobals() {
   body.style.cursor = "default";
 }
 
-type HudPayload = { text: string; durationMs: number };
+type TrayCharacter =
+  | "chappie"
+  | "zundamon"
+  | "metan"
+  | "tsumugi"
+  | "himari"
+  | "sayo"
+  | "usagi"
+  | "zunko"
+  | "kiritan"
+  | "itako";
+
+type HudPayload = {
+  text: string;
+  durationMs: number;
+  character?: TrayCharacter;
+};
 
 // The renderer separates the main reply from the trailing hint (if any) by
 // a blank line. This keeps Rust-side hud::show simple — anything after
@@ -33,24 +49,30 @@ function splitBody(text: string): { main: string; suffix: string | null } {
   return { main: text.slice(0, idx), suffix: text.slice(idx + 2) };
 }
 
-// Pick a Chappie portrait that matches the message tone. Mute-related and
-// negative messages get the calmer "listening" pose; everything else gets
-// "talking" since the HUD typically accompanies a reply.
-function pickAvatar(text: string): string {
-  if (
+// Pick a portrait that (a) matches the message tone and (b) matches the
+// active tray character — so when the user is talking to a VOICEVOX
+// character, the HUD shows that character instead of Chappie. The
+// per-character art lives under /characters/<name>-(talking|listening).png
+// (sourced from the tray icon pack). Chappie keeps the dedicated 1024px
+// portraits at /talking.png and /listening.png.
+function pickAvatar(text: string, character: TrayCharacter): string {
+  const listeningPose =
     text.includes("ミュート") ||
     text.includes("🔇") ||
     text.includes("👂") ||
     text.includes("失敗") ||
-    text.includes("エラー")
-  ) {
-    return "/listening.png";
+    text.includes("エラー");
+  if (character === "chappie") {
+    return listeningPose ? "/listening.png" : "/talking.png";
   }
-  return "/talking.png";
+  return listeningPose
+    ? `/characters/${character}-listening.png`
+    : `/characters/${character}-talking.png`;
 }
 
 export function HudView() {
   const [text, setText] = useState<string | null>(null);
+  const [character, setCharacter] = useState<TrayCharacter>("chappie");
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -68,6 +90,7 @@ export function HudView() {
       window.clearTimeout(hideTimer);
       window.clearTimeout(dismissTimer);
       setText(e.payload.text);
+      setCharacter(e.payload.character ?? "chappie");
       requestAnimationFrame(() => setVisible(true));
 
       hideTimer = window.setTimeout(() => {
@@ -89,7 +112,7 @@ export function HudView() {
   if (!text) return <div className={styles.root} />;
 
   const { main, suffix } = splitBody(text);
-  const avatar = pickAvatar(text);
+  const avatar = pickAvatar(text, character);
 
   return (
     <div className={styles.root}>

@@ -66,7 +66,7 @@ impl TrayCharacter {
 // the icon set always matches the voice currently in use.
 static TRAY_CHARACTER: Mutex<TrayCharacter> = Mutex::new(TrayCharacter::Chappie);
 
-fn current_character() -> TrayCharacter {
+pub fn current_character() -> TrayCharacter {
     TRAY_CHARACTER
         .lock()
         .map(|g| *g)
