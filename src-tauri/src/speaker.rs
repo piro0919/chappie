@@ -125,7 +125,9 @@ pub fn ensure_loaded() -> Result<(), String> {
     }
     let path = model_path().ok_or_else(|| "no home dir".to_string())?;
     if !path.exists() {
-        let _ = MODEL.set(None);
+        // Don't poison the OnceLock here — the model just hasn't been
+        // downloaded yet. The user can hit Enroll later, which triggers
+        // the download and re-enters this function.
         return Err(format!("model not downloaded at {path:?}"));
     }
     let model = tract_onnx::onnx()

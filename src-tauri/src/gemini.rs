@@ -208,6 +208,20 @@ pub async fn chat_complete(
         );
     }
 
+    // Time-band hint at the END of the system block — keeps the cached
+    // system_instruction prefix stable until the band itself rolls over.
+    let sys_end = messages
+        .iter()
+        .position(|m| m.role.as_str() != "system")
+        .unwrap_or(messages.len());
+    messages.insert(
+        sys_end,
+        ChatMessage {
+            role: "system".to_string(),
+            content: crate::i18n::time_band_hint(),
+        },
+    );
+
     let (mut contents, system_instruction) = translate_messages(messages);
     let tools = translate_tools(&crate::openai::all_tools());
 

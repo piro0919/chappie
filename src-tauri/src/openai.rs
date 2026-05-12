@@ -826,6 +826,28 @@ pub(crate) async fn execute_tool(
                 .unwrap_or("today");
             match crate::calendar::calendar_status_sync() {
                 Ok(s) if s == "granted" => {}
+                Ok(s) if s == "not_determined" => {
+                    // First in-context invocation: fire the prompt right
+                    // now so the user can grant inline. Returns once the
+                    // user decides (or after the 120s EventKit timeout).
+                    // Wrapped in spawn_blocking because the inner mpsc
+                    // recv would block this tokio worker otherwise.
+                    let granted = tokio::task::spawn_blocking(
+                        crate::calendar::request_access_sync,
+                    )
+                    .await
+                    .ok()
+                    .and_then(|r| r.ok())
+                    .unwrap_or(false);
+                    if !granted {
+                        return json!({
+                            "error": "permission_denied",
+                            "status": "denied",
+                            "hint": "カレンダーへのアクセスが必要です。設定から有効化するか、もう一度試してください。"
+                        })
+                        .to_string();
+                    }
+                }
                 Ok(s) => {
                     return json!({
                         "error": "permission_denied",
@@ -1355,6 +1377,25 @@ pub(crate) async fn execute_tool(
                 .get("destination")
                 .and_then(|v| v.as_str())
                 .unwrap_or("clipboard");
+            // Fullscreen mode needs the Screen Recording permission;
+            // selection mode (`screencapture -i`) does not. Only ask
+            // when we actually need it. Selection still works without.
+            if mode == "fullscreen" {
+                let status = crate::screen_permission::check_screen_recording_permission().await;
+                if status != "granted" {
+                    let granted = crate::screen_permission::request_screen_recording_access()
+                        .await
+                        .unwrap_or(false);
+                    if !granted {
+                        return json!({
+                            "ok": false,
+                            "error": "permission_denied",
+                            "hint": "画面収録の権限が必要です。設定から有効化するか、もう一度試してください。"
+                        })
+                        .to_string();
+                    }
+                }
+            }
             match crate::screenshot::capture(mode, destination).await {
                 Ok(r) => json!({
                     "ok": true,
@@ -1470,6 +1511,16 @@ pub async fn chat_complete(
         let pos = if working.first().and_then(|m| m.get("role")).and_then(|r| r.as_str()) == Some("system") { 1 } else { 0 };
         working.insert(pos, json!({"role": "system", "content": profile}));
     }
+
+    // Time-band hint goes at the END of the system block so the prefix
+    // (persona + profile + location) stays cache-stable. Only this trailing
+    // line flips between 4 bands per day.
+    let band_hint = crate::i18n::time_band_hint();
+    let sys_end = working
+        .iter()
+        .position(|m| m.get("role").and_then(|r| r.as_str()) != Some("system"))
+        .unwrap_or(working.len());
+    working.insert(sys_end, json!({"role": "system", "content": band_hint}));
 
     let mut end_conversation = false;
     let mut full_text = String::new();

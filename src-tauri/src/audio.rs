@@ -78,6 +78,12 @@ static MUTED: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::Once
 // emitting `speech` events; the renderer filters them through a keyword
 // whitelist.
 static BARGE_IN: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
+// Speaker-enrollment recording mode. While true the segmenter accumulates
+// post-APM 16 kHz mono samples into `ENROLLMENT_BUF` and skips wake-word /
+// VAD / Whisper entirely — the renderer wants ~5 s of contiguous voice
+// for centroid extraction, not segmented utterances.
+static ENROLLING: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
+static ENROLLMENT_BUF: Mutex<Vec<f32>> = Mutex::new(Vec::new());
 static STARTED: Mutex<bool> = Mutex::new(false);
 
 fn muted_flag() -> Arc<AtomicBool> {
@@ -98,6 +104,42 @@ pub fn is_effectively_muted() -> bool {
 
 pub fn is_barge_in_active() -> bool {
     barge_in_flag().load(Ordering::SeqCst)
+}
+
+fn enrolling_flag() -> Arc<AtomicBool> {
+    ENROLLING
+        .get_or_init(|| Arc::new(AtomicBool::new(false)))
+        .clone()
+}
+
+pub fn is_enrolling() -> bool {
+    enrolling_flag().load(Ordering::SeqCst)
+}
+
+/// Start an enrollment recording. Clears any prior buffer and flips the
+/// segmenter into enrollment mode. The renderer is expected to wait the
+/// desired duration (~5 s) and then call `finish_enrollment_recording`.
+#[tauri::command]
+pub fn start_enrollment_recording() -> Result<(), String> {
+    if let Ok(mut buf) = ENROLLMENT_BUF.lock() {
+        buf.clear();
+    }
+    enrolling_flag().store(true, Ordering::SeqCst);
+    Ok(())
+}
+
+/// Stop enrollment mode and return the buffered 16 kHz mono samples.
+/// Empty vec is returned (not an error) if the recording was truncated
+/// or no samples landed — the caller can decide whether that's worth
+/// surfacing as a UX message.
+#[tauri::command]
+pub fn finish_enrollment_recording() -> Result<Vec<f32>, String> {
+    enrolling_flag().store(false, Ordering::SeqCst);
+    let buf = ENROLLMENT_BUF
+        .lock()
+        .map(|mut g| std::mem::take(&mut *g))
+        .unwrap_or_default();
+    Ok(buf)
 }
 
 pub fn is_listening() -> bool {
@@ -422,6 +464,36 @@ fn run_segmenter(
                 }
             }
             apm_out.extend_from_slice(&frame);
+        }
+
+        // Enrollment recording: pull the APM-processed samples straight
+        // into the enrollment buffer and skip the VAD / wake / whisper
+        // path entirely. We use the SAME post-APM 16 kHz audio that the
+        // speaker gate scores at runtime — important for consistency
+        // between the centroid we save and the embeddings we'll compare
+        // against later.
+        if is_enrolling() {
+            // Emit a coarse RMS level so the Settings UI can render a
+            // live amplitude meter while we accumulate samples. ~20 Hz
+            // by virtue of the chunk arrival rate, which is plenty for
+            // a "yes, the mic is hearing you" indicator.
+            if !apm_out.is_empty() {
+                let rms = (apm_out.iter().map(|x| x * x).sum::<f32>()
+                    / apm_out.len() as f32)
+                    .sqrt();
+                let _ = app.emit("speaker_enroll:level", rms);
+            }
+            if let Ok(mut g) = ENROLLMENT_BUF.lock() {
+                g.extend_from_slice(&apm_out);
+            }
+            apm_out.clear();
+            preroll.clear();
+            speech_buf.clear();
+            in_speech = false;
+            speech_frames = 0;
+            silence_frames = 0;
+            barge_in_seen_in_segment = false;
+            continue;
         }
 
         let barge_in_now = is_barge_in_active();

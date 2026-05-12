@@ -269,6 +269,13 @@ pub fn calendar_status_sync() -> Result<String, String> {
     send(Cmd::CheckPermission)
 }
 
+/// Synchronous (blocking) form of `request_calendar_access`, used by the
+/// `list_events` tool handler so it can trigger the system prompt
+/// in-context when the user first asks about their schedule.
+pub fn request_access_sync() -> Result<bool, String> {
+    send(Cmd::RequestPermission)
+}
+
 pub fn fetch_events(range: Range) -> Result<Vec<CalendarEvent>, String> {
     send(|tx| Cmd::FetchEvents(range, tx))
 }

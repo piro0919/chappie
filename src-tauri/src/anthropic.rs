@@ -164,6 +164,22 @@ pub async fn chat_complete(
         );
     }
 
+    // Time-band hint at the END of the system block so the cached prefix
+    // (persona + profile + location) stays stable across the day. The
+    // system string Anthropic sees is the join of all role=system entries
+    // in order, so trailing position keeps cache key disruption minimal.
+    let sys_end = messages
+        .iter()
+        .position(|m| m.role.as_str() != "system")
+        .unwrap_or(messages.len());
+    messages.insert(
+        sys_end,
+        ChatMessage {
+            role: "system".to_string(),
+            content: crate::i18n::time_band_hint(),
+        },
+    );
+
     let (mut working, system) = translate_messages(messages);
     // Mark the last tool with cache_control so Anthropic caches the entire
     // tools array (and everything before it: system, model). Cache hits
