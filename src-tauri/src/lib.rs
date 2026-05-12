@@ -113,7 +113,7 @@ pub(crate) fn run_whisper(audio: Vec<f32>) -> Result<String, String> {
     // Order doesn't matter much; total length kept under a few dozen
     // tokens to avoid biasing real content.
     params.set_initial_prompt(
-        "チャッピー、はい、チャッピーです。ずんだもん、めたん、つむぎ、ひまり、さよ、うさぎ、ずんこ、きりたん、いたこ、あんこもん。",
+        "チャッピー、はい、チャッピーです。ずんだもん、めたん、つむぎ、ひまり、さよ、うさぎ、ずんこ、きりたん、いたこ。",
     );
     params.set_no_speech_thold(0.6);
     params.set_temperature(0.0);

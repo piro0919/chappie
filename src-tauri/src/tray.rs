@@ -33,6 +33,14 @@ pub enum TrayState {
 pub enum TrayCharacter {
     Chappie,
     Zundamon,
+    Metan,
+    Tsumugi,
+    Himari,
+    Sayo,
+    Usagi,
+    Zunko,
+    Kiritan,
+    Itako,
 }
 
 impl TrayCharacter {
@@ -40,6 +48,14 @@ impl TrayCharacter {
         match self {
             Self::Chappie => include_bytes!("../icons/tray-muted.png"),
             Self::Zundamon => include_bytes!("../icons/zundamon-tray-muted.png"),
+            Self::Metan => include_bytes!("../icons/metan-tray-muted.png"),
+            Self::Tsumugi => include_bytes!("../icons/tsumugi-tray-muted.png"),
+            Self::Himari => include_bytes!("../icons/himari-tray-muted.png"),
+            Self::Sayo => include_bytes!("../icons/sayo-tray-muted.png"),
+            Self::Usagi => include_bytes!("../icons/usagi-tray-muted.png"),
+            Self::Zunko => include_bytes!("../icons/zunko-tray-muted.png"),
+            Self::Kiritan => include_bytes!("../icons/kiritan-tray-muted.png"),
+            Self::Itako => include_bytes!("../icons/itako-tray-muted.png"),
         }
     }
 }
@@ -70,6 +86,14 @@ fn character_to_str(c: TrayCharacter) -> &'static str {
     match c {
         TrayCharacter::Chappie => "chappie",
         TrayCharacter::Zundamon => "zundamon",
+        TrayCharacter::Metan => "metan",
+        TrayCharacter::Tsumugi => "tsumugi",
+        TrayCharacter::Himari => "himari",
+        TrayCharacter::Sayo => "sayo",
+        TrayCharacter::Usagi => "usagi",
+        TrayCharacter::Zunko => "zunko",
+        TrayCharacter::Kiritan => "kiritan",
+        TrayCharacter::Itako => "itako",
     }
 }
 
@@ -77,6 +101,14 @@ fn character_from_str(s: &str) -> Option<TrayCharacter> {
     match s {
         "chappie" => Some(TrayCharacter::Chappie),
         "zundamon" => Some(TrayCharacter::Zundamon),
+        "metan" => Some(TrayCharacter::Metan),
+        "tsumugi" => Some(TrayCharacter::Tsumugi),
+        "himari" => Some(TrayCharacter::Himari),
+        "sayo" => Some(TrayCharacter::Sayo),
+        "usagi" => Some(TrayCharacter::Usagi),
+        "zunko" => Some(TrayCharacter::Zunko),
+        "kiritan" => Some(TrayCharacter::Kiritan),
+        "itako" => Some(TrayCharacter::Itako),
         _ => None,
     }
 }
@@ -162,6 +194,150 @@ impl TrayState {
             }
             (TrayCharacter::Zundamon, Self::Error) => {
                 include_bytes!("../icons/zundamon-tray-error.png")
+            }
+            (TrayCharacter::Metan, Self::Initializing) => {
+                include_bytes!("../icons/metan-tray-initializing.png")
+            }
+            (TrayCharacter::Metan, Self::Idle) => {
+                include_bytes!("../icons/metan-tray-idle.png")
+            }
+            (TrayCharacter::Metan, Self::Listening) => {
+                include_bytes!("../icons/metan-tray-listening.png")
+            }
+            (TrayCharacter::Metan, Self::Thinking) => {
+                include_bytes!("../icons/metan-tray-thinking.png")
+            }
+            (TrayCharacter::Metan, Self::Speaking) => {
+                include_bytes!("../icons/metan-tray-speaking.png")
+            }
+            (TrayCharacter::Metan, Self::Error) => {
+                include_bytes!("../icons/metan-tray-error.png")
+            }
+            (TrayCharacter::Tsumugi, Self::Initializing) => {
+                include_bytes!("../icons/tsumugi-tray-initializing.png")
+            }
+            (TrayCharacter::Tsumugi, Self::Idle) => {
+                include_bytes!("../icons/tsumugi-tray-idle.png")
+            }
+            (TrayCharacter::Tsumugi, Self::Listening) => {
+                include_bytes!("../icons/tsumugi-tray-listening.png")
+            }
+            (TrayCharacter::Tsumugi, Self::Thinking) => {
+                include_bytes!("../icons/tsumugi-tray-thinking.png")
+            }
+            (TrayCharacter::Tsumugi, Self::Speaking) => {
+                include_bytes!("../icons/tsumugi-tray-speaking.png")
+            }
+            (TrayCharacter::Tsumugi, Self::Error) => {
+                include_bytes!("../icons/tsumugi-tray-error.png")
+            }
+            (TrayCharacter::Himari, Self::Initializing) => {
+                include_bytes!("../icons/himari-tray-initializing.png")
+            }
+            (TrayCharacter::Himari, Self::Idle) => {
+                include_bytes!("../icons/himari-tray-idle.png")
+            }
+            (TrayCharacter::Himari, Self::Listening) => {
+                include_bytes!("../icons/himari-tray-listening.png")
+            }
+            (TrayCharacter::Himari, Self::Thinking) => {
+                include_bytes!("../icons/himari-tray-thinking.png")
+            }
+            (TrayCharacter::Himari, Self::Speaking) => {
+                include_bytes!("../icons/himari-tray-speaking.png")
+            }
+            (TrayCharacter::Himari, Self::Error) => {
+                include_bytes!("../icons/himari-tray-error.png")
+            }
+            (TrayCharacter::Sayo, Self::Initializing) => {
+                include_bytes!("../icons/sayo-tray-initializing.png")
+            }
+            (TrayCharacter::Sayo, Self::Idle) => {
+                include_bytes!("../icons/sayo-tray-idle.png")
+            }
+            (TrayCharacter::Sayo, Self::Listening) => {
+                include_bytes!("../icons/sayo-tray-listening.png")
+            }
+            (TrayCharacter::Sayo, Self::Thinking) => {
+                include_bytes!("../icons/sayo-tray-thinking.png")
+            }
+            (TrayCharacter::Sayo, Self::Speaking) => {
+                include_bytes!("../icons/sayo-tray-speaking.png")
+            }
+            (TrayCharacter::Sayo, Self::Error) => {
+                include_bytes!("../icons/sayo-tray-error.png")
+            }
+            (TrayCharacter::Usagi, Self::Initializing) => {
+                include_bytes!("../icons/usagi-tray-initializing.png")
+            }
+            (TrayCharacter::Usagi, Self::Idle) => {
+                include_bytes!("../icons/usagi-tray-idle.png")
+            }
+            (TrayCharacter::Usagi, Self::Listening) => {
+                include_bytes!("../icons/usagi-tray-listening.png")
+            }
+            (TrayCharacter::Usagi, Self::Thinking) => {
+                include_bytes!("../icons/usagi-tray-thinking.png")
+            }
+            (TrayCharacter::Usagi, Self::Speaking) => {
+                include_bytes!("../icons/usagi-tray-speaking.png")
+            }
+            (TrayCharacter::Usagi, Self::Error) => {
+                include_bytes!("../icons/usagi-tray-error.png")
+            }
+            (TrayCharacter::Zunko, Self::Initializing) => {
+                include_bytes!("../icons/zunko-tray-initializing.png")
+            }
+            (TrayCharacter::Zunko, Self::Idle) => {
+                include_bytes!("../icons/zunko-tray-idle.png")
+            }
+            (TrayCharacter::Zunko, Self::Listening) => {
+                include_bytes!("../icons/zunko-tray-listening.png")
+            }
+            (TrayCharacter::Zunko, Self::Thinking) => {
+                include_bytes!("../icons/zunko-tray-thinking.png")
+            }
+            (TrayCharacter::Zunko, Self::Speaking) => {
+                include_bytes!("../icons/zunko-tray-speaking.png")
+            }
+            (TrayCharacter::Zunko, Self::Error) => {
+                include_bytes!("../icons/zunko-tray-error.png")
+            }
+            (TrayCharacter::Kiritan, Self::Initializing) => {
+                include_bytes!("../icons/kiritan-tray-initializing.png")
+            }
+            (TrayCharacter::Kiritan, Self::Idle) => {
+                include_bytes!("../icons/kiritan-tray-idle.png")
+            }
+            (TrayCharacter::Kiritan, Self::Listening) => {
+                include_bytes!("../icons/kiritan-tray-listening.png")
+            }
+            (TrayCharacter::Kiritan, Self::Thinking) => {
+                include_bytes!("../icons/kiritan-tray-thinking.png")
+            }
+            (TrayCharacter::Kiritan, Self::Speaking) => {
+                include_bytes!("../icons/kiritan-tray-speaking.png")
+            }
+            (TrayCharacter::Kiritan, Self::Error) => {
+                include_bytes!("../icons/kiritan-tray-error.png")
+            }
+            (TrayCharacter::Itako, Self::Initializing) => {
+                include_bytes!("../icons/itako-tray-initializing.png")
+            }
+            (TrayCharacter::Itako, Self::Idle) => {
+                include_bytes!("../icons/itako-tray-idle.png")
+            }
+            (TrayCharacter::Itako, Self::Listening) => {
+                include_bytes!("../icons/itako-tray-listening.png")
+            }
+            (TrayCharacter::Itako, Self::Thinking) => {
+                include_bytes!("../icons/itako-tray-thinking.png")
+            }
+            (TrayCharacter::Itako, Self::Speaking) => {
+                include_bytes!("../icons/itako-tray-speaking.png")
+            }
+            (TrayCharacter::Itako, Self::Error) => {
+                include_bytes!("../icons/itako-tray-error.png")
             }
         }
     }

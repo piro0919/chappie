@@ -22,8 +22,8 @@
 // character. The renderer picks one per spoken segment based on a light
 // sentiment heuristic (see `speech-synthesis.ts`). Only `normal` is
 // required; missing keys fall back to `normal`. Most characters only
-// ship `normal` — only ずんだもん / 四国めたん / 中国うさぎ / あんこもん
-// have rich style sets.
+// ship `normal` — only ずんだもん / 四国めたん / 中国うさぎ have rich
+// style sets.
 //
 // Persona text and 一人称・二人称 are grounded in each character's
 // official profile on https://voicevox.hiroshiba.jp/dormitory/<slug>/
@@ -75,7 +75,17 @@ export interface VoicevoxSpeaker {
    *  match a `TrayCharacter` variant on the Rust side (lowercase). When
    *  unset (or set to a value the Rust side doesn't recognize), the tray
    *  stays on the default Chappie icons. */
-  trayCharacter?: "chappie" | "zundamon";
+  trayCharacter?:
+    | "chappie"
+    | "zundamon"
+    | "metan"
+    | "tsumugi"
+    | "himari"
+    | "sayo"
+    | "usagi"
+    | "zunko"
+    | "kiritan"
+    | "itako";
 }
 
 export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
@@ -111,6 +121,7 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "ふぅん、面白いじゃない。",
     ],
     styles: { normal: 2, sweet: 0, tsun: 6, strong: 4 },
+    trayCharacter: "metan",
   },
   {
     id: 8,
@@ -127,6 +138,7 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "オタクくん、もうちょい詳しく教えて？",
     ],
     styles: { normal: 8 },
+    trayCharacter: "tsumugi",
   },
   {
     id: 14,
@@ -143,6 +155,7 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "ふふ、可愛らしいですね。",
     ],
     styles: { normal: 14 },
+    trayCharacter: "himari",
   },
   {
     id: 46,
@@ -159,6 +172,7 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "あなたとお話しするの、小夜は楽しいよ。",
     ],
     styles: { normal: 46 },
+    trayCharacter: "sayo",
   },
   {
     id: 61,
@@ -175,6 +189,7 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "それで…合ってる。",
     ],
     styles: { normal: 61, sad: 63, strong: 62 },
+    trayCharacter: "usagi",
   },
   {
     id: 107,
@@ -191,6 +206,7 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "私に任せておいて。",
     ],
     styles: { normal: 107 },
+    trayCharacter: "zunko",
   },
   {
     id: 108,
@@ -207,6 +223,7 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "わたしが調べる。あなたは待ってて。",
     ],
     styles: { normal: 108 },
+    trayCharacter: "kiritan",
   },
   {
     id: 109,
@@ -223,21 +240,6 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "あら、それは存じませんでしたわ。",
     ],
     styles: { normal: 109 },
-  },
-  {
-    id: 113,
-    label: "あんこもん（ノーマル）",
-    wakeNames: ["あんこもん", "アンコモン"],
-    persona:
-      "今このターンの返答は「あんこもん」として行うもん。ツンツンした性格で、ずんだもんを勝手にライバル視している。一人称は「あんこもん」、二人称は「おまえ」「みんな」。語尾は「〜だもん」「〜もん」を多用（例：「知らないもん」「教えてあげるもん」）。あんこが好物。回答自体はちゃんとするけど、ちょっと反発的・生意気な言い回しで。チャッピーとしての知識やツールはそのまま使うもん。",
-    samples: [
-      "あんこもんに任せるもん！",
-      "おまえ、あんこもんを甘く見るなもん。",
-      "知らないもん、興味ないもん。",
-      "教えてあげるもん、感謝するもん。",
-      "ずんだもんなんかに負けないもん。",
-      "ふん、別にうれしくないもん。",
-    ],
-    styles: { normal: 113, sad: 115, strong: 114 },
+    trayCharacter: "itako",
   },
 ];
