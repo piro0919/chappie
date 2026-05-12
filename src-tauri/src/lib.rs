@@ -2,6 +2,7 @@ mod anthropic;
 mod apm;
 mod audio;
 mod speaker;
+mod tcc_reset;
 mod battery;
 mod caffeinate;
 mod calendar;
@@ -16,6 +17,7 @@ mod mcp;
 mod mic_permission;
 mod model;
 mod location;
+mod location_native;
 mod memory;
 mod miniplayer;
 mod music;
@@ -139,6 +141,20 @@ pub(crate) fn run_whisper(audio: Vec<f32>) -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn location_permission_status() -> Result<String, String> {
+    tokio::task::spawn_blocking(location_native::check_permission)
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn request_location_permission() -> Result<bool, String> {
+    tokio::task::spawn_blocking(location_native::request_permission)
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 fn set_tray_state(app: tauri::AppHandle, state: TrayState) -> Result<(), String> {
     apply_tray_state(&app, state).map_err(|e| e.to_string())
 }
@@ -258,12 +274,16 @@ pub fn run() {
             screen_permission::open_screen_recording_settings,
             calendar::calendar_status,
             calendar::request_calendar_access,
+            location_permission_status,
+            request_location_permission,
             audio::start_listening,
             audio::stop_listening,
             audio::pause_listening,
             audio::resume_listening,
             audio::enter_barge_in_mode,
             audio::exit_barge_in_mode,
+            audio::start_enrollment_recording,
+            audio::finish_enrollment_recording,
             openai::chat_complete,
             hud::hud_dismiss,
             hud::hud_show,
@@ -280,9 +300,22 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
+            // Detect upgrade and reset the TCC entries that ad-hoc
+            // signing's cdhash churn tends to ghost (Screen Recording
+            // worst, Calendar / Microphone secondary). Must run before
+            // anything that requests those permissions on launch.
+            #[cfg(target_os = "macos")]
+            {
+                let info = app.package_info();
+                let bundle_id = app.config().identifier.clone();
+                let current = info.version.to_string();
+                tcc_reset::reset_on_upgrade(&bundle_id, &current);
+            }
+
             init_tray(&app.handle())?;
             timer::start_tray_title_ticker(&app.handle());
             calendar::init();
+            location_native::init();
             reminder::init(&app.handle());
             // Speaker recognition: load any prior enrollment + lazily load
             // the ONNX model. Both are best-effort; the audio pipeline

@@ -1,6 +1,6 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
-import { emit } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   disable as disableAutostart,
@@ -24,14 +24,18 @@ import {
   startInstall,
   uninstall,
 } from "../lib/voicevox-install";
+import "./SettingsView.global.css";
 import styles from "./SettingsView.module.css";
 
 type MicStatus = "granted" | "denied" | "restricted" | "not_determined";
 type ScreenStatus = "granted" | "denied";
 type CalendarStatus = "granted" | "denied" | "restricted" | "not_determined";
+type LocationStatus = "granted" | "denied" | "restricted" | "not_determined";
 
 const MIC_PRIVACY_URL =
   "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
+const LOCATION_PRIVACY_URL =
+  "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices";
 
 export function SettingsView() {
   const { t } = useT();
@@ -64,6 +68,26 @@ export function SettingsView() {
   const [calendarStatus, setCalendarStatus] =
     useState<CalendarStatus>("not_determined");
   const [requestingCalendar, setRequestingCalendar] = useState(false);
+  const [locationStatus, setLocationStatus] =
+    useState<LocationStatus>("not_determined");
+  const [requestingLocation, setRequestingLocation] = useState(false);
+  // Speaker enrollment: "idle" = nothing happening, "downloading" = pulling
+  // the ONNX model on first use, "recording" = capturing voice for ~5s,
+  // "enrolling" = sending samples to Rust + waiting for save.
+  type SpeakerPhase =
+    | { kind: "idle" }
+    | { kind: "downloading"; pct: number }
+    | { kind: "recording"; remaining: number; phraseIndex: number }
+    | { kind: "enrolling" };
+  const [speakerEnrolled, setSpeakerEnrolled] = useState(false);
+  const [speakerPhase, setSpeakerPhase] = useState<SpeakerPhase>({
+    kind: "idle",
+  });
+  const [speakerError, setSpeakerError] = useState<string | null>(null);
+  const [speakerLevel, setSpeakerLevel] = useState(0);
+  const ENROLL_PHRASE_SECONDS = 3;
+  const ENROLL_PHRASE_COUNT = 3;
+  const ENROLL_SECONDS = ENROLL_PHRASE_SECONDS * ENROLL_PHRASE_COUNT;
 
   function micStatusBadge(status: MicStatus): {
     label: string;
@@ -132,6 +156,28 @@ export function SettingsView() {
       console.error("[settings] request_calendar_access failed", e);
     } finally {
       setRequestingCalendar(false);
+    }
+  }
+
+  async function refreshLocationStatus() {
+    try {
+      const status = await invoke<LocationStatus>("location_permission_status");
+      setLocationStatus(status);
+    } catch (e) {
+      console.error("[settings] location_permission_status failed", e);
+    }
+  }
+
+  async function requestLocation() {
+    setRequestingLocation(true);
+    try {
+      const granted = await invoke<boolean>("request_location_permission");
+      console.info("[settings] request_location_permission ->", granted);
+      await refreshLocationStatus();
+    } catch (e) {
+      console.error("[settings] request_location_permission failed", e);
+    } finally {
+      setRequestingLocation(false);
     }
   }
 
@@ -213,7 +259,11 @@ export function SettingsView() {
       await refreshMicStatus();
       await refreshScreenStatus();
       await refreshCalendarStatus();
+      await refreshLocationStatus();
       await refreshVoicevoxStatus();
+      try {
+        setSpeakerEnrolled(await invoke<boolean>("speaker_is_enrolled"));
+      } catch {}
       setLoaded(true);
     })();
     getVersion()
@@ -225,10 +275,81 @@ export function SettingsView() {
     }).then((u) => {
       unlisten = u;
     });
+    // Speaker model download progress — fires while ensure_speaker_model
+    // pulls the ECAPA ONNX from Hugging Face on first enrollment.
+    let unlistenSpeaker: (() => void) | undefined;
+    void listen<{ received: number; total: number }>(
+      "speaker_model:progress",
+      (e) => {
+        const { received, total } = e.payload;
+        const pct = total > 0 ? Math.round((received / total) * 100) : 0;
+        setSpeakerPhase({ kind: "downloading", pct });
+      },
+    ).then((u) => {
+      unlistenSpeaker = u;
+    });
+    // Live amplitude during enrollment recording — Rust emits coarse RMS
+    // every chunk so we can render a meter and reassure the user the mic
+    // is actually hearing them.
+    let unlistenLevel: (() => void) | undefined;
+    void listen<number>("speaker_enroll:level", (e) => {
+      setSpeakerLevel(e.payload);
+    }).then((u) => {
+      unlistenLevel = u;
+    });
     return () => {
       unlisten?.();
+      unlistenSpeaker?.();
+      unlistenLevel?.();
     };
   }, []);
+
+  async function onEnrollVoice() {
+    setSpeakerError(null);
+    try {
+      // Pull the ONNX model down if needed. ensure_speaker_model is a
+      // no-op when the file is already in ~/.chappie/models/, so the
+      // happy path on re-enrollment skips this step.
+      setSpeakerPhase({ kind: "downloading", pct: 0 });
+      await invoke("ensure_speaker_model");
+      // Hand the mic to enrollment mode: audio.rs accumulates post-APM
+      // samples into its buffer and skips the wake-word path while
+      // recording is active.
+      await invoke("start_enrollment_recording");
+      setSpeakerLevel(0);
+      for (let s = ENROLL_SECONDS; s > 0; s--) {
+        const elapsed = ENROLL_SECONDS - s;
+        const phraseIndex = Math.min(
+          Math.floor(elapsed / ENROLL_PHRASE_SECONDS),
+          ENROLL_PHRASE_COUNT - 1,
+        );
+        setSpeakerPhase({ kind: "recording", remaining: s, phraseIndex });
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      setSpeakerLevel(0);
+      setSpeakerPhase({ kind: "enrolling" });
+      const samples = await invoke<number[]>("finish_enrollment_recording");
+      await invoke("speaker_enroll", { samples });
+      setSpeakerEnrolled(true);
+      setSpeakerPhase({ kind: "idle" });
+    } catch (e) {
+      setSpeakerError(String(e));
+      setSpeakerPhase({ kind: "idle" });
+      // Best-effort: make sure we don't leave the audio pipeline stuck
+      // in enrollment mode if we threw before finish_enrollment_recording.
+      void invoke("finish_enrollment_recording").catch(() => {});
+    }
+  }
+
+  async function onClearVoice() {
+    setSpeakerError(null);
+    try {
+      await invoke("speaker_clear_enrollment");
+      setSpeakerEnrolled(false);
+    } catch (e) {
+      setSpeakerError(String(e));
+    }
+  }
 
   const onSave = async () => {
     await saveSettings({
@@ -260,6 +381,7 @@ export function SettingsView() {
 
   return (
     <main className={styles.root}>
+      <h2 className={styles.sectionHeading}>{t("settings.sectionRequired")}</h2>
       {/* Microphone access */}
       <section className={styles.card}>
         <div className={styles.statusRow}>
@@ -306,6 +428,142 @@ export function SettingsView() {
         {micStatus === "denied" && (
           <p className={styles.note}>{t("settings.micDeniedNote")}</p>
         )}
+      </section>
+
+      {/* API key */}
+      <section className={styles.card}>
+        <div className={styles.row}>
+          <label className={styles.rowLabel} htmlFor="api-key">
+            {t("settings.apiKey")}
+          </label>
+          <input
+            id="api-key"
+            type="password"
+            className={styles.input}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={t("settings.apiKeyPlaceholder")}
+          />
+        </div>
+        {(() => {
+          const trimmed = apiKey.trim();
+          if (!trimmed) {
+            return <p className={styles.note}>{t("settings.apiKeyNote")}</p>;
+          }
+          const provider = detectProvider(trimmed);
+          if (provider) {
+            return (
+              <p className={styles.note}>
+                {t("settings.apiKeyDetected", {
+                  provider: providerLabel(provider),
+                })}
+              </p>
+            );
+          }
+          return <p className={styles.note}>{t("settings.apiKeyUnknown")}</p>;
+        })()}
+      </section>
+
+      <h2 className={styles.sectionHeading}>{t("settings.sectionOptional")}</h2>
+
+      {/* Speaker recognition — paired with the microphone above:
+          "can Chappie hear?" → "whose voice is it?". */}
+      <section className={styles.card}>
+        <div className={styles.statusRow}>
+          <span className={styles.statusLabel}>
+            {t("settings.speakerLabel")}
+          </span>
+          <span
+            className={`${styles.badge} ${
+              speakerEnrolled ? styles.badgeGranted : styles.badgeNeutral
+            }`}
+          >
+            <span className={styles.badgeDot} />
+            {speakerEnrolled
+              ? t("settings.speakerStatusEnrolled")
+              : t("settings.speakerStatusNotEnrolled")}
+          </span>
+        </div>
+        <p className={styles.note}>{t("settings.speakerDescription")}</p>
+        <p className={styles.note}>{t("settings.speakerPrivacy")}</p>
+        {speakerPhase.kind === "downloading" && (
+          <p className={styles.note}>
+            {t("settings.speakerModelDownloading", {
+              pct: String(speakerPhase.pct),
+            })}
+          </p>
+        )}
+        {speakerPhase.kind === "recording" &&
+          (() => {
+            const idx = speakerPhase.phraseIndex;
+            const phraseKey = (
+              ["speakerPhrase1", "speakerPhrase2", "speakerPhrase3"] as const
+            )[idx];
+            const meterPct = Math.min(100, Math.round(speakerLevel * 600));
+            return (
+              <div className={styles.enrollBox}>
+                <div className={styles.enrollStep}>
+                  {t("settings.speakerPhrasePrompt", {
+                    cur: String(idx + 1),
+                    total: String(ENROLL_PHRASE_COUNT),
+                  })}
+                </div>
+                <p className={styles.enrollPhrase}>
+                  「{t(`settings.${phraseKey}`)}」
+                </p>
+                <div className={styles.enrollMeter}>
+                  <div
+                    className={styles.enrollMeterBar}
+                    style={{ width: `${meterPct}%` }}
+                  />
+                </div>
+                <div className={styles.enrollMeterLabel}>
+                  <span>
+                    <span className={styles.enrollMeterDot} />
+                    {t("settings.speakerRecording", {
+                      seconds: String(speakerPhase.remaining),
+                    })}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+        {speakerPhase.kind === "enrolling" && (
+          <p className={styles.note}>{t("settings.speakerEnrolling")}</p>
+        )}
+        {speakerError && (
+          <p className={styles.note}>
+            {t("settings.speakerFailed", { err: speakerError })}
+          </p>
+        )}
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.button}
+            disabled={speakerPhase.kind !== "idle"}
+            onClick={() => {
+              void onEnrollVoice();
+            }}
+          >
+            {speakerEnrolled
+              ? t("settings.speakerReenroll")
+              : t("settings.speakerEnroll")}
+          </button>
+          {speakerEnrolled && (
+            <button
+              type="button"
+              className={styles.button}
+              disabled={speakerPhase.kind !== "idle"}
+              onClick={() => {
+                void onClearVoice();
+              }}
+            >
+              {t("settings.speakerClear")}
+            </button>
+          )}
+        </div>
       </section>
 
       {/* Screen recording */}
@@ -397,40 +655,59 @@ export function SettingsView() {
         )}
       </section>
 
-      {/* API key */}
+      {/* Location access — accurate fix via CoreLocation when granted,
+          otherwise falls back to IP-based estimate (city-level). The
+          Japanese ISP routing problem is what makes this worth asking
+          for: IP lookups default everyone to Tokyo. */}
       <section className={styles.card}>
-        <div className={styles.row}>
-          <label className={styles.rowLabel} htmlFor="api-key">
-            {t("settings.apiKey")}
-          </label>
-          <input
-            id="api-key"
-            type="password"
-            className={styles.input}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={t("settings.apiKeyPlaceholder")}
-          />
+        <div className={styles.statusRow}>
+          <span className={styles.statusLabel}>
+            {t("settings.locationAccess")}
+          </span>
+          <span
+            className={`${styles.badge} ${locationStatus === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
+          >
+            <span className={styles.badgeDot} />
+            {locationStatus === "granted"
+              ? t("settings.locationGranted")
+              : t("settings.locationDenied")}
+          </span>
         </div>
-        {(() => {
-          const trimmed = apiKey.trim();
-          if (!trimmed) {
-            return <p className={styles.note}>{t("settings.apiKeyNote")}</p>;
-          }
-          const provider = detectProvider(trimmed);
-          if (provider) {
-            return (
-              <p className={styles.note}>
-                {t("settings.apiKeyDetected", {
-                  provider: providerLabel(provider),
-                })}
-              </p>
-            );
-          }
-          return <p className={styles.note}>{t("settings.apiKeyUnknown")}</p>;
-        })()}
+        <p className={styles.note}>{t("settings.locationDescription")}</p>
+        {locationStatus !== "granted" && (
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={requestLocation}
+              disabled={requestingLocation}
+            >
+              {t("settings.locationRequest")}
+            </button>
+            {(locationStatus === "denied" ||
+              locationStatus === "restricted") && (
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => {
+                  void openUrl(LOCATION_PRIVACY_URL).catch(() => {});
+                }}
+              >
+                {t("settings.micOpenSystem")}
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles.button}
+              onClick={refreshLocationStatus}
+            >
+              {t("settings.micRecheck")}
+            </button>
+          </div>
+        )}
+        {locationStatus === "denied" && (
+          <p className={styles.note}>{t("settings.locationDeniedNote")}</p>
+        )}
       </section>
 
       {/* Language */}

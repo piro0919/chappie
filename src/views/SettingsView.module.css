@@ -17,6 +17,24 @@
   letter-spacing: -0.01em;
 }
 
+.sectionHeading {
+  margin: 4px 0 8px;
+  padding: 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6e6e73;
+}
+
+.sectionHeading:first-of-type {
+  margin-top: 0;
+}
+
+.card + .sectionHeading {
+  margin-top: 20px;
+}
+
 .card {
   background: #ffffff;
   border: 1px solid #e5e5ea;
@@ -107,6 +125,73 @@
   display: flex;
   gap: 8px;
   margin-top: 10px;
+}
+
+.enrollBox {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #e5e5ea;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.enrollStep {
+  font-size: 11px;
+  color: #6e6e73;
+  margin-bottom: 6px;
+}
+
+.enrollPhrase {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 0 0 10px;
+}
+
+.enrollMeter {
+  position: relative;
+  height: 6px;
+  background: #e5e5ea;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.enrollMeterBar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #34c759, #30b0c7);
+  border-radius: 999px;
+  transition: width 80ms linear;
+}
+
+.enrollMeterDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff3b30;
+  margin-right: 6px;
+  animation: enrollPulse 1.2s ease-in-out infinite;
+  vertical-align: 1px;
+}
+
+.enrollMeterLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #6e6e73;
+  margin-top: 8px;
+}
+
+@keyframes enrollPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .note {

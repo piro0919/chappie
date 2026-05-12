@@ -65,6 +65,15 @@ objc2-event-kit = { version = "0.3.2", features = [
     "EKEvent",
     "EKEventStore",
 ] }
+objc2-core-location = { version = "0.3.2", features = [
+    "CLLocation",
+    "CLLocationManager",
+    "CLLocationManagerDelegate",
+    "CLPlacemark",
+    "CLGeocoder",
+    "CLError",
+    "block2",
+] }
 block2 = "0.6"
 # Metal-accelerated Whisper on macOS. Cargo unions features across target
 # sections, so the macOS build still gets `metal` even though the base

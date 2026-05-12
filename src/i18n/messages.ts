@@ -29,6 +29,14 @@ type Messages = {
     calendarDenied: string;
     calendarRequest: string;
     calendarDeniedNote: string;
+    locationAccess: string;
+    locationGranted: string;
+    locationDenied: string;
+    locationRequest: string;
+    locationDeniedNote: string;
+    locationDescription: string;
+    sectionRequired: string;
+    sectionOptional: string;
     apiKey: string;
     apiKeyPlaceholder: string;
     apiKeyNote: string;
@@ -63,6 +71,22 @@ type Messages = {
     voicevoxExtracting: string;
     voicevoxVerifying: string;
     voicevoxCredits: string;
+    speakerLabel: string;
+    speakerDescription: string;
+    speakerStatusEnrolled: string;
+    speakerStatusNotEnrolled: string;
+    speakerEnroll: string;
+    speakerReenroll: string;
+    speakerClear: string;
+    speakerRecording: string;
+    speakerEnrolling: string;
+    speakerModelDownloading: string;
+    speakerFailed: string;
+    speakerPrivacy: string;
+    speakerPhrasePrompt: string;
+    speakerPhrase1: string;
+    speakerPhrase2: string;
+    speakerPhrase3: string;
     save: string;
     saved: string;
   };
@@ -117,6 +141,16 @@ const ja: Messages = {
     calendarRequest: "カレンダーへのアクセスを許可",
     calendarDeniedNote:
       "macOS のシステム設定 → プライバシーとセキュリティ → カレンダー で Chappie を有効化してください。",
+    locationAccess: "位置情報",
+    locationGranted: "許可済み",
+    locationDenied: "未許可",
+    locationRequest: "位置情報へのアクセスを許可",
+    locationDeniedNote:
+      "macOS のシステム設定 → プライバシーとセキュリティ → 位置情報サービス で Chappie を有効化してください。許可しない場合は IP ベースの大まかな位置で代用します。",
+    locationDescription:
+      "天気や近所の話を聞いたときに、より正確な地域で返答するために使います。許可しない場合は IP ベースの推定（市区町村レベル）にフォールバックします。",
+    sectionRequired: "必須",
+    sectionOptional: "任意",
     apiKey: "API キー",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / Anthropic / Gemini に対応。",
@@ -153,6 +187,24 @@ const ja: Messages = {
     voicevoxVerifying: "起動確認中…",
     voicevoxCredits:
       "VOICEVOX (https://voicevox.hiroshiba.jp/) を使用しています。各キャラクターの音声には個別の利用規約があります。動画・配信等で使用する場合は「VOICEVOX:キャラ名」の表記が必要です。",
+    speakerLabel: "話者認識",
+    speakerDescription:
+      "あなたの声を覚えさせると、テレビ・YouTube・他の人の声に反応しなくなります。",
+    speakerStatusEnrolled: "登録済み",
+    speakerStatusNotEnrolled: "未登録",
+    speakerEnroll: "声を登録する",
+    speakerReenroll: "登録し直す",
+    speakerClear: "登録を削除",
+    speakerRecording: "録音中… {seconds}秒",
+    speakerEnrolling: "登録中…",
+    speakerModelDownloading: "モデルをダウンロード中 {pct}%",
+    speakerFailed: "登録に失敗しました: {err}",
+    speakerPrivacy:
+      "声紋データはこのMac内にのみ保存され、外部に送信されません。いつでも削除できます。",
+    speakerPhrasePrompt: "次のフレーズを読み上げてください（{cur}/{total}）",
+    speakerPhrase1: "チャッピー、おはよう",
+    speakerPhrase2: "今日の天気を教えて",
+    speakerPhrase3: "タイマーを3分セットして",
     save: "保存",
     saved: "保存しました",
   },
@@ -214,6 +266,16 @@ const en: Messages = {
     calendarRequest: "Grant calendar access",
     calendarDeniedNote:
       "Open System Settings → Privacy & Security → Calendars and enable Chappie.",
+    locationAccess: "Location access",
+    locationGranted: "Granted",
+    locationDenied: "Not granted",
+    locationRequest: "Grant location access",
+    locationDeniedNote:
+      "Open System Settings → Privacy & Security → Location Services and enable Chappie. Without it, Chappie falls back to a rough IP-based estimate.",
+    locationDescription:
+      'Used to ground weather and "nearby" replies in your actual area. If you decline, Chappie falls back to a rough IP-based estimate at the city level.',
+    sectionRequired: "Required",
+    sectionOptional: "Optional",
     apiKey: "API Key",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Supports OpenAI / Anthropic / Gemini.",
@@ -250,6 +312,24 @@ const en: Messages = {
     voicevoxVerifying: "Verifying…",
     voicevoxCredits:
       'Uses VOICEVOX (https://voicevox.hiroshiba.jp/). Each character voice has its own terms of use; videos and streams must credit the character ("VOICEVOX:character name").',
+    speakerLabel: "Voice recognition",
+    speakerDescription:
+      "Enroll your voice so Chappie ignores TV, YouTube, and other people.",
+    speakerStatusEnrolled: "Enrolled",
+    speakerStatusNotEnrolled: "Not enrolled",
+    speakerEnroll: "Enroll my voice",
+    speakerReenroll: "Re-enroll",
+    speakerClear: "Forget my voice",
+    speakerRecording: "Recording… {seconds}s",
+    speakerEnrolling: "Enrolling…",
+    speakerModelDownloading: "Downloading model {pct}%",
+    speakerFailed: "Enrollment failed: {err}",
+    speakerPrivacy:
+      "Your voice data stays on this Mac and is never sent anywhere. You can delete it any time.",
+    speakerPhrasePrompt: "Read this phrase aloud ({cur}/{total})",
+    speakerPhrase1: "Chappie, good morning",
+    speakerPhrase2: "Tell me today's weather",
+    speakerPhrase3: "Set a three minute timer",
     save: "Save",
     saved: "Saved",
   },
@@ -311,6 +391,16 @@ const es: Messages = {
     calendarRequest: "Permitir acceso al calendario",
     calendarDeniedNote:
       "Abre Configuración → Privacidad y seguridad → Calendarios y habilita Chappie.",
+    locationAccess: "Acceso a ubicación",
+    locationGranted: "Permitido",
+    locationDenied: "No permitido",
+    locationRequest: "Permitir acceso a la ubicación",
+    locationDeniedNote:
+      "Abre Configuración → Privacidad y seguridad → Servicios de localización y habilita Chappie. Sin permiso, se usa una estimación aproximada basada en IP.",
+    locationDescription:
+      "Se usa para que las respuestas del clima o sobre lugares cercanos se basen en tu zona real. Si lo rechazas, Chappie usa una estimación por IP a nivel de ciudad.",
+    sectionRequired: "Obligatorio",
+    sectionOptional: "Opcional",
     apiKey: "Clave de API",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatible con OpenAI / Anthropic / Gemini.",
@@ -347,6 +437,24 @@ const es: Messages = {
     voicevoxVerifying: "Verificando…",
     voicevoxCredits:
       'Usa VOICEVOX (https://voicevox.hiroshiba.jp/). Cada voz tiene sus propios términos de uso; vídeos y streams deben acreditar al personaje ("VOICEVOX:nombre del personaje").',
+    speakerLabel: "Reconocimiento de voz",
+    speakerDescription:
+      "Al registrar tu voz, Chappie deja de responder a la TV, YouTube u otras personas.",
+    speakerStatusEnrolled: "Registrada",
+    speakerStatusNotEnrolled: "No registrada",
+    speakerEnroll: "Registrar mi voz",
+    speakerReenroll: "Volver a registrar",
+    speakerClear: "Borrar registro",
+    speakerRecording: "Grabando… {seconds}s",
+    speakerEnrolling: "Registrando…",
+    speakerModelDownloading: "Descargando modelo {pct}%",
+    speakerFailed: "Error al registrar: {err}",
+    speakerPrivacy:
+      "Tus datos de voz se quedan en este Mac y nunca se envían a ningún servidor. Puedes borrarlos cuando quieras.",
+    speakerPhrasePrompt: "Lee esta frase en voz alta ({cur}/{total})",
+    speakerPhrase1: "Chappie, buenos días",
+    speakerPhrase2: "Dime el tiempo de hoy",
+    speakerPhrase3: "Pon un temporizador de tres minutos",
     save: "Guardar",
     saved: "Guardado",
   },
@@ -408,6 +516,16 @@ const fr: Messages = {
     calendarRequest: "Autoriser l'accès à l'agenda",
     calendarDeniedNote:
       "Ouvre Réglages → Confidentialité et sécurité → Calendriers et active Chappie.",
+    locationAccess: "Accès à la localisation",
+    locationGranted: "Autorisé",
+    locationDenied: "Refusé",
+    locationRequest: "Autoriser l'accès à la localisation",
+    locationDeniedNote:
+      "Ouvre Réglages → Confidentialité et sécurité → Service de localisation et active Chappie. Sinon, on utilise une estimation IP approximative.",
+    locationDescription:
+      "Permet d'ancrer les réponses météo et locales sur ta vraie zone. Si tu refuses, Chappie retombe sur une estimation par IP au niveau de la ville.",
+    sectionRequired: "Requis",
+    sectionOptional: "Facultatif",
     apiKey: "Clé d'API",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatible OpenAI / Anthropic / Gemini.",
@@ -444,6 +562,24 @@ const fr: Messages = {
     voicevoxVerifying: "Vérification…",
     voicevoxCredits:
       "Utilise VOICEVOX (https://voicevox.hiroshiba.jp/). Chaque voix a ses propres conditions ; les vidéos et streams doivent créditer le personnage (« VOICEVOX:nom du personnage »).",
+    speakerLabel: "Reconnaissance vocale",
+    speakerDescription:
+      "Une fois ta voix enregistrée, Chappie ignore la TV, YouTube et les autres voix.",
+    speakerStatusEnrolled: "Enregistrée",
+    speakerStatusNotEnrolled: "Non enregistrée",
+    speakerEnroll: "Enregistrer ma voix",
+    speakerReenroll: "Réenregistrer",
+    speakerClear: "Supprimer l'enregistrement",
+    speakerRecording: "Enregistrement… {seconds}s",
+    speakerEnrolling: "Enregistrement…",
+    speakerModelDownloading: "Téléchargement du modèle {pct}%",
+    speakerFailed: "Échec : {err}",
+    speakerPrivacy:
+      "Vos données vocales restent sur ce Mac et ne sont jamais envoyées ailleurs. Vous pouvez les supprimer à tout moment.",
+    speakerPhrasePrompt: "Lis cette phrase à voix haute ({cur}/{total})",
+    speakerPhrase1: "Chappie, bonjour",
+    speakerPhrase2: "Donne-moi la météo du jour",
+    speakerPhrase3: "Lance un minuteur de trois minutes",
     save: "Enregistrer",
     saved: "Enregistré",
   },
@@ -505,6 +641,16 @@ const de: Messages = {
     calendarRequest: "Kalenderzugriff erlauben",
     calendarDeniedNote:
       "Öffne Systemeinstellungen → Datenschutz & Sicherheit → Kalender und aktiviere Chappie.",
+    locationAccess: "Standortzugriff",
+    locationGranted: "Erlaubt",
+    locationDenied: "Verweigert",
+    locationRequest: "Standortzugriff erlauben",
+    locationDeniedNote:
+      "Öffne Systemeinstellungen → Datenschutz & Sicherheit → Ortungsdienste und aktiviere Chappie. Ohne Erlaubnis wird auf eine grobe IP-Schätzung zurückgegriffen.",
+    locationDescription:
+      "Verankert Wetter- und Lokalantworten in deiner tatsächlichen Gegend. Wenn du ablehnst, fällt Chappie auf eine ungefähre IP-Schätzung auf Stadtebene zurück.",
+    sectionRequired: "Erforderlich",
+    sectionOptional: "Optional",
     apiKey: "API-Schlüssel",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Unterstützt OpenAI / Anthropic / Gemini.",
@@ -541,6 +687,24 @@ const de: Messages = {
     voicevoxVerifying: "Wird geprüft…",
     voicevoxCredits:
       'Verwendet VOICEVOX (https://voicevox.hiroshiba.jp/). Jede Stimme hat eigene Nutzungsbedingungen; Videos und Streams müssen den Charakter nennen („VOICEVOX:Charaktername").',
+    speakerLabel: "Sprechererkennung",
+    speakerDescription:
+      "Wenn deine Stimme registriert ist, reagiert Chappie nicht mehr auf TV, YouTube oder andere.",
+    speakerStatusEnrolled: "Registriert",
+    speakerStatusNotEnrolled: "Nicht registriert",
+    speakerEnroll: "Stimme registrieren",
+    speakerReenroll: "Neu registrieren",
+    speakerClear: "Registrierung löschen",
+    speakerRecording: "Aufnahme… {seconds}s",
+    speakerEnrolling: "Registriere…",
+    speakerModelDownloading: "Modell wird heruntergeladen {pct}%",
+    speakerFailed: "Registrierung fehlgeschlagen: {err}",
+    speakerPrivacy:
+      "Deine Sprachdaten bleiben auf diesem Mac und werden nirgendwo hingesendet. Du kannst sie jederzeit löschen.",
+    speakerPhrasePrompt: "Lies diesen Satz laut vor ({cur}/{total})",
+    speakerPhrase1: "Chappie, guten Morgen",
+    speakerPhrase2: "Sag mir das heutige Wetter",
+    speakerPhrase3: "Stell einen Timer auf drei Minuten",
     save: "Speichern",
     saved: "Gespeichert",
   },
@@ -599,6 +763,16 @@ const zh: Messages = {
     calendarDenied: "未授权",
     calendarRequest: "授权访问日历",
     calendarDeniedNote: "打开系统设置 → 隐私与安全性 → 日历，启用 Chappie。",
+    locationAccess: "位置信息",
+    locationGranted: "已授权",
+    locationDenied: "未授权",
+    locationRequest: "授权访问位置",
+    locationDeniedNote:
+      "打开系统设置 → 隐私与安全性 → 定位服务，启用 Chappie。未授权时会回退到基于 IP 的粗略估计。",
+    locationDescription:
+      '用于让天气和"附近"等回复贴合你的实际位置。如果不授权，会回退到基于 IP 的城市级估计。',
+    sectionRequired: "必需",
+    sectionOptional: "可选",
     apiKey: "API 密钥",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "支持 OpenAI / Anthropic / Gemini。",
@@ -635,6 +809,24 @@ const zh: Messages = {
     voicevoxVerifying: "验证中…",
     voicevoxCredits:
       "使用了 VOICEVOX (https://voicevox.hiroshiba.jp/)。各角色语音有各自的使用条款；视频和直播须标注「VOICEVOX:角色名」。",
+    speakerLabel: "说话人识别",
+    speakerDescription:
+      "登记你的声音后，Chappie 不会再被电视、YouTube 或其他人的声音激活。",
+    speakerStatusEnrolled: "已登记",
+    speakerStatusNotEnrolled: "未登记",
+    speakerEnroll: "登记我的声音",
+    speakerReenroll: "重新登记",
+    speakerClear: "删除登记",
+    speakerRecording: "录音中… {seconds}秒",
+    speakerEnrolling: "登记中…",
+    speakerModelDownloading: "正在下载模型 {pct}%",
+    speakerFailed: "登记失败: {err}",
+    speakerPrivacy:
+      "你的声纹数据仅保存在这台Mac上，不会发送到任何服务器。可以随时删除。",
+    speakerPhrasePrompt: "请朗读下面这句话（{cur}/{total}）",
+    speakerPhrase1: "Chappie，早上好",
+    speakerPhrase2: "告诉我今天的天气",
+    speakerPhrase3: "设置一个三分钟的计时器",
     save: "保存",
     saved: "已保存",
   },
@@ -694,6 +886,16 @@ const pt: Messages = {
     calendarRequest: "Permitir acesso ao calendário",
     calendarDeniedNote:
       "Abra Ajustes → Privacidade e Segurança → Calendários e ative Chappie.",
+    locationAccess: "Acesso à localização",
+    locationGranted: "Permitido",
+    locationDenied: "Não permitido",
+    locationRequest: "Permitir acesso à localização",
+    locationDeniedNote:
+      "Abra Ajustes → Privacidade e Segurança → Serviços de Localização e ative Chappie. Sem permissão, é usada uma estimativa aproximada por IP.",
+    locationDescription:
+      'Usado para ancorar respostas de clima e "por perto" na sua área real. Se você recusar, Chappie usa uma estimativa por IP a nível de cidade.',
+    sectionRequired: "Obrigatório",
+    sectionOptional: "Opcional",
     apiKey: "Chave de API",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatível com OpenAI / Anthropic / Gemini.",
@@ -730,6 +932,24 @@ const pt: Messages = {
     voicevoxVerifying: "Verificando…",
     voicevoxCredits:
       'Usa o VOICEVOX (https://voicevox.hiroshiba.jp/). Cada voz tem seus próprios termos de uso; vídeos e streams devem creditar o personagem ("VOICEVOX:nome do personagem").',
+    speakerLabel: "Reconhecimento de voz",
+    speakerDescription:
+      "Depois de registrar sua voz, o Chappie deixa de responder à TV, YouTube ou outras pessoas.",
+    speakerStatusEnrolled: "Registrada",
+    speakerStatusNotEnrolled: "Não registrada",
+    speakerEnroll: "Registrar minha voz",
+    speakerReenroll: "Registrar novamente",
+    speakerClear: "Apagar registro",
+    speakerRecording: "Gravando… {seconds}s",
+    speakerEnrolling: "Registrando…",
+    speakerModelDownloading: "Baixando modelo {pct}%",
+    speakerFailed: "Falha no registro: {err}",
+    speakerPrivacy:
+      "Os seus dados de voz ficam apenas neste Mac e nunca são enviados para nenhum servidor. Pode apagá-los a qualquer momento.",
+    speakerPhrasePrompt: "Leia esta frase em voz alta ({cur}/{total})",
+    speakerPhrase1: "Chappie, bom dia",
+    speakerPhrase2: "Diga-me o clima de hoje",
+    speakerPhrase3: "Defina um timer de três minutos",
     save: "Salvar",
     saved: "Salvo",
   },
@@ -791,6 +1011,16 @@ const ko: Messages = {
     calendarRequest: "캘린더 접근 허용",
     calendarDeniedNote:
       "시스템 설정 → 개인정보 보호 및 보안 → 캘린더에서 Chappie를 활성화하세요.",
+    locationAccess: "위치 정보 접근",
+    locationGranted: "허용됨",
+    locationDenied: "허용되지 않음",
+    locationRequest: "위치 정보 접근 허용",
+    locationDeniedNote:
+      "시스템 설정 → 개인정보 보호 및 보안 → 위치 서비스에서 Chappie를 활성화하세요. 허용하지 않으면 IP 기반의 대략적인 추정으로 대체합니다.",
+    locationDescription:
+      '날씨와 "근처" 답변을 실제 지역에 맞추기 위해 사용합니다. 거부하면 도시 단위의 IP 기반 추정으로 대체합니다.',
+    sectionRequired: "필수",
+    sectionOptional: "선택",
     apiKey: "API 키",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / Anthropic / Gemini 지원.",
@@ -827,6 +1057,24 @@ const ko: Messages = {
     voicevoxVerifying: "확인 중…",
     voicevoxCredits:
       'VOICEVOX (https://voicevox.hiroshiba.jp/) 를 사용합니다. 캐릭터별 음성에는 각각의 이용 약관이 있습니다. 동영상·방송 등에서 사용 시 "VOICEVOX:캐릭터 이름" 표기가 필요합니다.',
+    speakerLabel: "화자 인식",
+    speakerDescription:
+      "내 목소리를 등록하면 TV, YouTube, 다른 사람의 목소리에는 반응하지 않습니다.",
+    speakerStatusEnrolled: "등록됨",
+    speakerStatusNotEnrolled: "등록되지 않음",
+    speakerEnroll: "내 목소리 등록",
+    speakerReenroll: "다시 등록",
+    speakerClear: "등록 삭제",
+    speakerRecording: "녹음 중… {seconds}초",
+    speakerEnrolling: "등록 중…",
+    speakerModelDownloading: "모델 다운로드 중 {pct}%",
+    speakerFailed: "등록 실패: {err}",
+    speakerPrivacy:
+      "음성 데이터는 이 Mac 안에만 저장되며 외부로 전송되지 않습니다. 언제든지 삭제할 수 있습니다.",
+    speakerPhrasePrompt: "다음 문장을 소리내어 읽어주세요 ({cur}/{total})",
+    speakerPhrase1: "채피, 좋은 아침",
+    speakerPhrase2: "오늘 날씨 알려줘",
+    speakerPhrase3: "3분 타이머 설정해줘",
     save: "저장",
     saved: "저장되었습니다",
   },
@@ -888,6 +1136,16 @@ const it: Messages = {
     calendarRequest: "Consenti accesso al calendario",
     calendarDeniedNote:
       "Apri Impostazioni → Privacy e sicurezza → Calendari e abilita Chappie.",
+    locationAccess: "Accesso alla posizione",
+    locationGranted: "Consentito",
+    locationDenied: "Non consentito",
+    locationRequest: "Consenti accesso alla posizione",
+    locationDeniedNote:
+      "Apri Impostazioni → Privacy e sicurezza → Servizi di localizzazione e abilita Chappie. Senza permesso, viene usata una stima approssimativa basata su IP.",
+    locationDescription:
+      "Usato per ancorare risposte su meteo e zone vicine alla tua posizione reale. Se rifiuti, Chappie usa una stima basata su IP a livello di città.",
+    sectionRequired: "Obbligatorio",
+    sectionOptional: "Opzionale",
     apiKey: "Chiave API",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatibile con OpenAI / Anthropic / Gemini.",
@@ -924,6 +1182,24 @@ const it: Messages = {
     voicevoxVerifying: "Verifica…",
     voicevoxCredits:
       'Usa VOICEVOX (https://voicevox.hiroshiba.jp/). Ogni voce ha i propri termini d\'uso; video e stream devono accreditare il personaggio ("VOICEVOX:nome personaggio").',
+    speakerLabel: "Riconoscimento vocale",
+    speakerDescription:
+      "Registrando la tua voce, Chappie smette di rispondere alla TV, YouTube o ad altre persone.",
+    speakerStatusEnrolled: "Registrata",
+    speakerStatusNotEnrolled: "Non registrata",
+    speakerEnroll: "Registra la mia voce",
+    speakerReenroll: "Registra di nuovo",
+    speakerClear: "Elimina registrazione",
+    speakerRecording: "Registrazione… {seconds}s",
+    speakerEnrolling: "Registrazione…",
+    speakerModelDownloading: "Download modello {pct}%",
+    speakerFailed: "Registrazione fallita: {err}",
+    speakerPrivacy:
+      "I tuoi dati vocali restano su questo Mac e non vengono mai inviati altrove. Puoi eliminarli in qualsiasi momento.",
+    speakerPhrasePrompt: "Leggi questa frase ad alta voce ({cur}/{total})",
+    speakerPhrase1: "Chappie, buongiorno",
+    speakerPhrase2: "Dimmi il meteo di oggi",
+    speakerPhrase3: "Imposta un timer di tre minuti",
     save: "Salva",
     saved: "Salvato",
   },
@@ -969,28 +1245,112 @@ const CATALOGS: Record<Exclude<Language, "auto">, Messages> = {
   it,
 };
 
-const WAKE_ACKS: Record<Exclude<Language, "auto">, string[]> = {
-  ja: [
-    "はい",
-    "はーい",
-    "はい、なに？",
-    "なーに？",
-    "どうしたの？",
-    "呼んだ？",
-    "なになに？",
-  ],
-  en: ["Yes?", "Yeah?", "What's up?", "Hmm?", "Mhm?", "Go ahead.", "I'm here."],
-  es: ["¿Sí?", "¿Diga?", "¿Qué tal?", "Aquí estoy.", "¿Mande?", "Te escucho."],
-  fr: ["Oui ?", "Hein ?", "Je t'écoute.", "Quoi ?", "Dis-moi.", "Présent."],
-  de: ["Ja?", "Hm?", "Was gibt's?", "Ich höre.", "Sag mal.", "Bin da."],
-  zh: ["嗯?", "什么事?", "我在。", "说吧。", "怎么了?", "嗯哼?"],
-  pt: ["Sim?", "Oi?", "Pode falar.", "Diga.", "Tô aqui.", "E aí?"],
-  ko: ["네?", "응?", "왜요?", "말해 봐요.", "듣고 있어요.", "뭐예요?"],
-  it: ["Sì?", "Eh?", "Dimmi.", "Che c'è?", "Sono qui.", "Ti ascolto."],
+type TimeBand = "morning" | "daytime" | "evening" | "lateNight";
+
+type WakeAckPool = {
+  any: string[];
+  morning?: string[];
+  evening?: string[];
+  lateNight?: string[];
 };
 
-export function getWakeAcks(lang: Language): string[] {
-  return WAKE_ACKS[resolveLanguage(lang)];
+// Per-locale wake acks. `any` is the always-on base pool; the optional
+// time-banded pools layer extra time-of-day flavor on top ("おはよう" in
+// the morning, "まだ起きてるの？" past midnight). Daytime intentionally
+// has no extras — the base pool already fits.
+const WAKE_ACKS: Record<Exclude<Language, "auto">, WakeAckPool> = {
+  ja: {
+    any: [
+      "はい",
+      "はーい",
+      "はい、なに？",
+      "なーに？",
+      "どうしたの？",
+      "呼んだ？",
+      "なになに？",
+    ],
+    morning: ["おはよう", "おはよ〜"],
+    evening: ["お疲れさま", "おかえり"],
+    lateNight: ["まだ起きてるの？", "夜更かしさん？"],
+  },
+  en: {
+    any: [
+      "Yes?",
+      "Yeah?",
+      "What's up?",
+      "Hmm?",
+      "Mhm?",
+      "Go ahead.",
+      "I'm here.",
+    ],
+    morning: ["Morning!", "Good morning."],
+    evening: ["Welcome back.", "Hey there."],
+    lateNight: ["Still up?", "Night owl?"],
+  },
+  es: {
+    any: [
+      "¿Sí?",
+      "¿Diga?",
+      "¿Qué tal?",
+      "Aquí estoy.",
+      "¿Mande?",
+      "Te escucho.",
+    ],
+    morning: ["¡Buenos días!"],
+    evening: ["Buenas tardes."],
+    lateNight: ["¿Aún despierto?"],
+  },
+  fr: {
+    any: ["Oui ?", "Hein ?", "Je t'écoute.", "Quoi ?", "Dis-moi.", "Présent."],
+    morning: ["Bonjour !"],
+    evening: ["Bonsoir."],
+    lateNight: ["Encore debout ?"],
+  },
+  de: {
+    any: ["Ja?", "Hm?", "Was gibt's?", "Ich höre.", "Sag mal.", "Bin da."],
+    morning: ["Guten Morgen!"],
+    evening: ["Guten Abend."],
+    lateNight: ["Noch wach?"],
+  },
+  zh: {
+    any: ["嗯?", "什么事?", "我在。", "说吧。", "怎么了?", "嗯哼?"],
+    morning: ["早上好。"],
+    evening: ["晚上好。"],
+    lateNight: ["还醒着?"],
+  },
+  pt: {
+    any: ["Sim?", "Oi?", "Pode falar.", "Diga.", "Tô aqui.", "E aí?"],
+    morning: ["Bom dia!"],
+    evening: ["Boa noite."],
+    lateNight: ["Ainda acordado?"],
+  },
+  ko: {
+    any: ["네?", "응?", "왜요?", "말해 봐요.", "듣고 있어요.", "뭐예요?"],
+    morning: ["좋은 아침."],
+    evening: ["좋은 저녁."],
+    lateNight: ["아직 안 자요?"],
+  },
+  it: {
+    any: ["Sì?", "Eh?", "Dimmi.", "Che c'è?", "Sono qui.", "Ti ascolto."],
+    morning: ["Buongiorno!"],
+    evening: ["Buonasera."],
+    lateNight: ["Ancora sveglio?"],
+  },
+};
+
+function timeBand(hour: number): TimeBand {
+  if (hour >= 5 && hour <= 10) return "morning";
+  if (hour >= 11 && hour <= 16) return "daytime";
+  if (hour >= 17 && hour <= 21) return "evening";
+  return "lateNight";
+}
+
+export function getWakeAcks(lang: Language, hour?: number): string[] {
+  const pool = WAKE_ACKS[resolveLanguage(lang)];
+  const h = hour ?? new Date().getHours();
+  const band = timeBand(h);
+  const extras = band === "daytime" ? [] : (pool[band] ?? []);
+  return [...pool.any, ...extras];
 }
 
 export function resolveLanguage(lang: Language): Exclude<Language, "auto"> {

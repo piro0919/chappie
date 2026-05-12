@@ -1,8 +1,18 @@
-// IP-based geolocation for grounding casual chat in the user's
-// approximate location. Uses ipapi.co's keyless free tier; results are
-// cached in-process for 30 minutes. This is a city-level approximation —
-// VPNs / mobile networks may report further away. A native CoreLocation
-// path is the planned upgrade for higher precision.
+// Geolocation for grounding casual chat in the user's approximate
+// location. Two-tier:
+//
+//   1. macOS CoreLocation via `location_native.rs` — Wi-Fi-based fix
+//      with ~30-100 m accuracy. Requires the user to grant location
+//      permission. Necessary because IP-based lookups in Japan resolve
+//      most consumer ISPs (NTT, SoftBank, etc.) to Tokyo regardless of
+//      where the user actually is — so an Aichi user gets weather for
+//      Tokyo without this path.
+//
+//   2. IP-based via ipwho.is keyless tier — always available, city-level
+//      precision, and good enough when the user hasn't granted location
+//      permission or CoreLocation timed out.
+//
+// Results from either path are cached in-process for 30 minutes.
 
 use once_cell::sync::Lazy;
 use serde::Deserialize;
@@ -52,6 +62,28 @@ pub async fn get(force_refresh: bool) -> Result<UserLocation, String> {
         if let Some((loc, t)) = CACHE.lock().unwrap().as_ref() {
             if t.elapsed() < TTL {
                 return Ok(loc.clone());
+            }
+        }
+    }
+    // Try CoreLocation first when authorized. We never trigger the
+    // permission prompt here — that's done explicitly from Settings.
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(status) = crate::location_native::check_permission() {
+            if status == "granted" {
+                let native = tokio::task::spawn_blocking(crate::location_native::get_location).await;
+                if let Ok(Ok((lat, lon, locality))) = native {
+                    let resp = UserLocation {
+                        city: locality,
+                        region: None,
+                        country_name: None,
+                        latitude: lat,
+                        longitude: lon,
+                        timezone: None,
+                    };
+                    *CACHE.lock().unwrap() = Some((resp.clone(), Instant::now()));
+                    return Ok(resp);
+                }
             }
         }
     }
