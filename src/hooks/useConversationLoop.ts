@@ -39,6 +39,14 @@ const FOLLOWUP_TIMEOUT_MS = 6000;
 // After Chappie finishes speaking, accept follow-up without requiring a fresh
 // "チャッピー" wake-word for this window. Lets a multi-turn conversation flow.
 const CONTINUE_WINDOW_MS = 6000;
+// Ceiling for a single in-flight utterance once VAD reports speech-active.
+// Replaces the previous "clear timer on speech-active" approach: that left
+// the renderer stranded in `listening` whenever Rust dropped the segment
+// silently (too-short / low-rms / speaker-gate reject / empty Whisper) —
+// the `speech` event never arrived to re-arm. Re-arming with this longer
+// budget covers long utterances while still recovering to idle when no
+// segment ever materialises.
+const MAX_SPEECH_HOLD_MS = 15000;
 // Time the tray "error" state stays visible before auto-recovering.
 const ERROR_DISPLAY_MS = 1800;
 function pickWakeAck(lang: Language): string {
@@ -778,7 +786,12 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // is consumed normally.
         const offActive = await listen("speech-active", () => {
           if (awaitingBodyRef.current) {
-            clearFollowupTimer();
+            // Don't clear — re-arm with a longer ceiling. Rust can drop the
+            // segment silently (too-short / low-rms / speaker-gate reject /
+            // Whisper empty) which means no `speech` event would ever arrive
+            // to re-arm us back. The ceiling lets long utterances through
+            // while still falling back to idle when the segment evaporates.
+            armFollowupTimer(MAX_SPEECH_HOLD_MS);
           }
         });
         // Miniplayer visibility: while the YouTube player window is up,
