@@ -224,6 +224,10 @@
         "title": "Just say \"chappie\"",
         "body": "No hotkeys, no clicks. Wake it with your voice, then keep talking naturally."
       },
+      "voice": {
+        "title": "Only responds to your voice",
+        "body": "Enroll your voice once and Chappie tunes out the TV, YouTube, and other people around you. Your voiceprint stays on this Mac and is never sent anywhere."
+      },
       "local": {
         "title": "Voice stays local",
         "body": "Speech is transcribed entirely on your Mac. The raw audio never leaves the device."
@@ -231,6 +235,10 @@
       "memory": {
         "title": "Remembers what matters",
         "body": "Within a session: keeps the last 20 turns so \"about what we just said\" continues naturally. Across sessions: quietly picks up names, preferences, and other durable facts so you don't reintroduce yourself every time."
+      },
+      "location": {
+        "title": "Weather for your town, not the nearest big city",
+        "body": "Uses macOS Location Services to ground weather and \"nearby\" questions in your actual area. If you decline the permission, Chappie falls back to a rough IP-based estimate — so it works either way."
       },
       "menubar": {
         "title": "Menu bar resident, no Dock clutter",

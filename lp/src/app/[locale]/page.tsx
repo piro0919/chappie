@@ -2,9 +2,11 @@ import {
   ArrowRight,
   Cpu,
   Download,
+  Fingerprint,
   Github,
   Globe,
   Lock,
+  MapPin,
   MessageCircle,
   Mic,
   RefreshCw,
@@ -27,16 +29,20 @@ export const revalidate = 86400;
 
 const FEATURE_IDS = [
   "wake",
+  "voice",
   "local",
   "memory",
+  "location",
   "menubar",
   "languages",
   "update",
 ] as const;
 const FEATURE_ICONS: Record<(typeof FEATURE_IDS)[number], typeof Mic> = {
   wake: Mic,
+  voice: Fingerprint,
   local: Lock,
   memory: MessageCircle,
+  location: MapPin,
   menubar: Cpu,
   languages: Globe,
   update: RefreshCw,

@@ -20,7 +20,9 @@
 ## Highlights
 
 - 🎙 **No hotkeys, no clicks** — just say the wake word; Chappie remembers the flow of the conversation
+- 👤 **Only responds to your voice** — enroll once and Chappie ignores the TV, YouTube, and other people around you (on-device voiceprint, never uploaded)
 - 🔒 **Your voice stays on your Mac** — speech is transcribed locally with Whisper; the raw audio never leaves the device
+- 📍 **Locally-grounded replies** — weather and "nearby" questions pull from your actual area via macOS CoreLocation (with IP-based fallback if you decline the permission)
 - 🍎 **Menu bar resident, no Dock clutter** — shows up only when you need it
 - 🌍 **9 languages** — Japanese / English plus Spanish / French / German / Italian / Portuguese / Korean / Simplified Chinese (Beta). Picks a matching macOS voice automatically.
 - 🔁 **Multi-provider, BYO API key** — OpenAI / Anthropic / Gemini. Provider auto-detected from the key prefix.
@@ -64,7 +66,10 @@ More tools coming over time.
 
 - **Tauri 2** (Rust backend + WebView UI)
 - **Mic capture & VAD in Rust**: [`cpal`](https://github.com/RustAudio/cpal) for input, [`voice_activity_detector`](https://crates.io/crates/voice_activity_detector) (Silero VAD V5) for utterance segmentation
+- **Audio preprocessing**: [`webrtc-audio-processing`](https://crates.io/crates/webrtc-audio-processing) (AGC2 / noise suppression / high-pass filter) on the 16 kHz mono stream before VAD — improves recognition in noisy rooms and at distance
+- **Speaker recognition** *(optional)*: [WeSpeaker ECAPA-TDNN](https://huggingface.co/Wespeaker/wespeaker-ecapa-tdnn512-LM) (192-dim embedding) via [`tract-onnx`](https://crates.io/crates/tract-onnx). After enrollment, segments are scored by cosine similarity against the stored voiceprint and only the user's voice passes through to Whisper. Permissive bypass when not enrolled.
 - **Speech-to-text**: [`whisper-rs`](https://github.com/tazz4843/whisper-rs) (Rust, Metal-accelerated on macOS) using `ggml-small.bin`
+- **Location grounding**: macOS CoreLocation via [`objc2-core-location`](https://crates.io/crates/objc2-core-location) when authorized (Wi-Fi-based, ~30-100 m + reverse-geocoded city name via `CLGeocoder`). Falls back to IP geolocation via [ipwho.is](https://ipwho.is) when not authorized — necessary because Japanese ISPs route most consumer IPs through Tokyo backbones, so an IP-only lookup tells Aichi/Osaka/Fukuoka users they're in Tokyo.
 - **Wake-word matching**: renderer-side string match (NFKC normalization + Whisper homophone variants)
 - **AI**: bring-your-own API key from OpenAI / Anthropic / Gemini. Provider auto-detected from the key prefix (no UI choice). HTTP call lives in Rust so the key never enters the renderer. Default models are each provider's cheapest tool-capable tier; override with `CHAPPIE_MODEL` env var.
 - **Tools**: `set_timer` / `list_timers` / `cancel_timer` / `add_reminder_at` / `list_reminders` / `cancel_reminder` / `get_current_time` / `get_weather` / `open_url` / `web_search` / `open_app` / `open_finder` / `get_volume` / `set_volume` / `set_mute` / `control_music` / `get_now_playing` / `get_battery_status` / `read_clipboard` / `write_clipboard` / `take_screenshot` / `add_note` / `list_notes` / `delete_note` / `lock_screen` / `set_sleep_prevention` / `get_sleep_prevention` / `list_capabilities` / `end_conversation` (multi-round tool calling in `openai.rs`)
@@ -92,6 +97,7 @@ More tools coming over time.
 | Feature | macOS | Windows |
 | --- | --- | --- |
 | Wake word + STT (Whisper) | ✅ | 🚧 planned |
+| Speaker recognition (voiceprint, on-device) | ✅ | 🚧 planned |
 | LLM chat (OpenAI / Anthropic / Gemini) | ✅ | 🚧 planned |
 | TTS (system voices) | ✅ | 🚧 planned |
 | Tray icon + states | ✅ | 🚧 planned |
@@ -101,6 +107,7 @@ More tools coming over time.
 | Music control (Spotify / Music.app) | ✅ | 🚧 planned (SMTC) |
 | Battery / sleep prevention / lock | ✅ | 🚧 planned |
 | Calendar (read-only) | ✅ (EventKit) | ❌ not planned for v1 |
+| Location grounding (CoreLocation + IP fallback) | ✅ | 🚧 planned (Windows.Devices.Geolocation + IP) |
 | Clipboard / notes / open URL / open app / open Finder | ✅ | 🚧 planned |
 | Long-term memory (profile / preference / episode) | ✅ | 🚧 planned (no OS deps, easy port) |
 | Auto-update | ✅ | 🚧 planned |
