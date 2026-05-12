@@ -1,6 +1,7 @@
 mod anthropic;
 mod apm;
 mod audio;
+mod speaker;
 mod battery;
 mod caffeinate;
 mod calendar;
@@ -154,6 +155,72 @@ async fn ensure_model(app: tauri::AppHandle) -> Result<String, String> {
         .map(|p| p.to_string_lossy().into_owned())
 }
 
+#[tauri::command]
+async fn ensure_speaker_model(app: tauri::AppHandle) -> Result<String, String> {
+    let path = speaker::ensure_model(app)
+        .await
+        .map(|p| p.to_string_lossy().into_owned())?;
+    // Best-effort: load the model into memory right away so the first
+    // enroll / score call doesn't have to. ensure_loaded() is idempotent.
+    let _ = speaker::ensure_loaded();
+    Ok(path)
+}
+
+#[tauri::command]
+fn speaker_is_enrolled() -> bool {
+    speaker::is_enrolled()
+}
+
+#[tauri::command]
+fn speaker_clear_enrollment() -> Result<(), String> {
+    speaker::clear_enrollment()
+}
+
+/// Enroll the current user's voice from a 16 kHz mono PCM buffer.
+/// `samples` is expected to be ~5-10 s of clean speech (the renderer
+/// records and passes raw f32 PCM). We chunk it into ~3 s windows,
+/// compute an embedding per window, average them (after L2-normalising
+/// each, which is the standard centroid recipe for x-vector / ECAPA),
+/// and persist the result as the enrolled centroid.
+#[tauri::command]
+fn speaker_enroll(samples: Vec<f32>) -> Result<(), String> {
+    speaker::ensure_loaded()?;
+    const WINDOW_SAMPLES: usize = (speaker::TARGET_RATE as usize) * 3;
+    const STRIDE_SAMPLES: usize = (speaker::TARGET_RATE as usize) * 2;
+    let mut centroid = vec![0.0f32; speaker::EMBEDDING_DIM];
+    let mut counted = 0usize;
+    let mut start = 0usize;
+    while start + WINDOW_SAMPLES <= samples.len() {
+        let win = &samples[start..start + WINDOW_SAMPLES];
+        if let Some(emb) = speaker::compute_embedding(win) {
+            // L2-normalise before averaging — without this the loudest
+            // window dominates the centroid regardless of how speaker-
+            // distinctive it actually is.
+            let norm = emb.iter().map(|x| x * x).sum::<f32>().sqrt();
+            if norm > 0.0 {
+                for (i, v) in emb.iter().enumerate() {
+                    centroid[i] += v / norm;
+                }
+                counted += 1;
+            }
+        }
+        start += STRIDE_SAMPLES;
+    }
+    // Fall back to a single full-clip embedding if the audio was too
+    // short to even cover one window — better than refusing to enroll.
+    if counted == 0 {
+        if let Some(emb) = speaker::compute_embedding(&samples) {
+            return speaker::save_enrollment(emb);
+        }
+        return Err("could not extract any embedding from the recording".to_string());
+    }
+    let inv = 1.0 / (counted as f32);
+    for v in &mut centroid {
+        *v *= inv;
+    }
+    speaker::save_enrollment(centroid)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -178,6 +245,10 @@ pub fn run() {
             set_tray_state,
             open_settings,
             ensure_model,
+            ensure_speaker_model,
+            speaker_is_enrolled,
+            speaker_clear_enrollment,
+            speaker_enroll,
             set_whisper_language,
             set_app_language,
             mic_permission::check_microphone_permission,
@@ -213,6 +284,13 @@ pub fn run() {
             timer::start_tray_title_ticker(&app.handle());
             calendar::init();
             reminder::init(&app.handle());
+            // Speaker recognition: load any prior enrollment + lazily load
+            // the ONNX model. Both are best-effort; the audio pipeline
+            // treats "no enrollment" / "model missing" as permissive
+            // bypass so the rest of the app keeps working when these
+            // fail (e.g. on first run before the user enrolls).
+            speaker::load_enrollment_from_disk();
+            let _ = speaker::ensure_loaded();
             // Auto-spawn the bundled VOICEVOX engine if installed. No-op on
             // platforms without the .app bundle or when nothing is found —
             // the renderer falls back to the default 50021 endpoint in that

@@ -513,6 +513,31 @@ fn run_segmenter(
                     if frame_count_ok && rms_ok {
                         let app2 = app.clone();
                         std::thread::spawn(move || {
+                            // Speaker gate: score against the enrolled
+                            // user's centroid (if any). When enrolled and
+                            // similarity falls below the threshold, this
+                            // is either Chappie's own TTS leaking back,
+                            // YouTube / TV audio, or another person —
+                            // skip Whisper entirely. When NOT enrolled,
+                            // score_against_enrolled returns None and we
+                            // fall through to the existing pipeline.
+                            if let Some(score) =
+                                crate::speaker::score_against_enrolled(&buf)
+                            {
+                                if score < crate::speaker::ENROLL_THRESHOLD {
+                                    crate::linfo!(
+                                        &app2,
+                                        "speaker",
+                                        "drop: cos={score:.3} < threshold (other voice)"
+                                    );
+                                    return;
+                                }
+                                crate::linfo!(
+                                    &app2,
+                                    "speaker",
+                                    "accept: cos={score:.3}"
+                                );
+                            }
                             let started = std::time::Instant::now();
                             match crate::run_whisper(buf) {
                                 Ok(text) if !text.is_empty() => {

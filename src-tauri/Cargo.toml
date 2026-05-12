@@ -41,6 +41,12 @@ voice_activity_detector = "0.2"
 # `bundled` builds the C++ library from source at build time so we don't
 # rely on a system-installed copy on user machines. Used by `apm.rs`.
 webrtc-audio-processing = { version = "2", features = ["bundled"] }
+# Speaker recognition: WeSpeaker ECAPA-TDNN ONNX via pure-Rust tract +
+# kaldi-compatible 80-dim mel filterbank for preprocessing. Model file
+# is downloaded on first run (mirroring the Whisper model flow in
+# `model.rs`) so the bundled binary stays small.
+tract-onnx = "0.21"
+kaldi-fbank-rust-kautism = "0.1"
 chrono = "0.4"
 urlencoding = "2"
 url = "2"
