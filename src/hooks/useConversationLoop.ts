@@ -750,6 +750,30 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const off = await listen<string>("speech", (e) => {
           void handleSpeech(e.payload);
         });
+        // Segments captured while Chappie's own TTS was playing arrive on
+        // a separate event so they CANNOT slip into the continuation
+        // window body path — even when Whisper happens to finish
+        // transcribing them after TTS ended and `ttsActiveRef` has
+        // already flipped back to false. The only thing we honor here is
+        // a barge-in command ("stop / やめて") matching the same
+        // whitelist `handleSpeech` uses during active TTS. Everything
+        // else is dropped silently — it's Chappie's voice echoing back.
+        const offBargeIn = await listen<string>("speech-bargein", (e) => {
+          const text = e.payload;
+          if (bargeInActiveRef.current && isBargeInCommand(text)) {
+            console.info(`[loop] BARGE-IN (echo-path) matched: "${text}"`);
+            cancelSpeech();
+            bargeInActiveRef.current = false;
+            ttsActiveRef.current = false;
+            void invoke("exit_barge_in_mode").catch(() => {});
+            dispatch({ type: "speechDone" });
+            startContinuationWindow();
+          } else {
+            console.info(
+              `[loop] dropped: bargein-tagged (text="${text.slice(0, 30)}")`,
+            );
+          }
+        });
         // VAD speech-start signal: pause the followup/continuation timer
         // while the user is actually talking. Without this, a >6s utterance
         // (or one preceded by a thinking pause) can outrun CONTINUE_WINDOW_MS
@@ -777,12 +801,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
         );
         if (cancelled) {
           off();
+          offBargeIn();
           offActive();
           offMiniplayer();
           return;
         }
         speechOff = () => {
           off();
+          offBargeIn();
           offActive();
           offMiniplayer();
         };

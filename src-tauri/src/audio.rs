@@ -301,16 +301,42 @@ fn run_segmenter(
         .build()
         .map_err(|e| format!("vad init: {e}"))?;
 
+    // WebRTC APM sits between resample (48k → 16k) and VAD. Best-effort:
+    // if construction fails we keep running with the raw path and log a
+    // warning, since echo/AGC are quality-of-life rather than required
+    // for basic capture to work.
+    let apm = match crate::apm::build() {
+        Ok(p) => Some(p),
+        Err(e) => {
+            crate::lwarn!(&app, "audio", "apm disabled: {e}");
+            None
+        }
+    };
+
     crate::linfo!(
         &app,
         "audio",
-        "segmenter started: in_rate={in_rate} resample={} muted={}",
+        "segmenter started: in_rate={in_rate} resample={} muted={} apm={}",
         needs_resample,
-        is_effectively_muted()
+        is_effectively_muted(),
+        apm.is_some()
     );
 
     let mut accum_in: Vec<f32> = Vec::new();
     let mut accum_out: Vec<f32> = Vec::new();
+    // Output of APM, waiting to be drained into VAD frames. APM writes
+    // 160-sample frames; VAD reads 512. Keeping them separate avoids
+    // mixing pre- and post-APM audio across one VAD frame boundary.
+    let mut apm_out: Vec<f32> = Vec::new();
+    // Tracks whether the current segment was ever captured while barge-in
+    // mode was active (i.e. Chappie's TTS was playing). Set true the
+    // moment a single in-speech frame coincides with `is_barge_in_active`,
+    // cleared on segment end. If true at segment end, the segment is
+    // emitted via `speech-bargein` instead of `speech` so the renderer
+    // never treats it as a user body — even when Whisper finishes
+    // processing it AFTER TTS ended and the continuation window has
+    // already armed. That race is what produces the echo loop.
+    let mut barge_in_seen_in_segment = false;
     let mut preroll: std::collections::VecDeque<Vec<f32>> =
         std::collections::VecDeque::with_capacity(PREROLL_FRAMES);
     let mut speech_buf: Vec<f32> = Vec::new();
@@ -344,6 +370,7 @@ fn run_segmenter(
         if is_effectively_muted() {
             accum_in.clear();
             accum_out.clear();
+            apm_out.clear();
             preroll.clear();
             speech_buf.clear();
             in_speech = false;
@@ -367,6 +394,36 @@ fn run_segmenter(
             }
         }
 
+        // APM in fixed 10 ms (160-sample @ 16 kHz) chunks. When APM is
+        // unavailable (build failure on the user's machine, future runtime
+        // disable, etc.) we fall through to copying samples straight from
+        // accum_out to apm_out so the rest of the pipeline doesn't care.
+        //
+        // **Skip APM while barge-in mode is active.** During TTS playback
+        // the speakers leak Chappie's own voice into the mic; AGC then
+        // pumps that echo up by 15-30 dB and it sails past the
+        // barge-in RMS gate, gets transcribed, and lands in the
+        // continuation window after TTS ends — re-running the same tool
+        // in a loop. Until v0.11 ships a proper AEC + system loopback,
+        // disabling the APM stage during barge-in keeps the echo at
+        // its natural low level so the existing RMS gate catches it.
+        let apm_skip = is_barge_in_active();
+        while accum_out.len() >= crate::apm::APM_FRAME_SAMPLES {
+            let mut frame: Vec<f32> = accum_out
+                .drain(..crate::apm::APM_FRAME_SAMPLES)
+                .collect();
+            if !apm_skip {
+                if let Some(p) = apm.as_ref() {
+                    if let Err(e) = crate::apm::process_mono(p, &mut frame) {
+                        // Don't spam logs frame-by-frame if APM starts erroring;
+                        // the first heartbeat after will surface it.
+                        crate::lwarn!(&app, "audio", "apm frame: {e}");
+                    }
+                }
+            }
+            apm_out.extend_from_slice(&frame);
+        }
+
         let barge_in_now = is_barge_in_active();
         let vad_threshold = if barge_in_now {
             VAD_THRESHOLD_BARGE_IN
@@ -384,8 +441,8 @@ fn run_segmenter(
             MAX_UTTERANCE_FRAMES
         };
 
-        while accum_out.len() >= FRAME_SAMPLES {
-            let frame: Vec<f32> = accum_out.drain(..FRAME_SAMPLES).collect();
+        while apm_out.len() >= FRAME_SAMPLES {
+            let frame: Vec<f32> = apm_out.drain(..FRAME_SAMPLES).collect();
             let prob = vad.predict(frame.iter().copied());
             let voiced = prob >= vad_threshold;
 
@@ -399,6 +456,7 @@ fn run_segmenter(
                     // Whisper ever sees the segment.
                     let _ = app.emit("speech-active", ());
                     in_speech = true;
+                    barge_in_seen_in_segment = barge_in_now;
                     speech_frames = 1;
                     silence_frames = 0;
                     speech_buf.clear();
@@ -414,6 +472,12 @@ fn run_segmenter(
                 }
             } else {
                 speech_buf.extend_from_slice(&frame);
+                // Even one in-segment frame overlapping with TTS playback
+                // means this segment is suspect (might be Chappie's own
+                // voice echoing back). Sticky for the rest of the segment.
+                if barge_in_now {
+                    barge_in_seen_in_segment = true;
+                }
                 if voiced {
                     speech_frames += 1;
                     silence_frames = 0;
@@ -445,6 +509,7 @@ fn run_segmenter(
                     speech_frames = 0;
                     silence_frames = 0;
                     preroll.clear();
+                    let bargein = std::mem::take(&mut barge_in_seen_in_segment);
                     if frame_count_ok && rms_ok {
                         let app2 = app.clone();
                         std::thread::spawn(move || {
@@ -454,10 +519,20 @@ fn run_segmenter(
                                     crate::linfo!(
                                         &app2,
                                         "whisper",
-                                        "ok in {}ms: {text}",
-                                        started.elapsed().as_millis()
+                                        "ok in {}ms{}: {text}",
+                                        started.elapsed().as_millis(),
+                                        if bargein { " [bargein]" } else { "" }
                                     );
-                                    let _ = app2.emit("speech", text);
+                                    // Segments captured while Chappie was
+                                    // speaking ride a separate event so the
+                                    // renderer never feeds them into the
+                                    // continuation-window body path. Live
+                                    // user commands ("stop / やめて") still
+                                    // get to vote because the renderer's
+                                    // speech-bargein handler runs the same
+                                    // isBargeInCommand filter.
+                                    let topic = if bargein { "speech-bargein" } else { "speech" };
+                                    let _ = app2.emit(topic, text);
                                 }
                                 Ok(_) => {
                                     crate::linfo!(&app2, "whisper", "empty result");

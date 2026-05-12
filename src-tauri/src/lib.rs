@@ -1,4 +1,5 @@
 mod anthropic;
+mod apm;
 mod audio;
 mod battery;
 mod caffeinate;
