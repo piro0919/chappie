@@ -90,6 +90,12 @@ const CASES: &[Case] = &[
     Case { label: "web_search", utterance: "ラーメンの作り方ググって", expected_first: "web_search" },
     Case { label: "open_url", utterance: "YouTube 開いて", expected_first: "open_app|open_url" },
     Case { label: "youtube/play", utterance: "YouTube で猫の動画流して", expected_first: "open_youtube" },
+    // Niche / Japanese channel the LLM almost certainly doesn't have
+    // real video IDs for — must still pick open_youtube (so Rust's
+    // search fallback can kick in), NOT web_search / open_url. Locks
+    // down the tool description against future "if you don't know the
+    // ID, use a different tool" rewrites.
+    Case { label: "youtube/niche", utterance: "オモコロチャンネルの動画再生して", expected_first: "open_youtube" },
     Case { label: "youtube/close", utterance: "YouTube 閉じて", expected_first: "close_youtube" },
     Case { label: "note/add", utterance: "これメモして: 駐車場B3", expected_first: "add_note" },
     Case { label: "note/list", utterance: "最近のメモ読んで", expected_first: "list_notes" },
