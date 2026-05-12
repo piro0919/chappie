@@ -720,18 +720,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
             void invoke("set_tray_state", { state: "error" }).catch(() => {});
             return;
           }
-          // Fire-and-forget: prompt for Screen Recording too so the
-          // `take_screenshot` tool works on first invocation. macOS only
-          // shows the dialog the first time per binary; we don't gate
-          // startup on the result because the rest of Chappie works
-          // fine without it.
-          void invoke("request_screen_recording_access").catch(() => {});
-          // Same for Calendar (`list_events` tool). User pref is to ask
-          // for everything upfront rather than the macOS-Sequoia-style
-          // "ask in context", so we batch all three TCC prompts at
-          // startup and let the user decide once. Fire-and-forget for
-          // the same reason — Chappie still works without it.
-          void invoke("request_calendar_access").catch(() => {});
+          // Optional permissions (Screen Recording / Calendar / Location)
+          // are NOT auto-prompted at startup anymore. Asking for everything
+          // upfront produced a prompt cascade on every auto-update because
+          // ad-hoc cdhash churn ghost-invalidates the existing grants. We
+          // now ask in context: the tool handler triggers the request when
+          // the user invokes a feature that needs it. Settings still has
+          // proactive "Grant access" buttons for users who prefer to set
+          // up everything in one go.
           await invoke<string>("ensure_model");
         } catch (e) {
           setError(
