@@ -16,7 +16,7 @@
 //   bottom-center position) on whichever monitor the cursor is on.
 
 use tauri::{
-    AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindow,
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder,
 };
 
@@ -60,6 +60,15 @@ fn ensure_window(app: &AppHandle, query: &str) -> Option<WebviewWindow> {
     .focused(false)
     .build()
     .ok()?;
+    // If the user closes the player via the window's X button (instead of
+    // saying "閉じて"), we still need to tell the renderer so it drops out
+    // of cancel-only mode and resumes normal wake-word handling.
+    let app_for_close = app.clone();
+    win.on_window_event(move |ev| {
+        if matches!(ev, tauri::WindowEvent::CloseRequested { .. }) {
+            let _ = app_for_close.emit("miniplayer:visible", false);
+        }
+    });
     Some(win)
 }
 
@@ -159,6 +168,78 @@ async fn is_embeddable(client: &reqwest::Client, video_id: &str) -> bool {
     }
 }
 
+/// Hit YouTube's web search results page and pull out the first batch of
+/// videoId hits. Used as a server-side fallback when the LLM's own
+/// candidate URLs all 404 / fail oEmbed — typical for niche / Japanese
+/// content the LLM doesn't reliably know real IDs for (e.g. オモコロ).
+///
+/// We deliberately avoid the YouTube Data API: it requires a per-user
+/// API key and quota management. Scraping the public results page works
+/// without any auth and only needs us to harvest the videoIds — actual
+/// embed-validity is still verified through oEmbed downstream.
+///
+/// Returns up to `limit` distinct video IDs in result-page order. Empty
+/// vec on any network / parse failure (caller falls back to opening the
+/// browser search page so the user still sees something).
+async fn search_video_ids(query: &str, limit: usize) -> Vec<String> {
+    let url = format!(
+        "https://www.youtube.com/results?search_query={}",
+        urlencoding::encode(query)
+    );
+    let client = reqwest::Client::new();
+    let req = client
+        .get(&url)
+        // YouTube ships a different (cookie-walled) HTML if it thinks the
+        // request is from a generic crawler. A desktop UA + Accept-Language
+        // gets us the same `ytInitialData` blob the browser would see.
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        )
+        .header("Accept-Language", "ja,en;q=0.8")
+        .timeout(std::time::Duration::from_secs(5));
+    let body = match req.send().await {
+        Ok(r) if r.status().is_success() => match r.text().await {
+            Ok(t) => t,
+            Err(_) => return Vec::new(),
+        },
+        _ => return Vec::new(),
+    };
+    // Manual scan for `"videoId":"XXXXXXXXXXX"` — avoids pulling regex in
+    // for one pattern. Validates the 11-char alphanumeric/-/_ shape and
+    // dedupes while preserving first-seen order so the page's top hit
+    // stays in the lead.
+    let needle = b"\"videoId\":\"";
+    let bytes = body.as_bytes();
+    let mut seen = std::collections::HashSet::new();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i + needle.len() + VIDEO_ID_RE_LEN < bytes.len() {
+        if &bytes[i..i + needle.len()] == needle {
+            let start = i + needle.len();
+            let id_bytes = &bytes[start..start + VIDEO_ID_RE_LEN];
+            let all_valid = id_bytes
+                .iter()
+                .all(|b| b.is_ascii_alphanumeric() || *b == b'-' || *b == b'_');
+            if all_valid && bytes.get(start + VIDEO_ID_RE_LEN) == Some(&b'"') {
+                if let Ok(s) = std::str::from_utf8(id_bytes) {
+                    let id = s.to_string();
+                    if seen.insert(id.clone()) {
+                        out.push(id);
+                        if out.len() >= limit {
+                            return out;
+                        }
+                    }
+                }
+            }
+            i = start + VIDEO_ID_RE_LEN;
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
 /// Try a list of candidate video URLs/IDs from the LLM and play the
 /// first one that's actually embeddable. Returns the chosen video id on
 /// success, or `None` if nothing was playable.
@@ -197,6 +278,11 @@ pub async fn show_first_playable(
                 let _ = win.set_size(LogicalSize::new(DEFAULT_W, DEFAULT_H));
                 position_bottom_right(&win);
                 let _ = win.show();
+                // Tell the renderer the player is up so it can switch the
+                // mic-event filter to "cancel-only" mode — without this the
+                // YouTube audio leaking back into the mic gets transcribed
+                // and (re-)triggers tool calls in a loop.
+                let _ = app.emit("miniplayer:visible", true);
                 return Some(video_id);
             }
         }
@@ -204,9 +290,31 @@ pub async fn show_first_playable(
     None
 }
 
+/// Server-side YouTube search → oEmbed-validate → miniplayer. Used as a
+/// fallback when the LLM's own candidates all failed (or it didn't have
+/// any). Returns the played video id on success, or None if the search
+/// itself returned nothing playable.
+pub async fn show_first_search_hit(app: &AppHandle, query: &str) -> Option<String> {
+    if query.trim().is_empty() {
+        return None;
+    }
+    let hits = search_video_ids(query, 8).await;
+    crate::linfo!(
+        app,
+        "miniplayer",
+        "search '{query}' -> {} hit(s)",
+        hits.len()
+    );
+    if hits.is_empty() {
+        return None;
+    }
+    show_first_playable(app, &hits).await
+}
+
 pub fn hide(app: &AppHandle) -> bool {
     if let Some(win) = app.get_webview_window(MINIPLAYER_LABEL) {
         let _ = win.hide();
+        let _ = app.emit("miniplayer:visible", false);
         true
     } else {
         false

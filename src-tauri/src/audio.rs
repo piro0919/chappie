@@ -392,6 +392,12 @@ fn run_segmenter(
             if !in_speech {
                 if voiced {
                     crate::linfo!(&app, "audio", "speech start prob={prob:.2}");
+                    // Notify renderer that voice activity has started so it
+                    // can pause any pending followup/continuation timer —
+                    // without this, a long mid-utterance can outrun the 6s
+                    // continuation window and drop state to idle before
+                    // Whisper ever sees the segment.
+                    let _ = app.emit("speech-active", ());
                     in_speech = true;
                     speech_frames = 1;
                     silence_frames = 0;

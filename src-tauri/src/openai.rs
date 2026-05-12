@@ -904,10 +904,33 @@ pub(crate) async fn execute_tool(
                 .to_string();
             }
 
-            // No candidate worked — fall back to opening YouTube search
+            // The LLM's candidates didn't pan out (typical for niche /
+            // Japanese channels the model doesn't know real IDs for, e.g.
+            // オモコロ). Before kicking the user out to the browser, do
+            // our own YouTube search and feed the top hits back through
+            // the same oEmbed-validate → miniplayer path. This keeps the
+            // UX promise of "say a thing, watch it in the small window"
+            // even when the LLM is guessing.
+            if !fallback.is_empty() {
+                if let Some(played_id) =
+                    crate::miniplayer::show_first_search_hit(app, &fallback).await
+                {
+                    return json!({
+                        "ok": true,
+                        "mode": "miniplayer",
+                        "played_video_id": played_id,
+                        "tried": candidates.len(),
+                        "via": "search"
+                    })
+                    .to_string();
+                }
+            }
+
+            // Everything failed — fall back to opening YouTube search
             // results in the user's default browser. This preserves the
             // intent ("user wanted to find something on YouTube") even
-            // when the LLM had no good candidate.
+            // when neither the LLM's candidates nor our scraper turned
+            // up anything embeddable.
             if fallback.is_empty() {
                 return json!({
                     "ok": false,

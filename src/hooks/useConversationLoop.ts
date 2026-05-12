@@ -70,10 +70,34 @@ const BARGE_IN_PATTERNS: RegExp[] = [
   /\bshut up\b/i,
 ];
 
+// Cancel-only filter applied while an external audio source (miniplayer
+// YouTube, and in the future Spotify / Apple Music via control_music) is
+// actively producing sound that can leak into the mic. Wider than
+// BARGE_IN_PATTERNS — also catches "閉じて / 消して" so the user can
+// dismiss whatever's playing by voice. Everything else gets dropped so
+// the leaking audio doesn't loop back into the LLM.
+const EXTERNAL_AUDIO_CANCEL_PATTERNS: RegExp[] = [
+  ...BARGE_IN_PATTERNS,
+  /閉じて/,
+  /閉じる/,
+  /とじて/,
+  /消して/,
+  /けして/,
+  /(ミニ)?プレイヤー/,
+  /\bclose\b/i,
+  /\bdismiss\b/i,
+];
+
 function isBargeInCommand(text: string): boolean {
   const norm = text.normalize("NFKC").toLowerCase().trim();
   if (!norm) return false;
   return BARGE_IN_PATTERNS.some((p) => p.test(norm));
+}
+
+function isExternalAudioCancelCommand(text: string): boolean {
+  const norm = text.normalize("NFKC").toLowerCase().trim();
+  if (!norm) return false;
+  return EXTERNAL_AUDIO_CANCEL_PATTERNS.some((p) => p.test(norm));
 }
 
 // Common Whisper Japanese hallucinations on silence/noise. Drop these utterances
@@ -132,6 +156,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
   // `isBargeInCommand`. Mutually exclusive with the wake-ack /
   // timer-announcement paths, which still use full pause_listening.
   const bargeInActiveRef = useRef(false);
+  // True while any external audio source (YouTube miniplayer today,
+  // Spotify / Apple Music in the future) is actively producing sound
+  // that can leak into the mic. While set, handleSpeech drops everything
+  // except `isExternalAudioCancelCommand` matches, which close / pause
+  // the source and clear the flag. Backed by per-source listeners
+  // (currently just `miniplayer:visible`); add another listener +
+  // OR-merge here when wiring music control_music play/pause.
+  const externalAudioActiveRef = useRef(false);
   const errorRecoveryTimerRef = useRef<number | null>(null);
   // VOICEVOX speaker active for the current/next turn (set by
   // applyVoiceForWake). undefined = use chappie's own voice/persona, no
@@ -201,6 +233,19 @@ export function useConversationLoop(): { state: State; error: string | null } {
       clearTimeout(followupTimerRef.current);
       followupTimerRef.current = null;
     }
+  }
+
+  // (Re-)arm the followup / continuation timer. After `ms` of inactivity
+  // (no speech-active event, no segment), drop back to idle. Called both
+  // when first entering "awaiting body" state and to extend the deadline
+  // when VAD reports voice activity / when a segment gets filtered out.
+  function armFollowupTimer(ms: number) {
+    clearFollowupTimer();
+    followupTimerRef.current = window.setTimeout(() => {
+      awaitingBodyRef.current = false;
+      followupTimerRef.current = null;
+      dispatch({ type: "speechTimeout" });
+    }, ms);
   }
 
   async function runTurn(userText: string) {
@@ -496,20 +541,34 @@ export function useConversationLoop(): { state: State; error: string | null } {
   }
 
   function startContinuationWindow() {
-    clearFollowupTimer();
     dispatch({ type: "wakeDetected" });
     awaitingBodyRef.current = true;
-    followupTimerRef.current = window.setTimeout(() => {
-      awaitingBodyRef.current = false;
-      followupTimerRef.current = null;
-      dispatch({ type: "speechTimeout" });
-    }, CONTINUE_WINDOW_MS);
+    armFollowupTimer(CONTINUE_WINDOW_MS);
   }
 
   async function handleSpeech(text: string) {
     console.info(
-      `[loop] speech recv: "${text}" tts=${ttsActiveRef.current} state=${machineRef.current.state} awaiting=${awaitingBodyRef.current}`,
+      `[loop] speech recv: "${text}" tts=${ttsActiveRef.current} state=${machineRef.current.state} awaiting=${awaitingBodyRef.current} ext=${externalAudioActiveRef.current}`,
     );
+    // External audio (miniplayer today; music later) is producing sound
+    // that's leaking into the mic. Honor only cancel/close commands;
+    // drop everything else before it reaches wake-word detection or the
+    // LLM. The flag is cleared by per-source events (miniplayer:visible
+    // false on hide / close).
+    if (externalAudioActiveRef.current) {
+      if (isExternalAudioCancelCommand(text)) {
+        console.info(`[loop] external-audio CANCEL matched: "${text}"`);
+        // For now there's only one source. When more land, dispatch to
+        // each active one here (close miniplayer if up, pause music if
+        // playing, etc.).
+        void invoke("close_youtube").catch(() => {});
+      } else {
+        console.info(
+          `[loop] dropped: external audio active (text="${text.slice(0, 30)}")`,
+        );
+      }
+      return;
+    }
     if (ttsActiveRef.current) {
       // Voice barge-in: while runTurn's streaming TTS is playing the mic
       // stays hot, but only short whitelisted commands are honored as
@@ -540,6 +599,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
 
     if (isHallucination(text)) {
       console.info(`[loop] dropped: hallucination`);
+      // The user just finished a short / filler segment ("んー", "ありがとう"
+      // alone, etc.) while we were waiting for the body of a continuation
+      // turn. The speech-active listener already cleared the followup
+      // timer when VAD picked the segment up; re-arm it now so we keep
+      // waiting instead of silently ticking down toward idle.
+      if (awaitingBodyRef.current) {
+        armFollowupTimer(CONTINUE_WINDOW_MS);
+      }
       return;
     }
 
@@ -582,11 +649,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     if (m.body === "") {
       dispatch({ type: "wakeDetected" });
       awaitingBodyRef.current = true;
-      followupTimerRef.current = window.setTimeout(() => {
-        awaitingBodyRef.current = false;
-        followupTimerRef.current = null;
-        dispatch({ type: "speechTimeout" });
-      }, FOLLOWUP_TIMEOUT_MS);
+      armFollowupTimer(FOLLOWUP_TIMEOUT_MS);
       // Quick "はい" acknowledgement so the user knows we're listening.
       // Fire-and-forget — we don't await it because the user may start
       // speaking immediately, and `withMutedCapture` would block the
@@ -687,11 +750,42 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const off = await listen<string>("speech", (e) => {
           void handleSpeech(e.payload);
         });
+        // VAD speech-start signal: pause the followup/continuation timer
+        // while the user is actually talking. Without this, a >6s utterance
+        // (or one preceded by a thinking pause) can outrun CONTINUE_WINDOW_MS
+        // and drop state to idle before the segment is even transcribed.
+        // The timer gets re-armed on hallucination drop or after the body
+        // is consumed normally.
+        const offActive = await listen("speech-active", () => {
+          if (awaitingBodyRef.current) {
+            clearFollowupTimer();
+          }
+        });
+        // Miniplayer visibility: while the YouTube player window is up,
+        // handleSpeech drops everything except cancel commands so the
+        // player's own audio leaking into the mic doesn't loop back into
+        // the LLM. Rust emits true on show, false on hide (including
+        // when the user closes the window via the OS X button).
+        const offMiniplayer = await listen<boolean>(
+          "miniplayer:visible",
+          (e) => {
+            externalAudioActiveRef.current = !!e.payload;
+            console.info(
+              `[loop] external-audio (miniplayer):active=${externalAudioActiveRef.current}`,
+            );
+          },
+        );
         if (cancelled) {
           off();
+          offActive();
+          offMiniplayer();
           return;
         }
-        speechOff = off;
+        speechOff = () => {
+          off();
+          offActive();
+          offMiniplayer();
+        };
 
         try {
           await invoke("start_listening");
