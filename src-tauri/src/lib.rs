@@ -25,10 +25,15 @@ mod notes;
 pub mod openai;
 mod power;
 mod provider;
+pub mod embedding;
+pub mod rag;
 mod reminder;
 mod screen_permission;
 mod screenshot;
+pub mod session_log;
+pub mod summarizer;
 mod timer;
+pub mod topics;
 mod tray;
 mod updater;
 mod voicevox;
@@ -172,6 +177,88 @@ async fn ensure_model(app: tauri::AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn ensure_embedding_model(app: tauri::AppHandle) -> Result<(), String> {
+    embedding::ensure_model(app).await?;
+    let _ = embedding::ensure_loaded();
+    // Re-index now that the model is available so previously-logged
+    // turns become recall-able without needing a restart.
+    tokio::task::spawn_blocking(rag::init);
+    Ok(())
+}
+
+#[tauri::command]
+fn embedding_model_status() -> bool {
+    embedding::is_downloaded()
+}
+
+/// Delete the downloaded embedding model + tokenizer files so the user
+/// can reclaim ~470 MB. Leaves all conversation data in place — if RAG
+/// gets re-enabled later, `rag::init` re-embeds the existing logs.
+///
+/// Caveat: the in-process tract MODEL OnceLock still holds the parsed
+/// model for the current session, so new turns continue to be embedded
+/// until next launch. That's a minor wart (a bit of extra disk write
+/// to .emb.bin files) but not user-facing — full disable takes effect
+/// on the next restart.
+#[tauri::command]
+fn remove_embedding_model() -> Result<(), String> {
+    if let Some(p) = embedding::model_path() {
+        if p.exists() {
+            std::fs::remove_file(&p).map_err(|e| format!("remove model: {e}"))?;
+        }
+    }
+    if let Some(p) = embedding::tokenizer_path() {
+        if p.exists() {
+            std::fs::remove_file(&p).map_err(|e| format!("remove tokenizer: {e}"))?;
+        }
+    }
+    Ok(())
+}
+
+/// Wipe every artefact of the long-term memory stack:
+///   - raw conversation logs (`~/.chappie/log/*.jsonl`)
+///   - embedding caches (`~/.chappie/log/*.emb.bin`)
+///   - daily summaries (`~/.chappie/summaries/*.json`)
+///   - topic snapshot (`~/.chappie/topics.json`)
+/// Leaves the embedding model file in place so re-enabling RAG doesn't
+/// re-download 470 MB. Also leaves memory.json / notes.json untouched —
+/// those are independent user-curated stores with their own forget UIs.
+#[tauri::command]
+fn forget_long_term_memory() -> Result<(), String> {
+    use std::fs;
+    if !session_log::clear_all() {
+        // clear_all returns false if any individual file failed; we
+        // still continue to wipe the rest before reporting.
+    }
+    // The embedding cache lives alongside jsonl in ~/.chappie/log/.
+    if let Some(home) = dirs::home_dir() {
+        let log_dir = home.join(".chappie/log");
+        if let Ok(entries) = fs::read_dir(&log_dir) {
+            for e in entries.flatten() {
+                if e.path()
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|n| n.ends_with(".emb.bin"))
+                    .unwrap_or(false)
+                {
+                    let _ = fs::remove_file(e.path());
+                }
+            }
+        }
+        let summary_dir = home.join(".chappie/summaries");
+        if let Ok(entries) = fs::read_dir(&summary_dir) {
+            for e in entries.flatten() {
+                let _ = fs::remove_file(e.path());
+            }
+        }
+    }
+    topics::forget();
+    // Best-effort: rebuild the (now empty) rag index in memory.
+    tauri::async_runtime::spawn_blocking(rag::init);
+    Ok(())
+}
+
+#[tauri::command]
 async fn ensure_speaker_model(app: tauri::AppHandle) -> Result<String, String> {
     let path = speaker::ensure_model(app)
         .await
@@ -261,6 +348,10 @@ pub fn run() {
             set_tray_state,
             open_settings,
             ensure_model,
+            ensure_embedding_model,
+            embedding_model_status,
+            remove_embedding_model,
+            forget_long_term_memory,
             ensure_speaker_model,
             speaker_is_enrolled,
             speaker_clear_enrollment,
@@ -324,6 +415,18 @@ pub fn run() {
             // fail (e.g. on first run before the user enrolls).
             speaker::load_enrollment_from_disk();
             let _ = speaker::ensure_loaded();
+
+            // RAG index: opt-in long-term memory. ensure_loaded fails
+            // silently if the embedding model hasn't been downloaded,
+            // and rag::init bails before doing any work in that case.
+            // When opted-in this can take a few seconds to embed any
+            // backlog of un-indexed turns, so it runs in a worker thread.
+            if embedding::is_downloaded() {
+                tauri::async_runtime::spawn_blocking(|| {
+                    let _ = embedding::ensure_loaded();
+                    rag::init();
+                });
+            }
             // Auto-spawn the bundled VOICEVOX engine if installed. No-op on
             // platforms without the .app bundle or when nothing is found —
             // the renderer falls back to the default 50021 endpoint in that

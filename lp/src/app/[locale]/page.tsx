@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Mic,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,6 +33,7 @@ const FEATURE_IDS = [
   "voice",
   "local",
   "memory",
+  "recall",
   "location",
   "menubar",
   "languages",
@@ -42,6 +44,7 @@ const FEATURE_ICONS: Record<(typeof FEATURE_IDS)[number], typeof Mic> = {
   voice: Fingerprint,
   local: Lock,
   memory: MessageCircle,
+  recall: Sparkles,
   location: MapPin,
   menubar: Cpu,
   languages: Globe,

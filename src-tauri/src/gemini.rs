@@ -171,6 +171,14 @@ pub async fn chat_complete(
         return Err("missing api key".into());
     }
 
+    // Capture latest user utterance for session_log before injection.
+    let last_user_text: String = messages
+        .iter()
+        .rev()
+        .find(|m| m.role == "user")
+        .map(|m| m.content.clone())
+        .unwrap_or_default();
+
     // Inject location grounding the same way openai::chat_complete does so
     // weather / "近所の" style queries work.
     let mut messages = messages;
@@ -207,6 +215,49 @@ pub async fn chat_complete(
             },
         );
     }
+
+    // Long-term memory L3: weekly-refreshed topic / preference list.
+    let topics = crate::topics::prompt_section();
+    if !topics.is_empty() {
+        let pos = if messages.first().map(|m| m.role.as_str()) == Some("system") { 1 } else { 0 };
+        messages.insert(
+            pos,
+            ChatMessage {
+                role: "system".to_string(),
+                content: topics,
+            },
+        );
+    }
+
+    // Long-term memory L2: past 7 days of conversation summaries.
+    let recent = crate::summarizer::recent_summaries_prompt(7);
+    if !recent.is_empty() {
+        let pos = if messages.first().map(|m| m.role.as_str()) == Some("system") { 1 } else { 0 };
+        messages.insert(
+            pos,
+            ChatMessage {
+                role: "system".to_string(),
+                content: recent,
+            },
+        );
+    }
+
+    // Long-term memory L1: semantically related past turns (>7 days old).
+    let rag = crate::rag::recall_prompt(&last_user_text, 3);
+    if !rag.is_empty() {
+        let pos = if messages.first().map(|m| m.role.as_str()) == Some("system") { 1 } else { 0 };
+        messages.insert(
+            pos,
+            ChatMessage {
+                role: "system".to_string(),
+                content: rag,
+            },
+        );
+    }
+
+    // Backfill missing summaries in background once per process.
+    crate::summarizer::maybe_backfill(api_key.clone());
+    crate::topics::maybe_refresh(api_key.clone());
 
     // Time-band hint at the END of the system block — keeps the cached
     // system_instruction prefix stable until the band itself rolls over.
@@ -417,6 +468,7 @@ pub async fn chat_complete(
                 "done: chars={} end_conversation={end_conversation} reply={text:?}",
                 text.chars().count()
             );
+            crate::session_log::append_turn(&last_user_text, &text, "gemini", &model);
             return Ok(ChatResult {
                 text,
                 end_conversation,

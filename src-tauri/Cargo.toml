@@ -47,6 +47,10 @@ webrtc-audio-processing = { version = "2", features = ["bundled"] }
 # `model.rs`) so the bundled binary stays small.
 tract-onnx = "0.21"
 kaldi-fbank-rust-kautism = "0.1"
+# Text tokenization for the multilingual-e5-small embedding model used
+# by rag.rs. HuggingFace's `tokenizers` crate loads a tokenizer.json
+# file (BPE / WordPiece / Unigram all supported).
+tokenizers = { version = "0.20", default-features = false, features = ["onig"] }
 chrono = "0.4"
 urlencoding = "2"
 url = "2"

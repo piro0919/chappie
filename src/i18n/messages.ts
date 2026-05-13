@@ -87,6 +87,18 @@ type Messages = {
     speakerPhrase1: string;
     speakerPhrase2: string;
     speakerPhrase3: string;
+    ltmLabel: string;
+    ltmDescription: string;
+    ltmStatusEnabled: string;
+    ltmStatusDisabled: string;
+    ltmEnable: string;
+    ltmEnabling: string;
+    ltmEnableDownloadProgress: string;
+    ltmDisable: string;
+    ltmDisableConfirm: string;
+    ltmForget: string;
+    ltmForgetConfirm: string;
+    ltmForgetDone: string;
     save: string;
     saved: string;
   };
@@ -111,6 +123,7 @@ type Messages = {
     persona: string;
     formatTts: string;
     formatHud: string;
+    pastContext: string;
   };
 };
 
@@ -205,6 +218,21 @@ const ja: Messages = {
     speakerPhrase1: "チャッピー、おはよう",
     speakerPhrase2: "今日の天気を教えて",
     speakerPhrase3: "タイマーを3分セットして",
+    ltmLabel: "長期記憶（実験的）",
+    ltmDescription:
+      "過去の会話を覚えて、自然な流れで「前話してた件」みたいに触れられるようになります。約 470MB のモデルを 1 度ダウンロードします。送信先はあなたの API キーの先のサービスだけで、ダウンロード後はインターネット接続なしで動きます。",
+    ltmStatusEnabled: "有効",
+    ltmStatusDisabled: "無効",
+    ltmEnable: "有効にする（モデルをダウンロード）",
+    ltmEnabling: "ダウンロード中…",
+    ltmEnableDownloadProgress: "ダウンロード中 {pct}%",
+    ltmDisable: "無効にする（モデルを削除 ~470MB）",
+    ltmDisableConfirm:
+      "ダウンロード済みの埋め込みモデル（約 470MB）を削除しますか？会話ログ・日次サマリ・トピックは残るので、再度有効にすれば過去ログから埋め込みを作り直せます。",
+    ltmForget: "会話の記憶を全部消す",
+    ltmForgetConfirm:
+      "本当に会話ログ・日次サマリ・トピックを全部削除しますか？モデルファイルと「私について」の記憶（save_memory のもの）は残ります。",
+    ltmForgetDone: "削除しました",
     save: "保存",
     saved: "保存しました",
   },
@@ -235,6 +263,8 @@ const ja: Messages = {
       "数値は読み上げで自然に聞こえる表記にしてください。小数点は『点』と書きます（例: 17.3度 → 17点3度、35% → 35パーセント）。「:」「/」など記号は読み上げると不自然になるので、時刻は「14時30分」、日付は「5月8日」のような表記にしてください。",
     formatHud:
       "今回の返答は音声ではなく画面に文字で表示されます。数字・記号は通常の表記で書いてください（例: 17.3度、39%、14:30、5/8）。「点」「パーセント」「時◯分」のような読み上げ向け表記は使わないでください。",
+    pastContext:
+      "system messageに過去の日次サマリや関連エピソードが添えられていることがあります。これらは「自然に滲ませる」ための背景情報です。毎ターン機械的に「昨日〜」「先週〜」と切り出すのは禁止。ユーザーが今話している話題と関連がある時だけ、さりげなく拾ってください。何も触れずに普通に答えるのも全然 OK です。",
   },
 };
 
@@ -330,6 +360,21 @@ const en: Messages = {
     speakerPhrase1: "Chappie, good morning",
     speakerPhrase2: "Tell me today's weather",
     speakerPhrase3: "Set a three minute timer",
+    ltmLabel: "Long-term memory (experimental)",
+    ltmDescription:
+      "Lets Chappie remember past conversations and naturally bring up things you mentioned days or weeks ago. Downloads a ~470 MB model once. Your conversations only ever go to your own API provider; everything else stays on this Mac.",
+    ltmStatusEnabled: "Enabled",
+    ltmStatusDisabled: "Off",
+    ltmEnable: "Enable (download model)",
+    ltmEnabling: "Downloading…",
+    ltmEnableDownloadProgress: "Downloading {pct}%",
+    ltmDisable: "Turn off (delete model, ~470MB)",
+    ltmDisableConfirm:
+      "Delete the downloaded embedding model (~470MB)? Your conversation logs, daily summaries, and topics are kept — re-enabling rebuilds embeddings from them.",
+    ltmForget: "Forget all conversation memory",
+    ltmForgetConfirm:
+      'Really delete all conversation logs, daily summaries, and topic snapshots? The model file and your saved "about me" facts (from save_memory) will stay.',
+    ltmForgetDone: "Deleted",
     save: "Save",
     saved: "Saved",
   },
@@ -360,6 +405,8 @@ const en: Messages = {
       "Use natural-sounding written forms for numbers since they will be read aloud. Avoid punctuation that doesn't read well aloud — write times like 'two thirty PM' instead of '14:30', dates like 'May eighth' instead of '5/8'.",
     formatHud:
       "This reply will be shown on screen as text instead of being spoken. Use normal numeric and punctuation forms (e.g. 17.3°, 39%, 14:30, 5/8). Avoid spoken-friendly spellings.",
+    pastContext:
+      'The system context may include daily summaries or related past episodes. This is background — for natural reference, not mechanical recap. Don\'t open every turn with "yesterday you..." or "earlier this week...". Only weave past context in when it naturally fits what the user is currently talking about. It\'s totally fine to just answer normally without referencing anything.',
   },
 };
 
@@ -455,6 +502,21 @@ const es: Messages = {
     speakerPhrase1: "Chappie, buenos días",
     speakerPhrase2: "Dime el tiempo de hoy",
     speakerPhrase3: "Pon un temporizador de tres minutos",
+    ltmLabel: "Memoria a largo plazo (experimental)",
+    ltmDescription:
+      "Permite a Chappie recordar conversaciones pasadas y mencionar de forma natural cosas que dijiste hace días o semanas. Descarga un modelo de ~470 MB una sola vez. Tus conversaciones solo se envían a tu propio proveedor de API; todo lo demás se queda en este Mac.",
+    ltmStatusEnabled: "Activada",
+    ltmStatusDisabled: "Desactivada",
+    ltmEnable: "Activar (descargar modelo)",
+    ltmEnabling: "Descargando…",
+    ltmEnableDownloadProgress: "Descargando {pct}%",
+    ltmDisable: "Desactivar (eliminar modelo, ~470MB)",
+    ltmDisableConfirm:
+      "¿Eliminar el modelo de embeddings descargado (~470MB)? Los registros de conversación, resúmenes diarios y temas se conservan — al reactivar se reconstruyen los embeddings.",
+    ltmForget: "Borrar toda la memoria conversacional",
+    ltmForgetConfirm:
+      '¿Eliminar todos los registros de conversación, resúmenes diarios y temas? El archivo del modelo y los datos guardados de "sobre mí" (con save_memory) se mantienen.',
+    ltmForgetDone: "Borrado",
     save: "Guardar",
     saved: "Guardado",
   },
@@ -485,6 +547,8 @@ const es: Messages = {
       "Escribe los números de forma que suenen naturales al leerlos en voz alta. Evita signos que no se lean bien — di las horas como 'dos y media' en lugar de '14:30', y las fechas como 'ocho de mayo' en lugar de '5/8'.",
     formatHud:
       "Esta respuesta se mostrará en pantalla como texto en lugar de leerse. Usa números y signos normales (p. ej. 17.3°, 39%, 14:30, 5/8). Evita las formas pensadas para la lectura en voz alta.",
+    pastContext:
+      'El contexto del sistema puede incluir resúmenes diarios o episodios pasados relacionados. Son información de fondo — para referencia natural, no para recapitular mecánicamente. No abras cada turno con "ayer dijiste…" o "esta semana…". Solo entrelaza el pasado cuando encaje con lo que el usuario está diciendo ahora. Responder con naturalidad sin mencionar nada del pasado también está perfectamente bien.',
   },
 };
 
@@ -580,6 +644,21 @@ const fr: Messages = {
     speakerPhrase1: "Chappie, bonjour",
     speakerPhrase2: "Donne-moi la météo du jour",
     speakerPhrase3: "Lance un minuteur de trois minutes",
+    ltmLabel: "Mémoire à long terme (expérimental)",
+    ltmDescription:
+      "Permet à Chappie de se souvenir des conversations passées et d'évoquer naturellement ce que tu as dit il y a plusieurs jours ou semaines. Télécharge un modèle de ~470 Mo une seule fois. Tes conversations ne vont qu'à ton propre fournisseur d'API ; tout le reste reste sur ce Mac.",
+    ltmStatusEnabled: "Activée",
+    ltmStatusDisabled: "Désactivée",
+    ltmEnable: "Activer (télécharger le modèle)",
+    ltmEnabling: "Téléchargement…",
+    ltmEnableDownloadProgress: "Téléchargement {pct}%",
+    ltmDisable: "Désactiver (supprimer le modèle, ~470 Mo)",
+    ltmDisableConfirm:
+      "Supprimer le modèle d'embeddings téléchargé (~470 Mo) ? Les journaux de conversation, résumés quotidiens et sujets sont conservés — réactiver reconstruit les embeddings.",
+    ltmForget: "Effacer toute la mémoire conversationnelle",
+    ltmForgetConfirm:
+      "Vraiment supprimer tous les journaux de conversation, résumés quotidiens et sujets ? Le fichier du modèle et les faits enregistrés « à mon sujet » (via save_memory) restent.",
+    ltmForgetDone: "Supprimé",
     save: "Enregistrer",
     saved: "Enregistré",
   },
@@ -610,6 +689,8 @@ const fr: Messages = {
       "Écris les nombres de façon naturelle à l'oral. Évite la ponctuation qui se lit mal — donne les heures comme « quatorze heures trente » plutôt que « 14:30 », les dates comme « huit mai » plutôt que « 5/8 ».",
     formatHud:
       "Cette réponse s'affichera à l'écran sous forme de texte au lieu d'être lue. Utilise les notations normales (p. ex. 17,3 °C, 39 %, 14:30, 5/8). Évite les formes adaptées à la lecture orale.",
+    pastContext:
+      "Le contexte système peut inclure des résumés quotidiens ou des épisodes passés. C'est du contexte d'arrière-plan — pour une référence naturelle, pas pour récapituler mécaniquement. N'ouvre pas chaque tour par « hier tu… » ou « cette semaine… ». N'évoque le passé que quand cela s'intègre naturellement à ce que l'utilisateur dit maintenant. Répondre normalement sans rien évoquer du passé est aussi parfaitement bien.",
   },
 };
 
@@ -705,6 +786,21 @@ const de: Messages = {
     speakerPhrase1: "Chappie, guten Morgen",
     speakerPhrase2: "Sag mir das heutige Wetter",
     speakerPhrase3: "Stell einen Timer auf drei Minuten",
+    ltmLabel: "Langzeitgedächtnis (experimentell)",
+    ltmDescription:
+      "Lässt Chappie vergangene Gespräche merken und ganz natürlich Dinge ansprechen, die du vor Tagen oder Wochen gesagt hast. Lädt einmalig ein ~470 MB großes Modell herunter. Deine Gespräche gehen nur zu deinem eigenen API-Anbieter; alles andere bleibt auf diesem Mac.",
+    ltmStatusEnabled: "Aktiv",
+    ltmStatusDisabled: "Aus",
+    ltmEnable: "Aktivieren (Modell herunterladen)",
+    ltmEnabling: "Lädt herunter…",
+    ltmEnableDownloadProgress: "Lädt {pct}%",
+    ltmDisable: "Deaktivieren (Modell löschen, ~470 MB)",
+    ltmDisableConfirm:
+      "Das heruntergeladene Embedding-Modell (~470 MB) löschen? Gesprächsprotokolle, Tageszusammenfassungen und Themen bleiben erhalten — bei erneuter Aktivierung werden die Embeddings neu aufgebaut.",
+    ltmForget: "Gesamte Gesprächserinnerung löschen",
+    ltmForgetConfirm:
+      "Wirklich alle Gesprächsprotokolle, Tageszusammenfassungen und Themen löschen? Die Modelldatei und die gespeicherten Profil-Fakten (via save_memory) bleiben erhalten.",
+    ltmForgetDone: "Gelöscht",
     save: "Speichern",
     saved: "Gespeichert",
   },
@@ -735,6 +831,8 @@ const de: Messages = {
       "Schreibe Zahlen so, dass sie beim Vorlesen natürlich klingen. Vermeide Satzzeichen, die sich schlecht vorlesen lassen — sag Uhrzeiten als 'vierzehn Uhr dreißig' statt '14:30' und Daten als 'achter Mai' statt '5/8'.",
     formatHud:
       "Diese Antwort wird als Text auf dem Bildschirm angezeigt statt vorgelesen. Verwende normale Zahlen- und Zeichennotationen (z. B. 17,3 °C, 39 %, 14:30, 5/8). Verzichte auf vorlesefreundliche Schreibweisen.",
+    pastContext:
+      'Der System-Kontext kann Tageszusammenfassungen oder vergangene Episoden enthalten. Das ist Hintergrund — für natürliche Bezugnahme, nicht für mechanisches Zusammenfassen. Beginne nicht jeden Zug mit "gestern hast du…" oder "diese Woche…". Greife Vergangenes nur auf, wenn es natürlich zum aktuellen Thema passt. Einfach normal zu antworten, ohne etwas Vergangenes zu erwähnen, ist auch völlig in Ordnung.',
   },
 };
 
@@ -827,6 +925,21 @@ const zh: Messages = {
     speakerPhrase1: "Chappie，早上好",
     speakerPhrase2: "告诉我今天的天气",
     speakerPhrase3: "设置一个三分钟的计时器",
+    ltmLabel: "长期记忆（实验性）",
+    ltmDescription:
+      "让 Chappie 记住过去的对话，自然地提起你几天或几周前说过的事。一次性下载约 470 MB 的模型。对话只会发送到你自己的 API 服务，其他一切都留在这台 Mac 上。",
+    ltmStatusEnabled: "已开启",
+    ltmStatusDisabled: "未开启",
+    ltmEnable: "开启（下载模型）",
+    ltmEnabling: "下载中…",
+    ltmEnableDownloadProgress: "下载中 {pct}%",
+    ltmDisable: "关闭（删除模型，约 470MB）",
+    ltmDisableConfirm:
+      "删除已下载的嵌入模型（约 470MB）吗？对话日志、每日总结和话题会保留——重新开启时会从它们重建嵌入。",
+    ltmForget: "清除所有对话记忆",
+    ltmForgetConfirm:
+      "确定要删除所有对话日志、每日总结和话题快照吗？模型文件和保存的「关于我」的资料（通过 save_memory）会保留。",
+    ltmForgetDone: "已删除",
     save: "保存",
     saved: "已保存",
   },
@@ -855,6 +968,8 @@ const zh: Messages = {
       "数字请写成朗读时自然的形式。避免不便朗读的符号——时间用「下午两点半」而不是「14:30」,日期用「五月八日」而不是「5/8」。",
     formatHud:
       "本次回复会以文字形式显示在屏幕上,而不是朗读。请使用常规的数字和符号写法(例如 17.3°、39%、14:30、5/8),不要使用为朗读设计的写法。",
+    pastContext:
+      "system 上下文中可能附带每日总结或相关的过往片段。这些是背景信息,用于自然地引用,不是机械复述。不要每次都用「昨天你…」「上周…」开头。只在与用户当前话题自然契合时,才轻轻带入过往。完全不提过往,只是普通地回答也完全可以。",
   },
 };
 
@@ -950,6 +1065,21 @@ const pt: Messages = {
     speakerPhrase1: "Chappie, bom dia",
     speakerPhrase2: "Diga-me o clima de hoje",
     speakerPhrase3: "Defina um timer de três minutos",
+    ltmLabel: "Memória de longo prazo (experimental)",
+    ltmDescription:
+      "Permite ao Chappie lembrar de conversas passadas e mencionar naturalmente coisas que você disse dias ou semanas atrás. Baixa um modelo de ~470 MB uma vez. Suas conversas só vão para o seu próprio provedor de API; todo o resto fica neste Mac.",
+    ltmStatusEnabled: "Ativada",
+    ltmStatusDisabled: "Desativada",
+    ltmEnable: "Ativar (baixar modelo)",
+    ltmEnabling: "Baixando…",
+    ltmEnableDownloadProgress: "Baixando {pct}%",
+    ltmDisable: "Desativar (excluir modelo, ~470 MB)",
+    ltmDisableConfirm:
+      "Excluir o modelo de embeddings baixado (~470 MB)? Os registros de conversa, resumos diários e tópicos são mantidos — ao reativar, os embeddings são reconstruídos a partir deles.",
+    ltmForget: "Apagar toda a memória de conversas",
+    ltmForgetConfirm:
+      "Excluir todos os registros de conversa, resumos diários e tópicos? O arquivo do modelo e os dados salvos sobre você (via save_memory) permanecem.",
+    ltmForgetDone: "Apagado",
     save: "Salvar",
     saved: "Salvo",
   },
@@ -980,6 +1110,8 @@ const pt: Messages = {
       "Escreva os números de um jeito que soe natural ao serem lidos em voz alta. Evite pontuação que não fica boa na leitura — diga horas como 'duas e meia' em vez de '14:30', e datas como 'oito de maio' em vez de '5/8'.",
     formatHud:
       "Esta resposta vai aparecer na tela como texto, em vez de ser falada. Use números e símbolos normais (ex.: 17,3°, 39%, 14:30, 5/8). Não use formas pensadas para leitura em voz alta.",
+    pastContext:
+      'O contexto do sistema pode incluir resumos diários ou episódios passados. São informações de fundo — para referência natural, não para recapitular mecanicamente. Não comece todo turno com "ontem você…" ou "esta semana…". Só traga o passado quando se encaixar naturalmente no que o usuário está dizendo agora. Responder normalmente sem mencionar nada do passado também está totalmente OK.',
   },
 };
 
@@ -1075,6 +1207,21 @@ const ko: Messages = {
     speakerPhrase1: "채피, 좋은 아침",
     speakerPhrase2: "오늘 날씨 알려줘",
     speakerPhrase3: "3분 타이머 설정해줘",
+    ltmLabel: "장기 기억 (실험적)",
+    ltmDescription:
+      "Chappie가 과거의 대화를 기억하고, 며칠 또는 몇 주 전에 했던 이야기를 자연스럽게 꺼낼 수 있게 합니다. 약 470 MB의 모델을 한 번 다운로드합니다. 대화는 본인의 API 제공자로만 전송되며, 그 외 모든 것은 이 Mac에 남습니다.",
+    ltmStatusEnabled: "사용 중",
+    ltmStatusDisabled: "꺼짐",
+    ltmEnable: "사용 시작 (모델 다운로드)",
+    ltmEnabling: "다운로드 중…",
+    ltmEnableDownloadProgress: "다운로드 중 {pct}%",
+    ltmDisable: "끄기 (모델 삭제, 약 470MB)",
+    ltmDisableConfirm:
+      "다운로드한 임베딩 모델(약 470MB)을 삭제할까요? 대화 로그, 일일 요약, 화제는 그대로 남으므로, 다시 켜면 그것들로부터 임베딩이 다시 생성됩니다.",
+    ltmForget: "대화 기억 전부 삭제",
+    ltmForgetConfirm:
+      '정말로 모든 대화 로그, 일일 요약, 화제 스냅샷을 삭제할까요? 모델 파일과 저장된 "나에 대해" 정보(save_memory로 저장한 것)는 남습니다.',
+    ltmForgetDone: "삭제됨",
     save: "저장",
     saved: "저장되었습니다",
   },
@@ -1105,6 +1252,8 @@ const ko: Messages = {
       "숫자는 소리 내어 읽었을 때 자연스럽게 들리도록 적어 주세요. 읽기 어색한 기호는 피하고, 시간은 '오후 두 시 반' 같이, 날짜는 '5월 8일' 같이 써 주세요.",
     formatHud:
       "이번 답변은 음성이 아니라 화면에 텍스트로 표시됩니다. 숫자와 기호는 일반 표기로 써 주세요(예: 17.3°, 39%, 14:30, 5/8). 읽기용 표기는 사용하지 마세요.",
+    pastContext:
+      '시스템 컨텍스트에 일일 요약이나 과거 에피소드가 포함될 수 있습니다. 자연스러운 참조를 위한 배경 정보일 뿐, 기계적으로 요약하기 위한 것이 아닙니다. 매번 "어제는…" "지난주에…"로 시작하지 마세요. 사용자가 지금 하고 있는 이야기와 자연스럽게 맞물릴 때만 슬쩍 꺼내세요. 과거를 전혀 언급하지 않고 평범하게 답해도 전혀 괜찮습니다.',
   },
 };
 
@@ -1200,6 +1349,21 @@ const it: Messages = {
     speakerPhrase1: "Chappie, buongiorno",
     speakerPhrase2: "Dimmi il meteo di oggi",
     speakerPhrase3: "Imposta un timer di tre minuti",
+    ltmLabel: "Memoria a lungo termine (sperimentale)",
+    ltmDescription:
+      "Permette a Chappie di ricordare conversazioni passate e tirare fuori naturalmente cose che hai detto giorni o settimane fa. Scarica un modello da ~470 MB una sola volta. Le tue conversazioni vanno solo al tuo provider API; tutto il resto resta su questo Mac.",
+    ltmStatusEnabled: "Attiva",
+    ltmStatusDisabled: "Spenta",
+    ltmEnable: "Attiva (scarica modello)",
+    ltmEnabling: "Scaricando…",
+    ltmEnableDownloadProgress: "Scaricando {pct}%",
+    ltmDisable: "Disattiva (elimina modello, ~470 MB)",
+    ltmDisableConfirm:
+      "Eliminare il modello di embedding scaricato (~470 MB)? I log delle conversazioni, i riassunti quotidiani e gli argomenti vengono mantenuti — riattivando, gli embedding vengono ricostruiti da quelli.",
+    ltmForget: "Cancella tutta la memoria delle conversazioni",
+    ltmForgetConfirm:
+      "Davvero eliminare tutti i log delle conversazioni, i riassunti quotidiani e gli argomenti? Il file del modello e i fatti salvati su di te (tramite save_memory) restano.",
+    ltmForgetDone: "Eliminato",
     save: "Salva",
     saved: "Salvato",
   },
@@ -1230,6 +1394,8 @@ const it: Messages = {
       "Scrivi i numeri in modo che suonino naturali a voce alta. Evita la punteggiatura che si legge male — di' gli orari come 'le due e mezza' invece di '14:30', le date come 'otto maggio' invece di '5/8'.",
     formatHud:
       "Questa risposta verrà mostrata sullo schermo come testo invece di essere letta. Usa numeri e simboli normali (es. 17,3°, 39%, 14:30, 5/8). Evita le forme pensate per la lettura ad alta voce.",
+    pastContext:
+      'Il contesto di sistema può includere riassunti quotidiani o episodi passati. Sono informazioni di sfondo — per riferimenti naturali, non per riepilogare meccanicamente. Non aprire ogni turno con "ieri hai…" o "questa settimana…". Tira fuori il passato solo quando si inserisce naturalmente in ciò che l\'utente sta dicendo ora. Rispondere normalmente senza menzionare nulla del passato va benissimo.',
   },
 };
 

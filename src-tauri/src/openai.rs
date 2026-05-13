@@ -1474,6 +1474,15 @@ pub async fn chat_complete(
         model
     );
 
+    // Capture the latest user utterance for session_log before we start
+    // mutating `working` with injected system messages.
+    let last_user_text: String = messages
+        .iter()
+        .rev()
+        .find(|m| m.role == "user")
+        .map(|m| m.content.clone())
+        .unwrap_or_default();
+
     let mut working: Vec<Value> = messages
         .into_iter()
         .map(|m| json!({"role": m.role, "content": m.content}))
@@ -1511,6 +1520,43 @@ pub async fn chat_complete(
         let pos = if working.first().and_then(|m| m.get("role")).and_then(|r| r.as_str()) == Some("system") { 1 } else { 0 };
         working.insert(pos, json!({"role": "system", "content": profile}));
     }
+
+    // Long-term memory L3: longitudinal topic / preference snapshot.
+    // Refreshes weekly (or when missing) — a much slower cadence than
+    // L2 summaries, so this layer is the most cache-friendly piece of
+    // the dynamic prefix.
+    let topics = crate::topics::prompt_section();
+    if !topics.is_empty() {
+        let pos = if working.first().and_then(|m| m.get("role")).and_then(|r| r.as_str()) == Some("system") { 1 } else { 0 };
+        working.insert(pos, json!({"role": "system", "content": topics}));
+    }
+
+    // Long-term memory L2: past N days of conversation summaries so the
+    // model can drop "そういえば先週〜" naturally. The summaries change
+    // once per day, which is fine for prompt caching: each new day causes
+    // one cache miss and then the prefix warms for the rest of the day.
+    let recent = crate::summarizer::recent_summaries_prompt(7);
+    if !recent.is_empty() {
+        let pos = if working.first().and_then(|m| m.get("role")).and_then(|r| r.as_str()) == Some("system") { 1 } else { 0 };
+        working.insert(pos, json!({"role": "system", "content": recent}));
+    }
+
+    // Long-term memory L1: semantically related past turns (older than
+    // the 7-day summary window). Injected AFTER L2 / profile so the
+    // cached prefix is persona → profile → L2 summaries → L1 episodes,
+    // each layer added on top of the cached one above it.
+    let rag = crate::rag::recall_prompt(&last_user_text, 3);
+    if !rag.is_empty() {
+        let pos = if working.first().and_then(|m| m.get("role")).and_then(|r| r.as_str()) == Some("system") { 1 } else { 0 };
+        working.insert(pos, json!({"role": "system", "content": rag}));
+    }
+
+    // Kick off backfill of any missing past-N-day summaries in the
+    // background. Once-per-process gate inside maybe_backfill.
+    crate::summarizer::maybe_backfill(api_key.clone());
+    // Same pattern for L3 topics — refreshes weekly so this is mostly
+    // a no-op after the first run of the week.
+    crate::topics::maybe_refresh(api_key.clone());
 
     // Time-band hint goes at the END of the system block so the prefix
     // (persona + profile + location) stays cache-stable. Only this trailing
@@ -1704,6 +1750,7 @@ pub async fn chat_complete(
                 "done: chars={} end_conversation={end_conversation} reply={text:?}",
                 text.chars().count()
             );
+            crate::session_log::append_turn(&last_user_text, &text, "openai", &model);
             return Ok(ChatResult {
                 text,
                 end_conversation,

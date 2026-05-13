@@ -236,6 +236,10 @@
         "title": "Remembers what matters",
         "body": "Within a session: keeps the last 20 turns so \"about what we just said\" continues naturally. Across sessions: quietly picks up names, preferences, and other durable facts so you don't reintroduce yourself every time."
       },
+      "recall": {
+        "title": "Conversations that grow over time (experimental)",
+        "body": "Opt-in: gives Chappie a memory of the whole flow of your conversations, not just isolated facts. References things you mentioned last week or last month naturally — no scrolling back, no \"do you remember when…\". Everything is processed locally with an on-device model, runs on your own API key, and can be wiped from Settings any time."
+      },
       "location": {
         "title": "Weather for your town, not the nearest big city",
         "body": "Uses macOS Location Services to ground weather and \"nearby\" questions in your actual area. If you decline the permission, Chappie falls back to a rough IP-based estimate — so it works either way."
@@ -280,8 +284,8 @@
   "finalCta": {
     "heading": "Try saying hello.",
     "lead": "Download, then look at the Chappie icon in your menu bar and say \"chappie\".",
-    "downloadButton": "Download",
-    "githubButton": "Source code"
+    "downloadButton": "Download for Mac",
+    "githubButton": "GitHub"
   },
   "footer": {
     "credit": "Chappie"

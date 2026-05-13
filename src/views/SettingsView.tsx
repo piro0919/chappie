@@ -264,6 +264,7 @@ export function SettingsView() {
       try {
         setSpeakerEnrolled(await invoke<boolean>("speaker_is_enrolled"));
       } catch {}
+      await refreshLtmStatus();
       setLoaded(true);
     })();
     getVersion()
@@ -297,10 +298,25 @@ export function SettingsView() {
     }).then((u) => {
       unlistenLevel = u;
     });
+    // Long-term-memory model download progress. Two files (model +
+    // tokenizer) stream over the same channel; the model file is the
+    // overwhelming majority of bytes so we just track aggregate pct.
+    let unlistenLtm: (() => void) | undefined;
+    void listen<{ kind: string; received: number; total: number }>(
+      "embedding_model:progress",
+      (e) => {
+        const { received, total } = e.payload;
+        const pct = total > 0 ? Math.round((received / total) * 100) : 0;
+        setLtmPhase({ kind: "downloading", pct });
+      },
+    ).then((u) => {
+      unlistenLtm = u;
+    });
     return () => {
       unlisten?.();
       unlistenSpeaker?.();
       unlistenLevel?.();
+      unlistenLtm?.();
     };
   }, []);
 
@@ -348,6 +364,59 @@ export function SettingsView() {
       setSpeakerEnrolled(false);
     } catch (e) {
       setSpeakerError(String(e));
+    }
+  }
+
+  type LtmPhase =
+    | { kind: "idle" }
+    | { kind: "downloading"; pct: number }
+    | { kind: "wiping" };
+  const [ltmEnabled, setLtmEnabled] = useState(false);
+  const [ltmPhase, setLtmPhase] = useState<LtmPhase>({ kind: "idle" });
+  const [ltmError, setLtmError] = useState<string | null>(null);
+  const [ltmForgetDoneAt, setLtmForgetDoneAt] = useState(0);
+
+  async function refreshLtmStatus() {
+    try {
+      setLtmEnabled(await invoke<boolean>("embedding_model_status"));
+    } catch {}
+  }
+
+  async function onEnableLtm() {
+    setLtmError(null);
+    setLtmPhase({ kind: "downloading", pct: 0 });
+    try {
+      await invoke("ensure_embedding_model");
+      await refreshLtmStatus();
+      setLtmPhase({ kind: "idle" });
+    } catch (e) {
+      setLtmError(String(e));
+      setLtmPhase({ kind: "idle" });
+    }
+  }
+
+  async function onForgetLtm() {
+    if (!window.confirm(t("settings.ltmForgetConfirm"))) return;
+    setLtmError(null);
+    setLtmPhase({ kind: "wiping" });
+    try {
+      await invoke("forget_long_term_memory");
+      setLtmForgetDoneAt(Date.now());
+      setLtmPhase({ kind: "idle" });
+    } catch (e) {
+      setLtmError(String(e));
+      setLtmPhase({ kind: "idle" });
+    }
+  }
+
+  async function onDisableLtm() {
+    if (!window.confirm(t("settings.ltmDisableConfirm"))) return;
+    setLtmError(null);
+    try {
+      await invoke("remove_embedding_model");
+      await refreshLtmStatus();
+    } catch (e) {
+      setLtmError(String(e));
     }
   }
 
@@ -708,6 +777,67 @@ export function SettingsView() {
         {locationStatus === "denied" && (
           <p className={styles.note}>{t("settings.locationDeniedNote")}</p>
         )}
+      </section>
+
+      {/* Long-term memory (RAG) — opt-in download + privacy-safe wipe. */}
+      <section className={styles.card}>
+        <div className={styles.statusRow}>
+          <span className={styles.statusLabel}>{t("settings.ltmLabel")}</span>
+          <span
+            className={`${styles.badge} ${
+              ltmEnabled ? styles.badgeGranted : styles.badgeNeutral
+            }`}
+          >
+            <span className={styles.badgeDot} />
+            {ltmEnabled
+              ? t("settings.ltmStatusEnabled")
+              : t("settings.ltmStatusDisabled")}
+          </span>
+        </div>
+        <p className={styles.note}>{t("settings.ltmDescription")}</p>
+        {ltmPhase.kind === "downloading" && (
+          <p className={styles.note}>
+            {t("settings.ltmEnableDownloadProgress", {
+              pct: String(ltmPhase.pct),
+            })}
+          </p>
+        )}
+        {ltmError && <p className={styles.note}>{ltmError}</p>}
+        {ltmForgetDoneAt > 0 && Date.now() - ltmForgetDoneAt < 5000 && (
+          <p className={styles.note}>{t("settings.ltmForgetDone")}</p>
+        )}
+        <div className={styles.actions}>
+          {!ltmEnabled && (
+            <button
+              type="button"
+              className={styles.button}
+              onClick={onEnableLtm}
+              disabled={ltmPhase.kind !== "idle"}
+            >
+              {ltmPhase.kind === "downloading"
+                ? t("settings.ltmEnabling")
+                : t("settings.ltmEnable")}
+            </button>
+          )}
+          {ltmEnabled && (
+            <button
+              type="button"
+              className={styles.button}
+              onClick={onDisableLtm}
+              disabled={ltmPhase.kind !== "idle"}
+            >
+              {t("settings.ltmDisable")}
+            </button>
+          )}
+          <button
+            type="button"
+            className={styles.button}
+            onClick={onForgetLtm}
+            disabled={ltmPhase.kind !== "idle"}
+          >
+            {t("settings.ltmForget")}
+          </button>
+        </div>
       </section>
 
       {/* Language */}

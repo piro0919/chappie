@@ -33,6 +33,7 @@ function buildSystemPrompt(lang: Language): string {
   return [
     tRaw(lang, "systemPrompt.persona"),
     tRaw(lang, "systemPrompt.formatTts"),
+    tRaw(lang, "systemPrompt.pastContext"),
   ].join(" ");
 }
 const FOLLOWUP_TIMEOUT_MS = 6000;
