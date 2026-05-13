@@ -489,6 +489,20 @@ fn menu_label_coffee(lang: Lang) -> &'static str {
     }
 }
 
+fn menu_label_stop_speaking(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Ja => "話すのを止める",
+        Lang::En => "Stop speaking",
+        Lang::Es => "Dejar de hablar",
+        Lang::Fr => "Arrêter de parler",
+        Lang::De => "Sprechen stoppen",
+        Lang::Zh => "停止说话",
+        Lang::Pt => "Parar de falar",
+        Lang::Ko => "말하기 중지",
+        Lang::It => "Smetti di parlare",
+    }
+}
+
 fn menu_label_quit(lang: Lang) -> &'static str {
     match lang {
         Lang::Ja => "終了",
@@ -610,6 +624,16 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
                     eprintln!("[tray] open_coffee failed: {e}");
                 }
             }
+            "stop_speaking" => {
+                // Emit to all webviews so the renderer can call
+                // cancelSpeech() and reset its state machine. Doing this
+                // via event (rather than a Tauri command) keeps tray
+                // logic decoupled from renderer setup readiness.
+                use tauri::Emitter;
+                if let Err(e) = app.emit("tray:stop_speaking", ()) {
+                    eprintln!("[tray] emit stop_speaking failed: {e}");
+                }
+            }
             "quit" => {
                 // Stop cpal cleanly so Core Audio releases the input device
                 // before the process exits. Without this the tray exit can
@@ -644,6 +668,18 @@ fn build_menu(
     let mic = CheckMenuItemBuilder::with_id("toggle_mic", menu_label_mic(lang))
         .checked(listening)
         .build(app)?;
+    // Manual TTS interrupt for moments when the user can't speak (in a
+    // meeting, with people around, etc.). Only added to the menu while
+    // Chappie is actually talking — keeps the menu clean when there's
+    // nothing to stop.
+    let stop_speaking = if matches!(state, TrayState::Speaking) {
+        Some(
+            MenuItemBuilder::with_id("stop_speaking", menu_label_stop_speaking(lang))
+                .build(app)?,
+        )
+    } else {
+        None
+    };
     let settings =
         MenuItemBuilder::with_id("open_settings", menu_label_settings(lang)).build(app)?;
     let help = MenuItemBuilder::with_id("open_help", menu_label_help(lang)).build(app)?;
@@ -652,8 +688,13 @@ fn build_menu(
     let coffee =
         MenuItemBuilder::with_id("open_coffee", menu_label_coffee(lang)).build(app)?;
     let quit = MenuItemBuilder::with_id("quit", menu_label_quit(lang)).build(app)?;
-    MenuBuilder::new(app)
-        .item(&status)
+    let mut builder = MenuBuilder::new(app).item(&status);
+    if let Some(ref item) = stop_speaking {
+        builder = builder
+            .item(&PredefinedMenuItem::separator(app)?)
+            .item(item);
+    }
+    builder
         .item(&PredefinedMenuItem::separator(app)?)
         .item(&mic)
         .item(&PredefinedMenuItem::separator(app)?)

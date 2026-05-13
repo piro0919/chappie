@@ -636,11 +636,27 @@ export function useConversationLoop(): { state: State; error: string | null } {
             );
           },
         );
+        // Manual TTS interrupt from the tray menu. Same teardown as the
+        // voice barge-in path so the user can stop Chappie when speaking
+        // out loud isn't an option (meeting / quiet room / etc.).
+        const offTrayStop = await listen("tray:stop_speaking", () => {
+          if (!ttsActiveRef.current) {
+            return;
+          }
+          console.info("[loop] BARGE-IN (tray menu) cancelling TTS");
+          cancelSpeech();
+          bargeInActiveRef.current = false;
+          ttsActiveRef.current = false;
+          void invoke("exit_barge_in_mode").catch(() => {});
+          dispatch({ type: "speechDone" });
+          startContinuationWindow();
+        });
         if (cancelled) {
           off();
           offBargeIn();
           offActive();
           offMiniplayer();
+          offTrayStop();
           return;
         }
         speechOff = () => {
@@ -648,6 +664,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
           offBargeIn();
           offActive();
           offMiniplayer();
+          offTrayStop();
         };
 
         try {
