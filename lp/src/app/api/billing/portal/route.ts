@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { verifyBearer } from "@/lib/auth";
-import { APP_BASE_URL, stripe } from "@/lib/stripe";
+import { APP_BASE_URL, PORTAL_CONFIG_ID, stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
   const session = await stripe.billingPortal.sessions.create({
     customer: data.stripe_customer_id,
     return_url: `${APP_BASE_URL}/upgrade/success`,
+    ...(PORTAL_CONFIG_ID ? { configuration: PORTAL_CONFIG_ID } : {}),
   });
 
   return NextResponse.json({ url: session.url });
