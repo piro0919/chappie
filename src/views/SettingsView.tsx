@@ -9,6 +9,7 @@ import {
 } from "@tauri-apps/plugin-autostart";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
+import { usePermissionStatus } from "../hooks/usePermissionStatus";
 import { resolveLanguage } from "../i18n/messages";
 import { useT } from "../i18n/useT";
 import { detectProvider, providerLabel } from "../lib/provider";
@@ -62,16 +63,26 @@ export function SettingsView() {
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [version, setVersion] = useState("");
-  const [micStatus, setMicStatus] = useState<MicStatus>("not_determined");
-  const [requestingMic, setRequestingMic] = useState(false);
-  const [screenStatus, setScreenStatus] = useState<ScreenStatus>("denied");
-  const [requestingScreen, setRequestingScreen] = useState(false);
-  const [calendarStatus, setCalendarStatus] =
-    useState<CalendarStatus>("not_determined");
-  const [requestingCalendar, setRequestingCalendar] = useState(false);
-  const [locationStatus, setLocationStatus] =
-    useState<LocationStatus>("not_determined");
-  const [requestingLocation, setRequestingLocation] = useState(false);
+  const mic = usePermissionStatus<MicStatus>({
+    initial: "not_determined",
+    checkCommand: "check_microphone_permission",
+    requestCommand: "request_microphone_access",
+  });
+  const screen = usePermissionStatus<ScreenStatus>({
+    initial: "denied",
+    checkCommand: "check_screen_recording_permission",
+    requestCommand: "request_screen_recording_access",
+  });
+  const calendar = usePermissionStatus<CalendarStatus>({
+    initial: "not_determined",
+    checkCommand: "calendar_status",
+    requestCommand: "request_calendar_access",
+  });
+  const location = usePermissionStatus<LocationStatus>({
+    initial: "not_determined",
+    checkCommand: "location_permission_status",
+    requestCommand: "request_location_permission",
+  });
   // Speaker enrollment: "idle" = nothing happening, "downloading" = pulling
   // the ONNX model on first use, "recording" = capturing voice for ~5s,
   // "enrolling" = sending samples to Rust + waiting for save.
@@ -115,84 +126,6 @@ export function SettingsView() {
           label: t("settings.micNotDetermined"),
           className: styles.badgeNeutral,
         };
-    }
-  }
-
-  async function refreshMicStatus() {
-    try {
-      const status = await invoke<MicStatus>("check_microphone_permission");
-      setMicStatus(status);
-    } catch {}
-  }
-
-  async function refreshScreenStatus() {
-    console.info("[settings] refreshScreenStatus");
-    try {
-      const status = await invoke<ScreenStatus>(
-        "check_screen_recording_permission",
-      );
-      console.info("[settings] check_screen_recording_permission ->", status);
-      setScreenStatus(status);
-    } catch (e) {
-      console.error("[settings] check_screen_recording_permission failed", e);
-    }
-  }
-
-  async function refreshCalendarStatus() {
-    try {
-      const status = await invoke<CalendarStatus>("calendar_status");
-      setCalendarStatus(status);
-    } catch (e) {
-      console.error("[settings] calendar_status failed", e);
-    }
-  }
-
-  async function requestCalendar() {
-    setRequestingCalendar(true);
-    try {
-      const granted = await invoke<boolean>("request_calendar_access");
-      console.info("[settings] request_calendar_access ->", granted);
-      await refreshCalendarStatus();
-    } catch (e) {
-      console.error("[settings] request_calendar_access failed", e);
-    } finally {
-      setRequestingCalendar(false);
-    }
-  }
-
-  async function refreshLocationStatus() {
-    try {
-      const status = await invoke<LocationStatus>("location_permission_status");
-      setLocationStatus(status);
-    } catch (e) {
-      console.error("[settings] location_permission_status failed", e);
-    }
-  }
-
-  async function requestLocation() {
-    setRequestingLocation(true);
-    try {
-      const granted = await invoke<boolean>("request_location_permission");
-      console.info("[settings] request_location_permission ->", granted);
-      await refreshLocationStatus();
-    } catch (e) {
-      console.error("[settings] request_location_permission failed", e);
-    } finally {
-      setRequestingLocation(false);
-    }
-  }
-
-  async function requestScreen() {
-    console.info("[settings] requestScreen clicked");
-    setRequestingScreen(true);
-    try {
-      const granted = await invoke<boolean>("request_screen_recording_access");
-      console.info("[settings] request_screen_recording_access ->", granted);
-      await refreshScreenStatus();
-    } catch (e) {
-      console.error("[settings] request_screen_recording_access failed", e);
-    } finally {
-      setRequestingScreen(false);
     }
   }
 
@@ -240,16 +173,6 @@ export function SettingsView() {
     }
   }
 
-  async function requestMic() {
-    setRequestingMic(true);
-    try {
-      await invoke<boolean>("request_microphone_access").catch(() => false);
-      await refreshMicStatus();
-    } finally {
-      setRequestingMic(false);
-    }
-  }
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: init runs once
   useEffect(() => {
     void (async () => {
@@ -278,10 +201,10 @@ export function SettingsView() {
         );
       }
       setAutostart(desired);
-      await refreshMicStatus();
-      await refreshScreenStatus();
-      await refreshCalendarStatus();
-      await refreshLocationStatus();
+      await mic.refresh();
+      await screen.refresh();
+      await calendar.refresh();
+      await location.refresh();
       await refreshVoicevoxStatus();
       try {
         setSpeakerEnrolled(await invoke<boolean>("speaker_is_enrolled"));
@@ -469,7 +392,7 @@ export function SettingsView() {
     return <main className={styles.loading}>{t("common.loading")}</main>;
   }
 
-  const badge = micStatusBadge(micStatus);
+  const badge = micStatusBadge(mic.status);
 
   return (
     <main className={styles.root}>
@@ -483,21 +406,21 @@ export function SettingsView() {
             {badge.label}
           </span>
         </div>
-        {micStatus !== "granted" && (
+        {mic.status !== "granted" && (
           <div className={styles.actions}>
-            {micStatus === "not_determined" && (
+            {mic.status === "not_determined" && (
               <button
                 type="button"
                 className={styles.button}
-                onClick={requestMic}
-                disabled={requestingMic}
+                onClick={mic.request}
+                disabled={mic.requesting}
               >
-                {requestingMic
+                {mic.requesting
                   ? t("settings.micRequesting")
                   : t("settings.micRequest")}
               </button>
             )}
-            {(micStatus === "denied" || micStatus === "restricted") && (
+            {(mic.status === "denied" || mic.status === "restricted") && (
               <button
                 type="button"
                 className={styles.button}
@@ -511,13 +434,13 @@ export function SettingsView() {
             <button
               type="button"
               className={styles.button}
-              onClick={refreshMicStatus}
+              onClick={mic.refresh}
             >
               {t("settings.micRecheck")}
             </button>
           </div>
         )}
-        {micStatus === "denied" && (
+        {mic.status === "denied" && (
           <p className={styles.note}>{t("settings.micDeniedNote")}</p>
         )}
       </section>
@@ -665,21 +588,21 @@ export function SettingsView() {
             {t("settings.screenAccess")}
           </span>
           <span
-            className={`${styles.badge} ${screenStatus === "granted" ? styles.badgeGranted : styles.badgeDenied}`}
+            className={`${styles.badge} ${screen.status === "granted" ? styles.badgeGranted : styles.badgeDenied}`}
           >
             <span className={styles.badgeDot} />
-            {screenStatus === "granted"
+            {screen.status === "granted"
               ? t("settings.screenGranted")
               : t("settings.screenDenied")}
           </span>
         </div>
-        {screenStatus !== "granted" && (
+        {screen.status !== "granted" && (
           <div className={styles.actions}>
             <button
               type="button"
               className={styles.button}
-              onClick={requestScreen}
-              disabled={requestingScreen}
+              onClick={screen.request}
+              disabled={screen.requesting}
             >
               {t("settings.screenRequest")}
             </button>
@@ -697,13 +620,13 @@ export function SettingsView() {
             <button
               type="button"
               className={styles.button}
-              onClick={refreshScreenStatus}
+              onClick={screen.refresh}
             >
               {t("settings.micRecheck")}
             </button>
           </div>
         )}
-        {screenStatus === "denied" && (
+        {screen.status === "denied" && (
           <p className={styles.note}>{t("settings.screenDeniedNote")}</p>
         )}
       </section>
@@ -715,34 +638,34 @@ export function SettingsView() {
             {t("settings.calendarAccess")}
           </span>
           <span
-            className={`${styles.badge} ${calendarStatus === "granted" ? styles.badgeGranted : styles.badgeDenied}`}
+            className={`${styles.badge} ${calendar.status === "granted" ? styles.badgeGranted : styles.badgeDenied}`}
           >
             <span className={styles.badgeDot} />
-            {calendarStatus === "granted"
+            {calendar.status === "granted"
               ? t("settings.calendarGranted")
               : t("settings.calendarDenied")}
           </span>
         </div>
-        {calendarStatus !== "granted" && (
+        {calendar.status !== "granted" && (
           <div className={styles.actions}>
             <button
               type="button"
               className={styles.button}
-              onClick={requestCalendar}
-              disabled={requestingCalendar}
+              onClick={calendar.request}
+              disabled={calendar.requesting}
             >
               {t("settings.calendarRequest")}
             </button>
             <button
               type="button"
               className={styles.button}
-              onClick={refreshCalendarStatus}
+              onClick={calendar.refresh}
             >
               {t("settings.micRecheck")}
             </button>
           </div>
         )}
-        {calendarStatus === "denied" && (
+        {calendar.status === "denied" && (
           <p className={styles.note}>{t("settings.calendarDeniedNote")}</p>
         )}
       </section>
@@ -757,27 +680,27 @@ export function SettingsView() {
             {t("settings.locationAccess")}
           </span>
           <span
-            className={`${styles.badge} ${locationStatus === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
+            className={`${styles.badge} ${location.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
           >
             <span className={styles.badgeDot} />
-            {locationStatus === "granted"
+            {location.status === "granted"
               ? t("settings.locationGranted")
               : t("settings.locationDenied")}
           </span>
         </div>
         <p className={styles.note}>{t("settings.locationDescription")}</p>
-        {locationStatus !== "granted" && (
+        {location.status !== "granted" && (
           <div className={styles.actions}>
             <button
               type="button"
               className={styles.button}
-              onClick={requestLocation}
-              disabled={requestingLocation}
+              onClick={location.request}
+              disabled={location.requesting}
             >
               {t("settings.locationRequest")}
             </button>
-            {(locationStatus === "denied" ||
-              locationStatus === "restricted") && (
+            {(location.status === "denied" ||
+              location.status === "restricted") && (
               <button
                 type="button"
                 className={styles.button}
@@ -791,13 +714,13 @@ export function SettingsView() {
             <button
               type="button"
               className={styles.button}
-              onClick={refreshLocationStatus}
+              onClick={location.refresh}
             >
               {t("settings.micRecheck")}
             </button>
           </div>
         )}
-        {locationStatus === "denied" && (
+        {location.status === "denied" && (
           <p className={styles.note}>{t("settings.locationDeniedNote")}</p>
         )}
       </section>
