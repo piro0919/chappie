@@ -67,7 +67,15 @@ pub async fn chat_complete(
         crate::provider::Provider::Anthropic => {
             let model = env_override
                 .unwrap_or_else(|| provider.default_model().to_string());
-            crate::anthropic::chat_complete(app, api_key, model, messages, on_chunk).await
+            crate::llm::dispatch::chat_complete_generic(
+                &app,
+                crate::llm::anthropic_impl::AnthropicProvider,
+                api_key,
+                model,
+                messages,
+                on_chunk,
+            )
+            .await
         }
         crate::provider::Provider::Gemini => {
             let model = env_override

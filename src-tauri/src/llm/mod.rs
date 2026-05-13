@@ -14,6 +14,7 @@
 // (lifted in Phase 5 cleanup).
 #![allow(dead_code)]
 
+pub mod anthropic_impl;
 pub mod dispatch;
 pub mod events;
 pub mod openai_impl;
