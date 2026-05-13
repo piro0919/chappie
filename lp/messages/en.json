@@ -64,9 +64,9 @@
       "news": {
         "title": "Read the latest news",
         "example1": "\"What's the latest news?\"",
-        "example2": "\"Read me some tech news.\"",
-        "example3": "\"Any world news?\"",
-        "body": "Switch between top stories, tech (Hacker News), and world (BBC). Chappie reads the headlines aloud — your morning briefing without opening an app."
+        "example2": "\"Any world news?\"",
+        "example3": "\"Read me Nintendo news.\"",
+        "body": "Top headlines, tech, and world feeds plus on-the-fly topic search — just say what you want to hear about. If nothing comes back, Chappie opens the search in your browser. Voice-only morning briefing."
       },
       "wikipedia": {
         "title": "Look it up on Wikipedia",

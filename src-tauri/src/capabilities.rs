@@ -828,6 +828,7 @@ fn capabilities_ja() -> String {
             &[
                 "最新ニュース教えて（NHK 主要ニュース）",
                 "テックニュース（Hacker News）、海外ニュース（BBC）",
+                "プロ野球ニュース／大谷の最新／任天堂のニュース（任意トピック検索）",
             ],
         ),
         (
@@ -971,6 +972,7 @@ fn capabilities_en() -> String {
             &[
                 "What's the latest news? (NHK top stories)",
                 "Tech news (Hacker News), world news (BBC)",
+                "MLB news / Ohtani updates / Nintendo news (any topic search)",
             ],
         ),
         (
