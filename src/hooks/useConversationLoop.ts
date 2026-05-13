@@ -36,6 +36,7 @@ import {
   transition,
 } from "../lib/state-machine";
 import { isSystemMuted, showOnHud } from "../lib/tauri-bridge";
+import { resolveVoiceForWake } from "../lib/voice-selection";
 import { VOICEVOX_CURATED_SPEAKERS } from "../lib/voicevox-speakers";
 import { detectWake } from "../lib/wake-word";
 
@@ -407,33 +408,18 @@ export function useConversationLoop(): { state: State; error: string | null } {
   // The next wake overwrites whatever the previous turn set.
   function applyVoiceForWake(speakerId: number | undefined): void {
     voicevoxSpeakerIdRef.current = speakerId;
-    if (speakerId === undefined) {
-      console.info("[loop] applyVoiceForWake -> WebSpeech (chappie)");
-      setEngineOpts({ voicevox: { enabled: false, speakerId: 0 } });
-      // Reset tray icon set to Chappie. Wake-driven, fire-and-forget.
-      void invoke("set_tray_character", { character: "chappie" }).catch(
-        () => {},
-      );
-    } else {
-      const speaker = VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId);
-      console.info(
-        `[loop] applyVoiceForWake -> VOICEVOX speaker=${speakerId} styles=${speaker?.styles ? Object.keys(speaker.styles).join(",") : "?"} tray=${speaker?.trayCharacter ?? "chappie"}`,
-      );
-      setEngineOpts({
-        voicevox: {
-          enabled: true,
-          speakerId,
-          styles: speaker?.styles,
-        },
-      });
-      // Swap tray icons to the character's set if we ship them; otherwise
-      // fall back to Chappie. The Rust side ignores unknown values via
-      // serde so even a future typo here just keeps the default icons.
-      const trayChar = speaker?.trayCharacter ?? "chappie";
-      void invoke("set_tray_character", { character: trayChar }).catch(
-        () => {},
-      );
-    }
+    const { engineOpts, trayCharacter } = resolveVoiceForWake(speakerId);
+    console.info(
+      `[loop] applyVoiceForWake speaker=${speakerId ?? "chappie"} tray=${trayCharacter}`,
+    );
+    setEngineOpts(engineOpts);
+    // Swap tray icons to the character's set if we ship them; otherwise
+    // fall back to Chappie. Wake-driven, fire-and-forget. The Rust side
+    // ignores unknown values via serde so even a future typo here just
+    // keeps the default icons.
+    void invoke("set_tray_character", { character: trayCharacter }).catch(
+      () => {},
+    );
   }
 
   function startContinuationWindow() {
