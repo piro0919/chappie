@@ -24,6 +24,7 @@ describe("settings", () => {
 
   it("returns defaults when store is empty", async () => {
     expect(await loadSettings()).toEqual({
+      mode: "free",
       openaiApiKey: "",
       language: "auto",
       autostart: false,
@@ -33,7 +34,9 @@ describe("settings", () => {
   it("returns persisted values when present", async () => {
     fakeStoreState.set("openaiApiKey", "sk-test");
     fakeStoreState.set("language", "en");
+    // No persisted `mode`: existing user with a saved key migrates to BYOK.
     expect(await loadSettings()).toEqual({
+      mode: "byok",
       openaiApiKey: "sk-test",
       language: "en",
       autostart: false,
@@ -44,11 +47,20 @@ describe("settings", () => {
     await saveSettings({ openaiApiKey: "sk-new" });
     expect(fakeStore.set).toHaveBeenCalledWith("openaiApiKey", "sk-new");
     expect(fakeStore.save).toHaveBeenCalled();
+    // No persisted mode + saved key → BYOK via migration.
     expect(await loadSettings()).toEqual({
+      mode: "byok",
       openaiApiKey: "sk-new",
       language: "auto",
       autostart: false,
     });
+  });
+
+  it("persists explicit mode override", async () => {
+    await saveSettings({ mode: "free", openaiApiKey: "sk-old" });
+    expect(fakeStore.set).toHaveBeenCalledWith("mode", "free");
+    // Explicit "free" wins over the BYOK migration heuristic.
+    expect((await loadSettings()).mode).toBe("free");
   });
 
   it("persists language changes", async () => {

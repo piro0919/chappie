@@ -7,6 +7,7 @@ mod caffeinate;
 mod calendar;
 mod capabilities;
 mod clipboard;
+mod device_id;
 mod download;
 mod finder;
 mod http;
@@ -380,6 +381,7 @@ pub fn run() {
             audio::start_enrollment_recording,
             audio::finish_enrollment_recording,
             openai::chat_complete,
+            device_id::get_device_id,
             hud::hud_dismiss,
             hud::hud_show,
             volume::is_muted,

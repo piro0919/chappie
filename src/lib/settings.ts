@@ -12,7 +12,19 @@ export type Language =
   | "ko"
   | "it";
 
+/**
+ * - "free": call the proxy at chappie.kkweb.io (no API key needed; daily quota).
+ * - "byok": call OpenAI / Anthropic / Gemini directly with the user's key.
+ *
+ * Fresh installs default to "free". Existing users with a saved key
+ * migrate to "byok" so behavior stays identical (see migration in
+ * `loadSettings`). The renderer holds this as the source of truth; the
+ * Rust `chat_complete` Tauri command branches on it.
+ */
+export type Mode = "free" | "byok";
+
 export type Settings = {
+  mode: Mode;
   openaiApiKey: string;
   language: Language;
   /**
@@ -26,15 +38,27 @@ export type Settings = {
 };
 
 const DEFAULTS: Settings = {
+  mode: "free",
   openaiApiKey: "",
   language: "auto",
   autostart: false,
 };
 const FILE = "settings.json";
 
+// `mode` is intentionally absent from STORE_DEFAULTS so a missing key
+// stays undefined at read time — the migration in `loadSettings` needs
+// to distinguish "never set" (pre-Free-mode install, possibly a BYOK
+// user we should preserve) from "explicitly set to free".
+const STORE_DEFAULTS = {
+  openaiApiKey: DEFAULTS.openaiApiKey,
+  language: DEFAULTS.language,
+  autostart: DEFAULTS.autostart,
+};
+
 let storePromise: Promise<Store> | null = null;
 function getStore(): Promise<Store> {
-  if (!storePromise) storePromise = load(FILE, { defaults: { ...DEFAULTS } });
+  if (!storePromise)
+    storePromise = load(FILE, { defaults: { ...STORE_DEFAULTS } });
   return storePromise;
 }
 
@@ -45,7 +69,13 @@ export async function loadSettings(): Promise<Settings> {
   const language = (await store.get<Language>("language")) ?? DEFAULTS.language;
   const autostart =
     (await store.get<boolean>("autostart")) ?? DEFAULTS.autostart;
+  // Migration: a pre-Free-mode user whose store has no `mode` entry but
+  // does have a saved API key was a BYOK user — preserve that behavior.
+  // No key + no `mode` is a fresh (or wiped) install → Free.
+  const storedMode = await store.get<Mode>("mode");
+  const mode: Mode = storedMode ?? (apiKey.trim() ? "byok" : DEFAULTS.mode);
   return {
+    mode,
     openaiApiKey: apiKey,
     language,
     autostart,
@@ -66,6 +96,9 @@ export async function hasPersistedAutostart(): Promise<boolean> {
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   const store = await getStore();
+  if (patch.mode !== undefined) {
+    await store.set("mode", patch.mode);
+  }
   if (patch.openaiApiKey !== undefined) {
     await store.set("openaiApiKey", patch.openaiApiKey);
   }

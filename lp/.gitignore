@@ -1,1 +1,11 @@
 .vercel
+.env
+.env.local
+.env*.local
+node_modules
+.next
+out
+
+# supabase
+supabase/.branches
+supabase/.temp

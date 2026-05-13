@@ -32,9 +32,34 @@ pub async fn chat_complete(
     app: tauri::AppHandle,
     api_key: String,
     model: String,
+    mode: Option<String>,
     messages: Vec<ChatMessage>,
     on_chunk: Channel<String>,
 ) -> Result<ChatResult, String> {
+    // Free mode bypasses provider detection and routes through the
+    // chappie.kkweb.io proxy. The renderer doesn't pass an api_key for
+    // this mode — we load the device id from disk and hand it to
+    // ProxyProvider via the credential slot.
+    if mode.as_deref() == Some("free") {
+        let device_id = crate::device_id::get_or_init()?;
+        // Model is fixed server-side (gemini-2.5-flash) but we still need
+        // something for the request body's model name slot; the proxy
+        // ignores it.
+        let model = std::env::var("CHAPPIE_MODEL")
+            .ok()
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or_else(|| "gemini-2.5-flash".to_string());
+        return crate::llm::dispatch::chat_complete_generic(
+            &app,
+            crate::llm::proxy_impl::ProxyProvider::new(),
+            device_id,
+            model,
+            messages,
+            on_chunk,
+        )
+        .await;
+    }
+
     if api_key.trim().is_empty() {
         return Err("missing api key".into());
     }

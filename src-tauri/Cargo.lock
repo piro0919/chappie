@@ -687,6 +687,7 @@ dependencies = [
  "tract-onnx",
  "url",
  "urlencoding",
+ "uuid",
  "voice_activity_detector",
  "webrtc-audio-processing",
  "whisper-rs",

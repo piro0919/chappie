@@ -14,7 +14,7 @@ describe("openai-client", () => {
     const invoker = vi
       .fn()
       .mockResolvedValue({ text: "hi back", endConversation: false });
-    const client = createChatClient("sk-test", "gpt-4o-mini", invoker);
+    const client = createChatClient("sk-test", "gpt-4o-mini", "byok", invoker);
     const result = await client.complete([
       { role: "system", content: "sys" },
       { role: "user", content: "hi" },
@@ -37,7 +37,7 @@ describe("openai-client", () => {
     const invoker = vi
       .fn()
       .mockResolvedValue({ text: "またね", endConversation: true });
-    const client = createChatClient("sk-test", "gpt-4o-mini", invoker);
+    const client = createChatClient("sk-test", "gpt-4o-mini", "byok", invoker);
     expect(await client.complete([])).toEqual({
       text: "またね",
       endConversation: true,
@@ -48,7 +48,7 @@ describe("openai-client", () => {
     const invoker = vi
       .fn()
       .mockResolvedValue({ text: "", endConversation: false });
-    const client = createChatClient("sk-test", "gpt-4o-mini", invoker);
+    const client = createChatClient("sk-test", "gpt-4o-mini", "byok", invoker);
     await expect(client.complete([])).rejects.toThrow();
   });
 });

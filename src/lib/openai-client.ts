@@ -1,5 +1,6 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import type { Message } from "./conversation-history";
+import type { Mode } from "./settings";
 
 export type ChatResult = {
   text: string;
@@ -21,6 +22,7 @@ export type Invoker = <T>(
 export function createChatClient(
   apiKey: string,
   model: string,
+  mode: Mode = "byok",
   invoker: Invoker = invoke,
 ): ChatClient {
   return {
@@ -35,6 +37,7 @@ export function createChatClient(
       const result = await invoker<ChatResult>("chat_complete", {
         apiKey,
         model,
+        mode,
         messages,
         onChunk: channel,
       });

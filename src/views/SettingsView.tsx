@@ -17,6 +17,7 @@ import {
   hasPersistedAutostart,
   type Language,
   loadSettings,
+  type Mode,
   type Settings,
   saveSettings,
 } from "../lib/settings";
@@ -41,6 +42,7 @@ const LOCATION_PRIVACY_URL =
 
 export function SettingsView() {
   const { t } = useT();
+  const [mode, setMode] = useState<Mode>("free");
   const [apiKey, setApiKey] = useState("");
   const [language, setLanguage] = useState<Language>("auto");
   const [autostart, setAutostart] = useState(false);
@@ -177,6 +179,7 @@ export function SettingsView() {
   useEffect(() => {
     void (async () => {
       const s: Settings = await loadSettings();
+      setMode(s.mode);
       setApiKey(s.openaiApiKey);
       setLanguage(s.language);
       // The persisted preference is the source of truth for the
@@ -367,6 +370,7 @@ export function SettingsView() {
 
   const onSave = async () => {
     await saveSettings({
+      mode,
       openaiApiKey: apiKey,
       language,
       autostart,
@@ -445,41 +449,77 @@ export function SettingsView() {
         )}
       </section>
 
-      {/* API key */}
+      {/* Mode (Free / BYOK) */}
       <section className={styles.card}>
         <div className={styles.row}>
-          <label className={styles.rowLabel} htmlFor="api-key">
-            {t("settings.apiKey")}
-          </label>
-          <input
-            id="api-key"
-            type="password"
-            className={styles.input}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={t("settings.apiKeyPlaceholder")}
-          />
+          <span className={styles.rowLabel}>{t("settings.modeLabel")}</span>
+          <div>
+            <label style={{ display: "block", marginBottom: 4 }}>
+              <input
+                type="radio"
+                name="mode"
+                value="free"
+                checked={mode === "free"}
+                onChange={() => setMode("free")}
+              />{" "}
+              {t("settings.modeFree")}
+            </label>
+            <label style={{ display: "block" }}>
+              <input
+                type="radio"
+                name="mode"
+                value="byok"
+                checked={mode === "byok"}
+                onChange={() => setMode("byok")}
+              />{" "}
+              {t("settings.modeByok")}
+            </label>
+          </div>
         </div>
-        {(() => {
-          const trimmed = apiKey.trim();
-          if (!trimmed) {
-            return <p className={styles.note}>{t("settings.apiKeyNote")}</p>;
-          }
-          const provider = detectProvider(trimmed);
-          if (provider) {
-            return (
-              <p className={styles.note}>
-                {t("settings.apiKeyDetected", {
-                  provider: providerLabel(provider),
-                })}
-              </p>
-            );
-          }
-          return <p className={styles.note}>{t("settings.apiKeyUnknown")}</p>;
-        })()}
+        <p className={styles.note}>
+          {mode === "free"
+            ? t("settings.modeFreeNote")
+            : t("settings.modeByokNote")}
+        </p>
       </section>
+
+      {/* API key — only relevant for BYOK */}
+      {mode === "byok" && (
+        <section className={styles.card}>
+          <div className={styles.row}>
+            <label className={styles.rowLabel} htmlFor="api-key">
+              {t("settings.apiKey")}
+            </label>
+            <input
+              id="api-key"
+              type="password"
+              className={styles.input}
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={t("settings.apiKeyPlaceholder")}
+            />
+          </div>
+          {(() => {
+            const trimmed = apiKey.trim();
+            if (!trimmed) {
+              return <p className={styles.note}>{t("settings.apiKeyNote")}</p>;
+            }
+            const provider = detectProvider(trimmed);
+            if (provider) {
+              return (
+                <p className={styles.note}>
+                  {t("settings.apiKeyDetected", {
+                    provider: providerLabel(provider),
+                  })}
+                </p>
+              );
+            }
+            return <p className={styles.note}>{t("settings.apiKeyUnknown")}</p>;
+          })()}
+        </section>
+      )}
 
       <h2 className={styles.sectionHeading}>{t("settings.sectionOptional")}</h2>
 

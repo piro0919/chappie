@@ -44,11 +44,12 @@ pub async fn chat_complete_generic<P: LlmProvider>(
     messages: Vec<ChatMessage>,
     on_chunk: Channel<String>,
 ) -> Result<ChatResult, String> {
-    if api_key.trim().is_empty() {
+    let label = provider.label();
+    // Proxy mode passes the device id through the `api_key` slot (used as
+    // an `X-Chappie-Device-Id` header). BYOK providers require a real key.
+    if label != "proxy" && api_key.trim().is_empty() {
         return Err("missing api key".into());
     }
-
-    let label = provider.label();
 
     // Capture the latest user utterance for session_log before injection.
     let last_user_text: String = messages
@@ -61,8 +62,16 @@ pub async fn chat_complete_generic<P: LlmProvider>(
     // Context injection prelude. Operates on canonical OpenAI-shape
     // ChatMessage list; each provider's `prepare_state` is called once
     // at the end to translate the result.
+    //
+    // In proxy mode we have no usable BYOK key for the summarizer/topics
+    // side-LLM calls, so pass `None` to skip those backfills.
     let mut messages = messages;
-    inject_context(&mut messages, &last_user_text, &api_key).await;
+    let feature_key = if label == "proxy" {
+        None
+    } else {
+        Some(api_key.as_str())
+    };
+    inject_context(&mut messages, &last_user_text, feature_key).await;
 
     crate::linfo!(
         app,
@@ -139,6 +148,7 @@ pub async fn chat_complete_generic<P: LlmProvider>(
                 "done: chars={} end_conversation={end_conversation}",
                 text.chars().count()
             );
+            crate::linfo!(app, label, "reply: {text}");
             crate::session_log::append_turn(&last_user_text, &text, label, &model);
             return Ok(ChatResult {
                 text,
@@ -194,7 +204,11 @@ pub async fn chat_complete_generic<P: LlmProvider>(
 /// used. Order matters for prompt caching — the leading prefix
 /// (persona + ... + last static layer) must stay stable across turns
 /// so the cached key warms.
-async fn inject_context(messages: &mut Vec<ChatMessage>, last_user_text: &str, api_key: &str) {
+async fn inject_context(
+    messages: &mut Vec<ChatMessage>,
+    last_user_text: &str,
+    api_key: Option<&str>,
+) {
     let after_persona = |msgs: &[ChatMessage]| -> usize {
         if msgs.first().map(|m| m.role.as_str()) == Some("system") {
             1
@@ -279,9 +293,12 @@ async fn inject_context(messages: &mut Vec<ChatMessage>, last_user_text: &str, a
         );
     }
 
-    // Once-per-process backfill triggers for L2 / L3.
-    crate::summarizer::maybe_backfill(api_key.to_string());
-    crate::topics::maybe_refresh(api_key.to_string());
+    // Once-per-process backfill triggers for L2 / L3. Skipped in proxy
+    // mode (no BYOK key available for the side-LLM calls).
+    if let Some(key) = api_key {
+        crate::summarizer::maybe_backfill(key.to_string());
+        crate::topics::maybe_refresh(key.to_string());
+    }
 
     // Time-band hint at the END of the system block so the prefix
     // (persona + profile + location) stays cache-stable; only this

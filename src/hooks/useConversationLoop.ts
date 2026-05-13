@@ -67,6 +67,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const machineRef = useRef<Machine>(createMachine());
   const historyRef = useRef<History>(createHistory(buildSystemPrompt("auto")));
   const apiKeyRef = useRef<string>("");
+  const modeRef = useRef<"free" | "byok">("free");
   const chatClientRef = useRef<ChatClient | null>(null);
   const langRef = useRef<Language>("auto");
   const awaitingBodyRef = useRef(false);
@@ -148,7 +149,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
 
   async function runTurn(userText: string) {
     console.info(`[loop] runTurn: "${userText}"`);
-    if (!apiKeyRef.current || !chatClientRef.current) {
+    // BYOK requires a key; Free mode runs without one (device id is loaded
+    // server-side from ~/.chappie/device-id).
+    const byokMissingKey = modeRef.current === "byok" && !apiKeyRef.current;
+    if (byokMissingKey || !chatClientRef.current) {
       console.warn("[loop] no api key — speaking error message");
       const msg = tRaw(langRef.current, "conversation.apiKeyMissingShort");
       try {
@@ -296,10 +300,19 @@ export function useConversationLoop(): { state: State; error: string | null } {
           await (speaker as Speaker).flush();
         } catch {}
       }
-      const errMsg = tRaw(langRef.current, "conversation.fallbackError");
+      // Distinct messaging for proxy quota exhaustion (Free mode): the
+      // dispatch loop bubbles the upstream 429 body up as "proxy 429: …".
+      const raw = String(e);
+      const isQuota = /\b429\b/.test(raw) || /quota/i.test(raw);
+      const errMsg = isQuota
+        ? tRaw(langRef.current, "conversation.quotaExceededShort")
+        : tRaw(langRef.current, "conversation.fallbackError");
+      const hudMsg = isQuota
+        ? tRaw(langRef.current, "conversation.quotaExceededHud")
+        : errMsg;
       const errMuted = await isSystemMuted();
       try {
-        if (errMuted) await showOnHud(errMsg);
+        if (errMuted) await showOnHud(hudMsg);
         else
           await withMutedCapture(() =>
             speak(errMsg, resolveLanguage(langRef.current)),
@@ -520,6 +533,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       try {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
+        modeRef.current = s.mode;
         langRef.current = s.language;
         historyRef.current = createHistory(buildSystemPrompt(s.language));
         const resolvedLang = resolveLanguage(s.language);
@@ -527,9 +541,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
           () => {},
         );
         void invoke("set_app_language", { lang: resolvedLang }).catch(() => {});
-        chatClientRef.current = s.openaiApiKey
-          ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)
-          : null;
+        // Free mode always has a usable client (device id is server-side);
+        // BYOK requires a non-empty key.
+        chatClientRef.current =
+          s.mode === "free"
+            ? createChatClient("", DEFAULT_MODEL, "free")
+            : s.openaiApiKey
+              ? createChatClient(s.openaiApiKey, DEFAULT_MODEL, "byok")
+              : null;
 
         void invoke("set_tray_state", { state: "initializing" }).catch(
           () => {},
@@ -681,10 +700,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
 
         if (cancelled) return;
 
-        // Once init finishes, surface a missing API key explicitly: a red
-        // tray + warning banner is far more discoverable than letting the
-        // user wake Chappie and then hear an audio error.
-        if (!apiKeyRef.current) {
+        // Once init finishes, surface a missing API key explicitly (BYOK
+        // only): a red tray + warning banner is far more discoverable than
+        // letting the user wake Chappie and then hear an audio error.
+        // Free mode has no key requirement.
+        if (modeRef.current === "byok" && !apiKeyRef.current) {
           setError(tRaw(langRef.current, "conversation.apiKeyMissingLong"));
           void invoke("set_tray_state", { state: "error" }).catch(() => {});
           return;
@@ -711,9 +731,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
 
   useTauriListener("settings:updated", async () => {
     const s = await loadSettings();
-    const wasMissingKey = !apiKeyRef.current;
+    const wasBlocked = modeRef.current === "byok" && !apiKeyRef.current;
     const langChanged = langRef.current !== s.language;
     apiKeyRef.current = s.openaiApiKey;
+    modeRef.current = s.mode;
     langRef.current = s.language;
     if (langChanged) {
       historyRef.current = {
@@ -726,12 +747,17 @@ export function useConversationLoop(): { state: State; error: string | null } {
       );
       void invoke("set_app_language", { lang: resolvedLang }).catch(() => {});
     }
-    chatClientRef.current = s.openaiApiKey
-      ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)
-      : null;
-    // Recover from the "no API key" startup error once the user fills
-    // it in via Settings → 保存.
-    if (wasMissingKey && s.openaiApiKey) {
+    chatClientRef.current =
+      s.mode === "free"
+        ? createChatClient("", DEFAULT_MODEL, "free")
+        : s.openaiApiKey
+          ? createChatClient(s.openaiApiKey, DEFAULT_MODEL, "byok")
+          : null;
+    // Recover from the "no API key" / startup-error state once the
+    // user gives us a working configuration (added key, or switched
+    // to Free mode).
+    const nowOk = s.mode === "free" || (s.mode === "byok" && !!s.openaiApiKey);
+    if (wasBlocked && nowOk) {
       setError(null);
       void invoke("set_tray_state", { state: "idle" }).catch(() => {});
     }
