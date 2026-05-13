@@ -26,6 +26,7 @@ describe("settings", () => {
     expect(await loadSettings()).toEqual({
       openaiApiKey: "",
       language: "auto",
+      autostart: false,
     });
   });
 
@@ -35,6 +36,7 @@ describe("settings", () => {
     expect(await loadSettings()).toEqual({
       openaiApiKey: "sk-test",
       language: "en",
+      autostart: false,
     });
   });
 
@@ -45,6 +47,7 @@ describe("settings", () => {
     expect(await loadSettings()).toEqual({
       openaiApiKey: "sk-new",
       language: "auto",
+      autostart: false,
     });
   });
 
