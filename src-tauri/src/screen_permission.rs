@@ -13,6 +13,7 @@
 
 #[cfg(target_os = "macos")]
 mod imp {
+    use crate::objc_util::guarded;
     use block2::RcBlock;
     use objc2::runtime::AnyObject;
     use objc2::{class, msg_send};
@@ -28,7 +29,7 @@ mod imp {
     extern "C" {}
 
     pub fn preflight() -> bool {
-        unsafe { CGPreflightScreenCaptureAccess() }
+        guarded(|| unsafe { CGPreflightScreenCaptureAccess() }).unwrap_or(false)
     }
 
     /// Requests screen-recording permission via ScreenCaptureKit. Blocks
@@ -84,12 +85,16 @@ mod imp {
             },
         );
 
-        unsafe {
+        let invoke_result = guarded(|| unsafe {
             let cls = class!(SCShareableContent);
             let _: () = msg_send![
                 cls,
                 getShareableContentWithCompletionHandler: &*block,
             ];
+        });
+        if let Err(e) = invoke_result {
+            eprintln!("[screen] getShareableContent failed: {e}");
+            return false;
         }
         rx.recv_timeout(Duration::from_secs(120)).unwrap_or(false)
     }

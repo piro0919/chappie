@@ -63,16 +63,7 @@ pub fn init() {
     let _ = STATE.set(CalendarState { tx });
 }
 
-fn guarded<T, F: FnOnce() -> Result<T, String>>(f: F) -> Result<T, String> {
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        unsafe { objc2::exception::catch(std::panic::AssertUnwindSafe(f)) }
-    }));
-    match result {
-        Ok(Ok(v)) => v,
-        Ok(Err(e)) => Err(format!("ObjC exception: {:?}", e)),
-        Err(_) => Err("EventKit panic".to_string()),
-    }
-}
+use crate::objc_util::guarded_result as guarded;
 
 fn send<T>(make: impl FnOnce(mpsc::Sender<Result<T, String>>) -> Cmd) -> Result<T, String> {
     let state = STATE.get().ok_or_else(|| "calendar not initialized".to_string())?;

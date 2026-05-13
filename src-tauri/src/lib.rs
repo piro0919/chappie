@@ -23,6 +23,8 @@ mod memory;
 mod miniplayer;
 mod music;
 mod notes;
+#[cfg(target_os = "macos")]
+mod objc_util;
 pub mod openai;
 mod power;
 mod provider;

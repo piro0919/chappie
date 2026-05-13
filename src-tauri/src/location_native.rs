@@ -50,16 +50,7 @@ mod imp {
 
     pub static STATE: OnceLock<State> = OnceLock::new();
 
-    fn guarded<T, F: FnOnce() -> Result<T, String>>(f: F) -> Result<T, String> {
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| unsafe {
-            objc2::exception::catch(std::panic::AssertUnwindSafe(f))
-        }));
-        match result {
-            Ok(Ok(v)) => v,
-            Ok(Err(e)) => Err(format!("ObjC exception: {:?}", e)),
-            Err(_) => Err("CoreLocation panic".to_string()),
-        }
-    }
+    use crate::objc_util::guarded_result as guarded;
 
     /// Spin the thread's CFRunLoop for the given duration so async
     /// CoreLocation callbacks (authorization changes, location updates)

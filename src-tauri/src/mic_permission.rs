@@ -6,6 +6,7 @@
 
 #[cfg(target_os = "macos")]
 mod imp {
+    use crate::objc_util::guarded;
     use block2::RcBlock;
     use objc2::runtime::Bool;
     use objc2::{class, msg_send};
@@ -18,26 +19,8 @@ mod imp {
 
     const AV_MEDIA_TYPE_AUDIO: &str = "soun";
 
-    // Wrap every ObjC call in panic::catch_unwind + objc2::exception::catch.
-    // Without this, an NSException from AVFoundation (e.g. due to a broken
-    // entitlement on a dev build) terminates the whole process. Modeled after
-    // galopen/src-tauri/src/calendar.rs.
-    fn guarded_objc<R, F>(f: F) -> Result<R, String>
-    where
-        F: FnOnce() -> R,
-    {
-        let f = std::panic::AssertUnwindSafe(f);
-        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            objc2::exception::catch(f)
-        })) {
-            Ok(Ok(v)) => Ok(v),
-            Ok(Err(e)) => Err(format!("ObjC exception: {:?}", e)),
-            Err(_) => Err("AVFoundation panic".to_string()),
-        }
-    }
-
     pub fn authorization_status() -> i32 {
-        guarded_objc(|| unsafe {
+        guarded(|| unsafe {
             let cls = class!(AVCaptureDevice);
             let media_type = NSString::from_str(AV_MEDIA_TYPE_AUDIO);
             msg_send![cls, authorizationStatusForMediaType: &*media_type]
@@ -58,7 +41,7 @@ mod imp {
                 let _ = sender.send(granted.as_bool());
             }
         });
-        let invoke_result = guarded_objc(|| unsafe {
+        let invoke_result = guarded(|| unsafe {
             let cls = class!(AVCaptureDevice);
             let media_type = NSString::from_str(AV_MEDIA_TYPE_AUDIO);
             let _: () = msg_send![
