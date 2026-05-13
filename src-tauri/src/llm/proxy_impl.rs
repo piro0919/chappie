@@ -30,13 +30,23 @@ const DEFAULT_PROXY_URL: &str = "https://chappie.kkweb.io/api/chat";
 pub struct ProxyProvider {
     inner: GeminiProvider,
     turn_id: String,
+    /// Supabase access token (JWT) when the user is signed in. The proxy
+    /// verifies it with SUPABASE_JWT_SECRET and bypasses the daily quota
+    /// for accounts with an active Stripe subscription. Empty string =
+    /// anonymous Free-mode request.
+    subscription_token: String,
 }
 
 impl ProxyProvider {
     pub fn new() -> Self {
+        Self::with_subscription(String::new())
+    }
+
+    pub fn with_subscription(token: String) -> Self {
         Self {
             inner: GeminiProvider,
             turn_id: Uuid::new_v4().to_string(),
+            subscription_token: token,
         }
     }
 }
@@ -60,8 +70,16 @@ impl LlmProvider for ProxyProvider {
     }
 
     fn apply_auth(&self, req: RequestBuilder, device_id: &str) -> RequestBuilder {
-        req.header("X-Chappie-Device-Id", device_id)
-            .header("X-Chappie-Turn-Id", &self.turn_id)
+        let mut req = req
+            .header("X-Chappie-Device-Id", device_id)
+            .header("X-Chappie-Turn-Id", &self.turn_id);
+        if !self.subscription_token.is_empty() {
+            req = req.header(
+                "Authorization",
+                format!("Bearer {}", self.subscription_token),
+            );
+        }
+        req
     }
 
     fn prepare_state(&self, messages: Vec<ChatMessage>) -> Self::State {

@@ -332,12 +332,20 @@ fn speaker_enroll(samples: Vec<f32>) -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             // If a second instance launches, focus the existing settings window
             // (or just no-op for the hidden conversation worker).
-            use tauri::Manager;
+            use tauri::{Emitter, Manager};
             if let Some(win) = app.get_webview_window("settings") {
                 let _ = win.set_focus();
+            }
+            // Forward any chappie:// URL passed on the relaunch command line
+            // to the deep-link plugin so the renderer hears about it. macOS
+            // delivers deep links via Apple Events in normal cases, but
+            // single-instance dispatch catches the rare path where the OS
+            // spawns a second process before the running one can intercept.
+            for arg in args.iter().filter(|a| a.starts_with("chappie://")) {
+                let _ = app.emit("deep-link", arg);
             }
         }))
         .plugin(tauri_plugin_opener::init())
@@ -349,6 +357,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
             set_tray_state,
             open_settings,
@@ -407,6 +416,21 @@ pub fn run() {
                 let bundle_id = app.config().identifier.clone();
                 let current = info.version.to_string();
                 tcc_reset::reset_on_upgrade(&bundle_id, &current);
+            }
+
+            // Deep-link handler: chappie://auth#access_token=…&refresh_token=…
+            // (magic-link sign-in) and chappie://refresh (post-checkout
+            // "Open Chappie" button on the LP success page). The renderer
+            // listens for the `deep-link` event and routes by URL.
+            {
+                use tauri::Emitter;
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    for url in event.urls() {
+                        let _ = handle.emit("deep-link", url.to_string());
+                    }
+                });
             }
 
             init_tray(app.handle())?;

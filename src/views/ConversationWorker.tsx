@@ -10,6 +10,7 @@ import {
   loadSettings,
   saveSettings,
 } from "../lib/settings";
+import { installDeepLinkHandler, restoreSession } from "../lib/supabase-client";
 
 /** Headless worker for the hidden main window. Mounts the conversation loop
  *  (mic capture init, wake-word handling, OpenAI streaming, TTS) and renders
@@ -52,6 +53,25 @@ export function ConversationWorker(): null {
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Subscription deep-link wiring. The conversation worker is the only
+  // window guaranteed to be alive the moment the magic-link / post-
+  // checkout URL arrives, so the global listener has to live here.
+  // Settings window also installs its own listener, but unlisten is
+  // idempotent.
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      // Restore any persisted Supabase session into the in-memory
+      // supabase-js client so /api/me + /api/billing/* calls work
+      // after a relaunch.
+      void restoreSession().catch(() => {});
+      unlisten = await installDeepLinkHandler();
+    })();
+    return () => {
+      unlisten?.();
     };
   }, []);
 

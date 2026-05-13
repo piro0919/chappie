@@ -67,6 +67,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const machineRef = useRef<Machine>(createMachine());
   const historyRef = useRef<History>(createHistory(buildSystemPrompt("auto")));
   const apiKeyRef = useRef<string>("");
+  const subscriptionTokenRef = useRef<string>("");
   const modeRef = useRef<"free" | "byok">("free");
   const chatClientRef = useRef<ChatClient | null>(null);
   const langRef = useRef<Language>("auto");
@@ -533,6 +534,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       try {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
+        subscriptionTokenRef.current = s.subscriptionAccessToken;
         modeRef.current = s.mode;
         langRef.current = s.language;
         historyRef.current = createHistory(buildSystemPrompt(s.language));
@@ -545,7 +547,13 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // BYOK requires a non-empty key.
         chatClientRef.current =
           s.mode === "free"
-            ? createChatClient("", DEFAULT_MODEL, "free")
+            ? createChatClient(
+                "",
+                DEFAULT_MODEL,
+                "free",
+                undefined,
+                () => subscriptionTokenRef.current,
+              )
             : s.openaiApiKey
               ? createChatClient(s.openaiApiKey, DEFAULT_MODEL, "byok")
               : null;
@@ -734,6 +742,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     const wasBlocked = modeRef.current === "byok" && !apiKeyRef.current;
     const langChanged = langRef.current !== s.language;
     apiKeyRef.current = s.openaiApiKey;
+    subscriptionTokenRef.current = s.subscriptionAccessToken;
     modeRef.current = s.mode;
     langRef.current = s.language;
     if (langChanged) {
@@ -749,7 +758,13 @@ export function useConversationLoop(): { state: State; error: string | null } {
     }
     chatClientRef.current =
       s.mode === "free"
-        ? createChatClient("", DEFAULT_MODEL, "free")
+        ? createChatClient(
+            "",
+            DEFAULT_MODEL,
+            "free",
+            undefined,
+            () => subscriptionTokenRef.current,
+          )
         : s.openaiApiKey
           ? createChatClient(s.openaiApiKey, DEFAULT_MODEL, "byok")
           : null;

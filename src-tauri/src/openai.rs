@@ -33,13 +33,14 @@ pub async fn chat_complete(
     api_key: String,
     model: String,
     mode: Option<String>,
+    subscription_token: Option<String>,
     messages: Vec<ChatMessage>,
     on_chunk: Channel<String>,
 ) -> Result<ChatResult, String> {
-    // Free mode bypasses provider detection and routes through the
-    // chappie.kkweb.io proxy. The renderer doesn't pass an api_key for
-    // this mode — we load the device id from disk and hand it to
-    // ProxyProvider via the credential slot.
+    // Free / Paid both route through the chappie.kkweb.io proxy. The
+    // renderer doesn't pass an api_key here; we load the device id from
+    // disk for quota tracking and forward the subscription token (when
+    // signed in) so the proxy can bypass quota for Paid users.
     if mode.as_deref() == Some("free") {
         let device_id = crate::device_id::get_or_init()?;
         // Model is fixed server-side (gemini-2.5-flash) but we still need
@@ -49,9 +50,12 @@ pub async fn chat_complete(
             .ok()
             .filter(|s| !s.trim().is_empty())
             .unwrap_or_else(|| "gemini-2.5-flash".to_string());
+        let provider = crate::llm::proxy_impl::ProxyProvider::with_subscription(
+            subscription_token.unwrap_or_default(),
+        );
         return crate::llm::dispatch::chat_complete_generic(
             &app,
-            crate::llm::proxy_impl::ProxyProvider::new(),
+            provider,
             device_id,
             model,
             messages,

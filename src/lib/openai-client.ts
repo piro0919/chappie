@@ -19,11 +19,17 @@ export type Invoker = <T>(
   args: Record<string, unknown>,
 ) => Promise<T>;
 
+/**
+ * `subscriptionTokenGetter` is read on every call (not captured at
+ * factory time) so a fresh Pro upgrade or sign-out is picked up on the
+ * very next chat without rebuilding the loop. Empty string = anonymous.
+ */
 export function createChatClient(
   apiKey: string,
   model: string,
   mode: Mode = "byok",
   invoker: Invoker = invoke,
+  subscriptionTokenGetter: () => string = () => "",
 ): ChatClient {
   return {
     async complete(messages, onChunk) {
@@ -38,6 +44,7 @@ export function createChatClient(
         apiKey,
         model,
         mode,
+        subscriptionToken: subscriptionTokenGetter(),
         messages,
         onChunk: channel,
       });

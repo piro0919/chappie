@@ -16,5 +16,16 @@
     <string>Used to read your upcoming events so Chappie can speak them out loud.</string>
     <key>NSCalendarsUsageDescription</key>
     <string>Used to read your upcoming events so Chappie can speak them out loud.</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>io.kkweb.chappie.auth</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>chappie</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
