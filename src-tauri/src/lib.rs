@@ -14,6 +14,7 @@ mod gemini;
 mod http;
 mod hud;
 mod i18n;
+mod llm;
 mod log_event;
 mod mcp;
 mod mic_permission;

@@ -473,6 +473,22 @@ fn menu_label_check_update(lang: Lang) -> &'static str {
     }
 }
 
+const COFFEE_URL: &str = "https://buymeacoffee.com/piro0919";
+
+fn menu_label_coffee(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Ja => "☕ 応援する",
+        Lang::En => "☕ Buy me a coffee",
+        Lang::Es => "☕ Invítame un café",
+        Lang::Fr => "☕ Offrir un café",
+        Lang::De => "☕ Spendier mir einen Kaffee",
+        Lang::Zh => "☕ 请我喝杯咖啡",
+        Lang::Pt => "☕ Me pague um café",
+        Lang::Ko => "☕ 커피 한 잔 사주기",
+        Lang::It => "☕ Offrimi un caffè",
+    }
+}
+
 fn menu_label_quit(lang: Lang) -> &'static str {
     match lang {
         Lang::Ja => "終了",
@@ -587,6 +603,13 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
                     .await;
                 });
             }
+            "open_coffee" => {
+                if let Err(e) =
+                    tauri_plugin_opener::OpenerExt::opener(app).open_url(COFFEE_URL, None::<&str>)
+                {
+                    eprintln!("[tray] open_coffee failed: {e}");
+                }
+            }
             "quit" => {
                 // Stop cpal cleanly so Core Audio releases the input device
                 // before the process exits. Without this the tray exit can
@@ -626,6 +649,8 @@ fn build_menu(
     let help = MenuItemBuilder::with_id("open_help", menu_label_help(lang)).build(app)?;
     let check_update =
         MenuItemBuilder::with_id("check_update", menu_label_check_update(lang)).build(app)?;
+    let coffee =
+        MenuItemBuilder::with_id("open_coffee", menu_label_coffee(lang)).build(app)?;
     let quit = MenuItemBuilder::with_id("quit", menu_label_quit(lang)).build(app)?;
     MenuBuilder::new(app)
         .item(&status)
@@ -635,6 +660,8 @@ fn build_menu(
         .item(&settings)
         .item(&help)
         .item(&check_update)
+        .item(&PredefinedMenuItem::separator(app)?)
+        .item(&coffee)
         .item(&quit)
         .build()
 }
