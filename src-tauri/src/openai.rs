@@ -1,7 +1,10 @@
 // Tauri command entry point for chat completion plus the shared
-// `ChatMessage` / `ChatResult` types. The OpenAI wire-format code now
-// lives in `crate::llm::openai_impl`; Anthropic and Gemini still have
-// their own modules until Phases 3 / 4 of the trait migration.
+// `ChatMessage` / `ChatResult` types. All three providers (OpenAI,
+// Anthropic, Gemini) implement `crate::llm::LlmProvider` and go through
+// `crate::llm::dispatch::chat_complete_generic` — this file is just the
+// detect-and-dispatch layer. The module retains its historical
+// `openai` name because it owns the `#[tauri::command]` registered as
+// `chat_complete` in `lib.rs`.
 
 use serde::{Deserialize, Serialize};
 use tauri::ipc::Channel;

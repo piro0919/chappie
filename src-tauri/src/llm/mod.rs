@@ -8,12 +8,6 @@
 //
 // See plan: ~/.claude/plans/plan-harmonic-rose.md
 
-// Anthropic and Gemini migrate in Phase 3 / 4; their wire-format code
-// still lives in their respective modules until then. Suppress dead-code
-// warnings on the trait surface until every provider has switched over
-// (lifted in Phase 5 cleanup).
-#![allow(dead_code)]
-
 pub mod anthropic_impl;
 pub mod dispatch;
 pub mod events;

@@ -58,14 +58,11 @@ pub struct AccumulatedToolCall {
 /// `parse_sse_line` calls.
 #[derive(Default, Debug)]
 pub struct ParserState {
-    /// Anthropic reserved (currently unused): the most recent `event:`
-    /// line, consumed by the next `data:` line. The typed JSON payload
-    /// has its own `type` field so we don't actually need this today.
-    pub pending_event_type: Option<String>,
     /// Gemini-only: monotonic counter for synthetic tool-call indices.
     /// Gemini emits functionCall parts without explicit indices; this
     /// assigns one in arrival order per round so the dispatch loop's
-    /// HashMap can key them deterministically.
+    /// HashMap can key them deterministically. Unused by OpenAI and
+    /// Anthropic, which carry per-call indices in the wire format.
     pub tool_call_counter: u32,
 }
 
