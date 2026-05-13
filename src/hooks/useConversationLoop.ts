@@ -35,6 +35,7 @@ import {
   type State,
   transition,
 } from "../lib/state-machine";
+import { isSystemMuted, showOnHud } from "../lib/tauri-bridge";
 import { VOICEVOX_CURATED_SPEAKERS } from "../lib/voicevox-speakers";
 import { detectWake } from "../lib/wake-word";
 
@@ -89,30 +90,6 @@ export function useConversationLoop(): { state: State; error: string | null } {
   // 口調 override. Used by runTurn to inject the per-character persona as a
   // 2nd system message.
   const voicevoxSpeakerIdRef = useRef<number | undefined>(undefined);
-
-  // When the system is muted, Chappie's TTS is inaudible — route the reply
-  // to the HUD as text instead. Duration scales with length so longer text
-  // stays up long enough to read; clamped to 3-30s.
-  async function showOnHud(text: string) {
-    const duration = Math.max(5000, Math.min(45000, text.length * 200));
-    console.info(`[loop] hud_show chars=${text.length} dur=${duration}`);
-    try {
-      await invoke("hud_show", { text, durationMs: duration });
-    } catch (e) {
-      console.error("[loop] hud_show invoke failed", e);
-    }
-  }
-
-  async function isSystemMuted(): Promise<boolean> {
-    try {
-      const m = (await invoke<boolean>("is_muted")) === true;
-      console.info(`[loop] is_muted -> ${m}`);
-      return m;
-    } catch (e) {
-      console.warn("[loop] is_muted failed", e);
-      return false;
-    }
-  }
 
   async function withMutedCapture<T>(fn: () => Promise<T>): Promise<T> {
     ttsActiveRef.current = true;
