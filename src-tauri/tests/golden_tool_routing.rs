@@ -38,7 +38,7 @@
 // - Param value correctness — only structural presence is checked.
 // - Conversation flow / TTS / UI.
 
-use chappie_lib::openai::all_tools;
+use chappie_lib::tools::all_tools;
 use futures_util::stream::{self, StreamExt};
 use serde_json::{json, Value};
 use std::time::Duration;
