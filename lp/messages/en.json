@@ -234,15 +234,15 @@
       },
       "memory": {
         "title": "Remembers what matters",
-        "body": "Within a session: keeps the last 20 turns so \"about what we just said\" continues naturally. Across sessions: quietly picks up names, preferences, and other durable facts so you don't reintroduce yourself every time."
+        "body": "What you were just saying continues naturally. Names, family, preferences — the things that stick — quietly carry across sessions."
       },
       "recall": {
         "title": "Conversations that grow over time (experimental)",
-        "body": "Opt-in: gives Chappie a memory of the whole flow of your conversations, not just isolated facts. References things you mentioned last week or last month naturally — no scrolling back, no \"do you remember when…\". Everything is processed locally with an on-device model, runs on your own API key, and can be wiped from Settings any time."
+        "body": "Remembers the flow of your everyday conversations and brings up things you mentioned a few days ago in a natural way. Everything stays on this Mac."
       },
       "location": {
         "title": "Weather for your town, not the nearest big city",
-        "body": "Uses macOS Location Services to ground weather and \"nearby\" questions in your actual area. If you decline the permission, Chappie falls back to a rough IP-based estimate — so it works either way."
+        "body": "Uses macOS Location Services to ground weather and \"nearby\" questions in your actual area. If you decline the permission, Chappie falls back to a rough location estimate — so it works either way."
       },
       "menubar": {
         "title": "Menu bar resident, no Dock clutter",
