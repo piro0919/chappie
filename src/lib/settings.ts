@@ -23,6 +23,12 @@ export type Language =
  */
 export type Mode = "free" | "byok";
 
+export type SubscriptionStatus =
+  | "active"
+  | "trialing"
+  | "canceled"
+  | "inactive";
+
 export type Settings = {
   mode: Mode;
   openaiApiKey: string;
@@ -35,6 +41,17 @@ export type Settings = {
    * mirror the preference here so we can self-heal on next launch.
    */
   autostart: boolean;
+  /**
+   * Paid tier auth + subscription cache. All four fields move together:
+   * sign-in writes access/refresh/email; sign-out clears all four; the
+   * status/periodEnd are refreshed from `/api/me` so the UI can show
+   * "Pro 有効・更新日 …" without an extra network round-trip.
+   */
+  subscriptionAccessToken: string;
+  subscriptionRefreshToken: string;
+  subscriptionEmail: string;
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionPeriodEnd: string;
 };
 
 const DEFAULTS: Settings = {
@@ -42,6 +59,11 @@ const DEFAULTS: Settings = {
   openaiApiKey: "",
   language: "auto",
   autostart: false,
+  subscriptionAccessToken: "",
+  subscriptionRefreshToken: "",
+  subscriptionEmail: "",
+  subscriptionStatus: "inactive",
+  subscriptionPeriodEnd: "",
 };
 const FILE = "settings.json";
 
@@ -79,6 +101,21 @@ export async function loadSettings(): Promise<Settings> {
     openaiApiKey: apiKey,
     language,
     autostart,
+    subscriptionAccessToken:
+      (await store.get<string>("subscriptionAccessToken")) ??
+      DEFAULTS.subscriptionAccessToken,
+    subscriptionRefreshToken:
+      (await store.get<string>("subscriptionRefreshToken")) ??
+      DEFAULTS.subscriptionRefreshToken,
+    subscriptionEmail:
+      (await store.get<string>("subscriptionEmail")) ??
+      DEFAULTS.subscriptionEmail,
+    subscriptionStatus:
+      (await store.get<SubscriptionStatus>("subscriptionStatus")) ??
+      DEFAULTS.subscriptionStatus,
+    subscriptionPeriodEnd:
+      (await store.get<string>("subscriptionPeriodEnd")) ??
+      DEFAULTS.subscriptionPeriodEnd,
   };
 }
 
@@ -107,6 +144,21 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.autostart !== undefined) {
     await store.set("autostart", patch.autostart);
+  }
+  if (patch.subscriptionAccessToken !== undefined) {
+    await store.set("subscriptionAccessToken", patch.subscriptionAccessToken);
+  }
+  if (patch.subscriptionRefreshToken !== undefined) {
+    await store.set("subscriptionRefreshToken", patch.subscriptionRefreshToken);
+  }
+  if (patch.subscriptionEmail !== undefined) {
+    await store.set("subscriptionEmail", patch.subscriptionEmail);
+  }
+  if (patch.subscriptionStatus !== undefined) {
+    await store.set("subscriptionStatus", patch.subscriptionStatus);
+  }
+  if (patch.subscriptionPeriodEnd !== undefined) {
+    await store.set("subscriptionPeriodEnd", patch.subscriptionPeriodEnd);
   }
   await store.save();
 }

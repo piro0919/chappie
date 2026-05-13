@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { verifyBearer } from "@/lib/auth";
 import { consumeQuota } from "@/lib/quota";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,23 +35,44 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const quota = await consumeQuota(deviceId, turnId);
-  if (!quota.ok) {
-    return NextResponse.json(
-      {
-        error: "daily quota exceeded",
-        limit: quota.limit,
-        count: quota.count,
-        resets_at_utc: "00:00",
-      },
-      {
-        status: 429,
-        headers: {
-          "X-Chappie-Quota-Limit": String(quota.limit),
-          "X-Chappie-Quota-Remaining": "0",
+  // Paid users: skip quota entirely.
+  const user = await verifyBearer(req.headers.get("authorization"));
+  let paid = false;
+  if (user) {
+    const { data } = await supabaseAdmin
+      .from("subscription")
+      .select("status, current_period_end")
+      .eq("user_id", user.userId)
+      .maybeSingle();
+    paid =
+      data != null &&
+      (data.status === "active" || data.status === "trialing") &&
+      new Date(data.current_period_end) > new Date();
+  }
+
+  let quotaLimit = 0;
+  let quotaRemaining = "unlimited";
+  if (!paid) {
+    const quota = await consumeQuota(deviceId, turnId);
+    if (!quota.ok) {
+      return NextResponse.json(
+        {
+          error: "daily quota exceeded",
+          limit: quota.limit,
+          count: quota.count,
+          resets_at_utc: "00:00",
         },
-      },
-    );
+        {
+          status: 429,
+          headers: {
+            "X-Chappie-Quota-Limit": String(quota.limit),
+            "X-Chappie-Quota-Remaining": "0",
+          },
+        },
+      );
+    }
+    quotaLimit = quota.limit;
+    quotaRemaining = String(quota.remaining);
   }
 
   let body: unknown;
@@ -85,8 +108,9 @@ export async function POST(req: NextRequest) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
-      "X-Chappie-Quota-Limit": String(quota.limit),
-      "X-Chappie-Quota-Remaining": String(quota.remaining),
+      "X-Chappie-Tier": paid ? "paid" : "free",
+      "X-Chappie-Quota-Limit": String(quotaLimit),
+      "X-Chappie-Quota-Remaining": quotaRemaining,
     },
   });
 }

@@ -22,12 +22,21 @@ describe("settings", () => {
     __resetForTests();
   });
 
+  const SUBSCRIPTION_DEFAULTS = {
+    subscriptionAccessToken: "",
+    subscriptionRefreshToken: "",
+    subscriptionEmail: "",
+    subscriptionStatus: "inactive",
+    subscriptionPeriodEnd: "",
+  } as const;
+
   it("returns defaults when store is empty", async () => {
     expect(await loadSettings()).toEqual({
       mode: "free",
       openaiApiKey: "",
       language: "auto",
       autostart: false,
+      ...SUBSCRIPTION_DEFAULTS,
     });
   });
 
@@ -40,6 +49,7 @@ describe("settings", () => {
       openaiApiKey: "sk-test",
       language: "en",
       autostart: false,
+      ...SUBSCRIPTION_DEFAULTS,
     });
   });
 
@@ -53,6 +63,7 @@ describe("settings", () => {
       openaiApiKey: "sk-new",
       language: "auto",
       autostart: false,
+      ...SUBSCRIPTION_DEFAULTS,
     });
   });
 

@@ -18,11 +18,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
+    "jose": "^6.2.3",
     "lucide-react": "^0.577.0",
     "next": "^16.2.4",
     "next-intl": "^4.11.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.14",
