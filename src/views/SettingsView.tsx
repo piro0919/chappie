@@ -19,8 +19,18 @@ import {
   loadSettings,
   type Mode,
   type Settings,
+  type SubscriptionStatus,
   saveSettings,
 } from "../lib/settings";
+import {
+  installDeepLinkHandler,
+  openCheckout,
+  openPortal,
+  refreshStatus,
+  restoreSession,
+  sendMagicLink,
+  signOut as supabaseSignOut,
+} from "../lib/supabase-client";
 import {
   getInstallStatus,
   onInstallProgress,
@@ -46,6 +56,17 @@ export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
   const [language, setLanguage] = useState<Language>("auto");
   const [autostart, setAutostart] = useState(false);
+  const [subscriptionEmail, setSubscriptionEmail] = useState("");
+  const [subscriptionStatus, setSubscriptionStatus] =
+    useState<SubscriptionStatus>("inactive");
+  const [subscriptionPeriodEnd, setSubscriptionPeriodEnd] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [subscriptionBusy, setSubscriptionBusy] = useState<
+    "idle" | "sending" | "checkout" | "portal"
+  >("idle");
+  const [subscriptionNotice, setSubscriptionNotice] = useState<
+    "sent" | "send_error" | null
+  >(null);
   const [voicevoxStatus, setVoicevoxStatus] = useState<
     "checking" | "connected" | "unreachable"
   >("checking");
@@ -182,6 +203,33 @@ export function SettingsView() {
       setMode(s.mode);
       setApiKey(s.openaiApiKey);
       setLanguage(s.language);
+      setSubscriptionEmail(s.subscriptionEmail);
+      setSubscriptionStatus(s.subscriptionStatus);
+      setSubscriptionPeriodEnd(s.subscriptionPeriodEnd);
+      // Hydrate supabase-js and pull live subscription state in the
+      // background. If the network is down we'll just keep showing the
+      // cached values from settings.json.
+      void (async () => {
+        try {
+          await restoreSession();
+          const me = await refreshStatus();
+          if (me) {
+            setSubscriptionEmail(me.email);
+            setSubscriptionPeriodEnd(me.current_period_end ?? "");
+            setSubscriptionStatus(
+              me.paid
+                ? me.status === "trialing"
+                  ? "trialing"
+                  : "active"
+                : me.status === "canceled"
+                  ? "canceled"
+                  : "inactive",
+            );
+          }
+        } catch {
+          // network / token errors are non-fatal; the UI already shows cached state
+        }
+      })();
       // The persisted preference is the source of truth for the
       // checkbox; the System Events login-item entry can get silently
       // dropped when the updater replaces the .app, which would
@@ -218,6 +266,25 @@ export function SettingsView() {
     getVersion()
       .then(setVersion)
       .catch(() => {});
+    // Subscription state can change without us doing anything (post-checkout
+    // deep link handled by ConversationWorker, webhook updates in Supabase).
+    // Listen to settings:updated and refresh from settings.json.
+    let unlistenSettings: (() => void) | undefined;
+    void listen("settings:updated", async () => {
+      const s = await loadSettings();
+      setSubscriptionEmail(s.subscriptionEmail);
+      setSubscriptionStatus(s.subscriptionStatus);
+      setSubscriptionPeriodEnd(s.subscriptionPeriodEnd);
+    }).then((u) => {
+      unlistenSettings = u;
+    });
+    // Also install a deep-link handler scoped to this window so a
+    // chappie://refresh that arrives while Settings is foregrounded
+    // triggers immediate refresh.
+    let unlistenDeepLink: (() => void) | undefined;
+    void installDeepLinkHandler().then((u) => {
+      unlistenDeepLink = u;
+    });
     let unlisten: (() => void) | undefined;
     void onInstallProgress((p) => {
       setVoicevoxInstallProgress(p);
@@ -265,8 +332,63 @@ export function SettingsView() {
       unlistenSpeaker?.();
       unlistenLevel?.();
       unlistenLtm?.();
+      unlistenSettings?.();
+      unlistenDeepLink?.();
     };
   }, []);
+
+  async function handleSendMagicLink() {
+    setSubscriptionNotice(null);
+    setSubscriptionBusy("sending");
+    try {
+      await sendMagicLink(emailInput.trim());
+      setSubscriptionNotice("sent");
+    } catch (e) {
+      console.warn("[settings] magic link send failed", e);
+      setSubscriptionNotice("send_error");
+    } finally {
+      setSubscriptionBusy("idle");
+    }
+  }
+
+  async function handleUpgrade() {
+    setSubscriptionBusy("checkout");
+    try {
+      const url = await openCheckout();
+      if (url) {
+        await openUrl(url);
+      }
+    } catch (e) {
+      console.warn("[settings] checkout open failed", e);
+    } finally {
+      setSubscriptionBusy("idle");
+    }
+  }
+
+  async function handleManage() {
+    setSubscriptionBusy("portal");
+    try {
+      const url = await openPortal();
+      if (url) {
+        await openUrl(url);
+      }
+    } catch (e) {
+      console.warn("[settings] portal open failed", e);
+    } finally {
+      setSubscriptionBusy("idle");
+    }
+  }
+
+  async function handleSignOut() {
+    await supabaseSignOut();
+    setSubscriptionEmail("");
+    setSubscriptionStatus("inactive");
+    setSubscriptionPeriodEnd("");
+    setEmailInput("");
+    setSubscriptionNotice(null);
+    // Tell the conversation loop to drop the token.
+    await emit("settings:updated", {});
+  }
 
   async function onEnrollVoice() {
     setSpeakerError(null);
@@ -481,6 +603,118 @@ export function SettingsView() {
             ? t("settings.modeFreeNote")
             : t("settings.modeByokNote")}
         </p>
+      </section>
+
+      {/* Subscription — Magic Link sign-in + Pro upgrade. Visible in both
+          modes: Free users gain unlimited daily quota, BYOK users gain
+          VOICEVOX characters beyond the free Zundamon. */}
+      <section className={styles.card}>
+        <div className={styles.row}>
+          <span className={styles.rowLabel}>
+            {t("settings.subscriptionLabel")}
+          </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {!subscriptionEmail ? (
+              <>
+                <p className={styles.note} style={{ marginTop: 0 }}>
+                  {t("settings.subscriptionSignedOut")}
+                </p>
+                <input
+                  type="email"
+                  className={styles.input}
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder={t("settings.subscriptionEmailPlaceholder")}
+                  autoComplete="email"
+                  spellCheck={false}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendMagicLink}
+                  disabled={
+                    subscriptionBusy === "sending" || !emailInput.includes("@")
+                  }
+                  style={{ alignSelf: "flex-start" }}
+                >
+                  {t("settings.subscriptionSendMagicLink")}
+                </button>
+                {subscriptionNotice === "sent" && (
+                  <p className={styles.note} style={{ marginTop: 0 }}>
+                    {t("settings.subscriptionMagicLinkSent")}
+                  </p>
+                )}
+                {subscriptionNotice === "send_error" && (
+                  <p className={styles.note} style={{ marginTop: 0 }}>
+                    {t("settings.subscriptionSendError")}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className={styles.note} style={{ marginTop: 0 }}>
+                  {t("settings.subscriptionSignedInAs", {
+                    email: subscriptionEmail,
+                  })}
+                </p>
+                {subscriptionStatus === "active" ||
+                subscriptionStatus === "trialing" ? (
+                  <>
+                    <p style={{ margin: 0, fontWeight: 600 }}>
+                      ✓ {t("settings.subscriptionProActive")}
+                    </p>
+                    {subscriptionPeriodEnd && (
+                      <p className={styles.note} style={{ marginTop: 0 }}>
+                        {t("settings.subscriptionPeriodEnd", {
+                          date: subscriptionPeriodEnd.slice(0, 10),
+                        })}
+                      </p>
+                    )}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        type="button"
+                        onClick={handleManage}
+                        disabled={subscriptionBusy === "portal"}
+                      >
+                        {t("settings.subscriptionManage")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        disabled={subscriptionBusy !== "idle"}
+                      >
+                        {t("settings.subscriptionSignOut")}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className={styles.note} style={{ marginTop: 0 }}>
+                      {t("settings.subscriptionStatusFreeNote")}
+                    </p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        type="button"
+                        onClick={handleUpgrade}
+                        disabled={subscriptionBusy === "checkout"}
+                      >
+                        {subscriptionBusy === "checkout"
+                          ? t("settings.subscriptionUpgrading")
+                          : t("settings.subscriptionUpgrade")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        disabled={subscriptionBusy !== "idle"}
+                      >
+                        {t("settings.subscriptionSignOut")}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* API key — only relevant for BYOK */}

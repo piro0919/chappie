@@ -42,6 +42,20 @@ type Messages = {
     modeByok: string;
     modeFreeNote: string;
     modeByokNote: string;
+    subscriptionLabel: string;
+    subscriptionSignedOut: string;
+    subscriptionEmailPlaceholder: string;
+    subscriptionSendMagicLink: string;
+    subscriptionMagicLinkSent: string;
+    subscriptionSendError: string;
+    subscriptionSignedInAs: string;
+    subscriptionStatusFreeNote: string;
+    subscriptionUpgrade: string;
+    subscriptionUpgrading: string;
+    subscriptionProActive: string;
+    subscriptionPeriodEnd: string;
+    subscriptionManage: string;
+    subscriptionSignOut: string;
     apiKey: string;
     apiKeyPlaceholder: string;
     apiKeyNote: string;
@@ -178,6 +192,22 @@ const ja: Messages = {
       "API キー不要で使えます。1 日 5 回まで、日本時間 9 時にリセットされます。",
     modeByokNote:
       "OpenAI / Anthropic / Gemini のキーで回数制限なく使えます。料金はキーの発行元から請求されます。",
+    subscriptionLabel: "アカウントとサブスクリプション",
+    subscriptionSignedOut:
+      "メールでログインすると、Pro へのアップグレードや別の端末への引き継ぎができます。",
+    subscriptionEmailPlaceholder: "you@example.com",
+    subscriptionSendMagicLink: "ログインリンクを送る",
+    subscriptionMagicLinkSent:
+      "メールを送りました。受信トレイのリンクをクリックしてください。",
+    subscriptionSendError: "送信に失敗しました。少し待って再度お試しください。",
+    subscriptionSignedInAs: "{email} でログイン中",
+    subscriptionStatusFreeNote: "無料プラン — 1 日 5 回まで",
+    subscriptionUpgrade: "Pro にアップグレード — 月 ¥500",
+    subscriptionUpgrading: "Stripe を開いています…",
+    subscriptionProActive: "Pro 有効",
+    subscriptionPeriodEnd: "次回更新: {date}",
+    subscriptionManage: "サブスクリプションを管理",
+    subscriptionSignOut: "ログアウト",
     apiKey: "API キー",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / Anthropic / Gemini に対応。",
@@ -329,6 +359,22 @@ const en: Messages = {
     modeFreeNote: "No API key needed. 5 messages a day, resets at 9:00 JST.",
     modeByokNote:
       "Use your own OpenAI, Anthropic, or Gemini key — no daily limit. You'll be billed by the provider.",
+    subscriptionLabel: "Account & subscription",
+    subscriptionSignedOut:
+      "Sign in with email to upgrade to Pro or restore your subscription on another device.",
+    subscriptionEmailPlaceholder: "you@example.com",
+    subscriptionSendMagicLink: "Send sign-in link",
+    subscriptionMagicLinkSent:
+      "Check your inbox — click the link we just sent.",
+    subscriptionSendError: "Couldn't send. Try again in a moment.",
+    subscriptionSignedInAs: "Signed in as {email}",
+    subscriptionStatusFreeNote: "Free plan — 5 chats/day",
+    subscriptionUpgrade: "Upgrade to Pro — ¥500/mo",
+    subscriptionUpgrading: "Opening Stripe…",
+    subscriptionProActive: "Pro active",
+    subscriptionPeriodEnd: "Next renewal: {date}",
+    subscriptionManage: "Manage subscription",
+    subscriptionSignOut: "Sign out",
     apiKey: "API Key",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Supports OpenAI / Anthropic / Gemini.",
@@ -481,6 +527,22 @@ const es: Messages = {
       "Sin clave de API. 5 mensajes al día, se reinicia a las 9:00 JST.",
     modeByokNote:
       "Usa tu propia clave de OpenAI, Anthropic o Gemini — sin límite diario. El proveedor te facturará directamente.",
+    subscriptionLabel: "Account & subscription",
+    subscriptionSignedOut:
+      "Sign in with email to upgrade to Pro or restore your subscription on another device.",
+    subscriptionEmailPlaceholder: "you@example.com",
+    subscriptionSendMagicLink: "Send sign-in link",
+    subscriptionMagicLinkSent:
+      "Check your inbox — click the link we just sent.",
+    subscriptionSendError: "Couldn't send. Try again in a moment.",
+    subscriptionSignedInAs: "Signed in as {email}",
+    subscriptionStatusFreeNote: "Free plan — 5 chats/day",
+    subscriptionUpgrade: "Upgrade to Pro — ¥500/mo",
+    subscriptionUpgrading: "Opening Stripe…",
+    subscriptionProActive: "Pro active",
+    subscriptionPeriodEnd: "Next renewal: {date}",
+    subscriptionManage: "Manage subscription",
+    subscriptionSignOut: "Sign out",
     apiKey: "Clave de API",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatible con OpenAI / Anthropic / Gemini.",
@@ -633,6 +695,22 @@ const fr: Messages = {
       "Aucune clé API nécessaire. 5 messages par jour, réinitialisation à 9 h JST.",
     modeByokNote:
       "Utilisez votre propre clé OpenAI, Anthropic ou Gemini — sans limite quotidienne. Le fournisseur vous facturera directement.",
+    subscriptionLabel: "Account & subscription",
+    subscriptionSignedOut:
+      "Sign in with email to upgrade to Pro or restore your subscription on another device.",
+    subscriptionEmailPlaceholder: "you@example.com",
+    subscriptionSendMagicLink: "Send sign-in link",
+    subscriptionMagicLinkSent:
+      "Check your inbox — click the link we just sent.",
+    subscriptionSendError: "Couldn't send. Try again in a moment.",
+    subscriptionSignedInAs: "Signed in as {email}",
+    subscriptionStatusFreeNote: "Free plan — 5 chats/day",
+    subscriptionUpgrade: "Upgrade to Pro — ¥500/mo",
+    subscriptionUpgrading: "Opening Stripe…",
+    subscriptionProActive: "Pro active",
+    subscriptionPeriodEnd: "Next renewal: {date}",
+    subscriptionManage: "Manage subscription",
+    subscriptionSignOut: "Sign out",
     apiKey: "Clé d'API",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatible OpenAI / Anthropic / Gemini.",
@@ -785,6 +863,22 @@ const de: Messages = {
       "Kein API-Schlüssel nötig. 5 Nachrichten pro Tag, Reset um 9:00 JST.",
     modeByokNote:
       "Nutze deinen eigenen OpenAI-, Anthropic- oder Gemini-Schlüssel — ohne Tageslimit. Die Abrechnung erfolgt direkt beim Anbieter.",
+    subscriptionLabel: "Account & subscription",
+    subscriptionSignedOut:
+      "Sign in with email to upgrade to Pro or restore your subscription on another device.",
+    subscriptionEmailPlaceholder: "you@example.com",
+    subscriptionSendMagicLink: "Send sign-in link",
+    subscriptionMagicLinkSent:
+      "Check your inbox — click the link we just sent.",
+    subscriptionSendError: "Couldn't send. Try again in a moment.",
+    subscriptionSignedInAs: "Signed in as {email}",
+    subscriptionStatusFreeNote: "Free plan — 5 chats/day",
+    subscriptionUpgrade: "Upgrade to Pro — ¥500/mo",
+    subscriptionUpgrading: "Opening Stripe…",
+    subscriptionProActive: "Pro active",
+    subscriptionPeriodEnd: "Next renewal: {date}",
+    subscriptionManage: "Manage subscription",
+    subscriptionSignOut: "Sign out",
     apiKey: "API-Schlüssel",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Unterstützt OpenAI / Anthropic / Gemini.",
@@ -933,6 +1027,22 @@ const zh: Messages = {
     modeFreeNote: "无需 API 密钥。每天 5 条，日本时间 9:00 重置。",
     modeByokNote:
       "使用您自己的 OpenAI、Anthropic 或 Gemini 密钥 — 无每日限制。费用由您直接支付给服务方。",
+    subscriptionLabel: "Account & subscription",
+    subscriptionSignedOut:
+      "Sign in with email to upgrade to Pro or restore your subscription on another device.",
+    subscriptionEmailPlaceholder: "you@example.com",
+    subscriptionSendMagicLink: "Send sign-in link",
+    subscriptionMagicLinkSent:
+      "Check your inbox — click the link we just sent.",
+    subscriptionSendError: "Couldn't send. Try again in a moment.",
+    subscriptionSignedInAs: "Signed in as {email}",
+    subscriptionStatusFreeNote: "Free plan — 5 chats/day",
+    subscriptionUpgrade: "Upgrade to Pro — ¥500/mo",
+    subscriptionUpgrading: "Opening Stripe…",
+    subscriptionProActive: "Pro active",
+    subscriptionPeriodEnd: "Next renewal: {date}",
+    subscriptionManage: "Manage subscription",
+    subscriptionSignOut: "Sign out",
     apiKey: "API 密钥",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "支持 OpenAI / Anthropic / Gemini。",
@@ -1083,6 +1193,22 @@ const pt: Messages = {
       "Sem chave de API. 5 mensagens por dia, reinicia às 9:00 JST.",
     modeByokNote:
       "Use sua própria chave OpenAI, Anthropic ou Gemini — sem limite diário. O provedor cobrará você diretamente.",
+    subscriptionLabel: "Account & subscription",
+    subscriptionSignedOut:
+      "Sign in with email to upgrade to Pro or restore your subscription on another device.",
+    subscriptionEmailPlaceholder: "you@example.com",
+    subscriptionSendMagicLink: "Send sign-in link",
+    subscriptionMagicLinkSent:
+      "Check your inbox — click the link we just sent.",
+    subscriptionSendError: "Couldn't send. Try again in a moment.",
+    subscriptionSignedInAs: "Signed in as {email}",
+    subscriptionStatusFreeNote: "Free plan — 5 chats/day",
+    subscriptionUpgrade: "Upgrade to Pro — ¥500/mo",
+    subscriptionUpgrading: "Opening Stripe…",
+    subscriptionProActive: "Pro active",
+    subscriptionPeriodEnd: "Next renewal: {date}",
+    subscriptionManage: "Manage subscription",
+    subscriptionSignOut: "Sign out",
     apiKey: "Chave de API",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatível com OpenAI / Anthropic / Gemini.",
@@ -1234,6 +1360,22 @@ const ko: Messages = {
     modeFreeNote: "API 키 불필요. 하루 5회, 일본 시간 9시에 리셋됩니다.",
     modeByokNote:
       "OpenAI, Anthropic, Gemini 키를 직접 사용해 제한 없이 쓸 수 있습니다. 요금은 제공사에 직접 지불합니다.",
+    subscriptionLabel: "Account & subscription",
+    subscriptionSignedOut:
+      "Sign in with email to upgrade to Pro or restore your subscription on another device.",
+    subscriptionEmailPlaceholder: "you@example.com",
+    subscriptionSendMagicLink: "Send sign-in link",
+    subscriptionMagicLinkSent:
+      "Check your inbox — click the link we just sent.",
+    subscriptionSendError: "Couldn't send. Try again in a moment.",
+    subscriptionSignedInAs: "Signed in as {email}",
+    subscriptionStatusFreeNote: "Free plan — 5 chats/day",
+    subscriptionUpgrade: "Upgrade to Pro — ¥500/mo",
+    subscriptionUpgrading: "Opening Stripe…",
+    subscriptionProActive: "Pro active",
+    subscriptionPeriodEnd: "Next renewal: {date}",
+    subscriptionManage: "Manage subscription",
+    subscriptionSignOut: "Sign out",
     apiKey: "API 키",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "OpenAI / Anthropic / Gemini 지원.",
@@ -1386,6 +1528,22 @@ const it: Messages = {
       "Nessuna chiave API necessaria. 5 messaggi al giorno, reset alle 9:00 JST.",
     modeByokNote:
       "Usa la tua chiave OpenAI, Anthropic o Gemini — senza limite giornaliero. Il provider ti fatturerà direttamente.",
+    subscriptionLabel: "Account & subscription",
+    subscriptionSignedOut:
+      "Sign in with email to upgrade to Pro or restore your subscription on another device.",
+    subscriptionEmailPlaceholder: "you@example.com",
+    subscriptionSendMagicLink: "Send sign-in link",
+    subscriptionMagicLinkSent:
+      "Check your inbox — click the link we just sent.",
+    subscriptionSendError: "Couldn't send. Try again in a moment.",
+    subscriptionSignedInAs: "Signed in as {email}",
+    subscriptionStatusFreeNote: "Free plan — 5 chats/day",
+    subscriptionUpgrade: "Upgrade to Pro — ¥500/mo",
+    subscriptionUpgrading: "Opening Stripe…",
+    subscriptionProActive: "Pro active",
+    subscriptionPeriodEnd: "Next renewal: {date}",
+    subscriptionManage: "Manage subscription",
+    subscriptionSignOut: "Sign out",
     apiKey: "Chiave API",
     apiKeyPlaceholder: "sk-... / sk-ant-... / AIza...",
     apiKeyNote: "Compatibile con OpenAI / Anthropic / Gemini.",
