@@ -13,7 +13,7 @@
     "lead": "メニューバーに常駐する、ハンズフリー音声 AI アシスタント。キーボードもマウスもいらない、声で話しかけるだけの新しい使い方。",
     "downloadButton": "ダウンロード（Mac）",
     "githubButton": "GitHub",
-    "footnote": "Mac (M1 以降) で動きます / Windows 版は順次対応予定 / オープンソース"
+    "footnote": "Mac (M1 以降) で動きます / API キー不要ですぐ使えます / Windows 版は順次対応予定 / オープンソース"
   },
   "capabilities": {
     "eyebrow": "CHAPPIE でできること",
@@ -285,7 +285,7 @@
   "privacy": {
     "heading": "音声はあなたの端末の中だけ",
     "body": "マイクで拾った音は、端末の中で文字に変換します。録音そのものがインターネットに出ることはありません。返事を考えてもらうために、文字に変えた質問だけを AI サービスに送ります。",
-    "note": "※ ご利用には AI サービス（OpenAI / Gemini / Anthropic）のいずれかの API キーが必要です。"
+    "note": "※ ダウンロードしてすぐ話しかけられます。1 日 5 回まで無料。もっと使いたい人は、設定からご自分の API キー（OpenAI / Gemini / Anthropic）を追加すれば回数無制限になります。"
   },
   "finalCta": {
     "heading": "さっそく話しかけてみよう。",
