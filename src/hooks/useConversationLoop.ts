@@ -39,6 +39,7 @@ import {
 import { isSystemMuted, showOnHud } from "../lib/tauri-bridge";
 import { resolveVoiceForWake } from "../lib/voice-selection";
 import { detectWake } from "../lib/wake-word";
+import { useTauriListener } from "./useTauriListener";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
 const FOLLOWUP_TIMEOUT_MS = 6000;
@@ -691,162 +692,106 @@ export function useConversationLoop(): { state: State; error: string | null } {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void) | undefined;
-    void (async () => {
-      const off = await listen("settings:updated", async () => {
-        const s = await loadSettings();
-        const wasMissingKey = !apiKeyRef.current;
-        const langChanged = langRef.current !== s.language;
-        apiKeyRef.current = s.openaiApiKey;
-        langRef.current = s.language;
-        if (langChanged) {
-          historyRef.current = {
-            ...historyRef.current,
-            systemPrompt: buildSystemPrompt(s.language),
-          };
-          const resolvedLang = resolveLanguage(s.language);
-          void invoke("set_whisper_language", { lang: resolvedLang }).catch(
-            () => {},
-          );
-          void invoke("set_app_language", { lang: resolvedLang }).catch(
-            () => {},
-          );
-        }
-        chatClientRef.current = s.openaiApiKey
-          ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)
-          : null;
-        // Recover from the "no API key" startup error once the user fills
-        // it in via Settings → 保存.
-        if (wasMissingKey && s.openaiApiKey) {
-          setError(null);
-          void invoke("set_tray_state", { state: "idle" }).catch(() => {});
-        }
-      });
-      if (cancelled) {
-        off();
-        return;
-      }
-      unlisten = off;
-    })();
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
+  useTauriListener("settings:updated", async () => {
+    const s = await loadSettings();
+    const wasMissingKey = !apiKeyRef.current;
+    const langChanged = langRef.current !== s.language;
+    apiKeyRef.current = s.openaiApiKey;
+    langRef.current = s.language;
+    if (langChanged) {
+      historyRef.current = {
+        ...historyRef.current,
+        systemPrompt: buildSystemPrompt(s.language),
+      };
+      const resolvedLang = resolveLanguage(s.language);
+      void invoke("set_whisper_language", { lang: resolvedLang }).catch(
+        () => {},
+      );
+      void invoke("set_app_language", { lang: resolvedLang }).catch(() => {});
+    }
+    chatClientRef.current = s.openaiApiKey
+      ? createChatClient(s.openaiApiKey, DEFAULT_MODEL)
+      : null;
+    // Recover from the "no API key" startup error once the user fills
+    // it in via Settings → 保存.
+    if (wasMissingKey && s.openaiApiKey) {
+      setError(null);
+      void invoke("set_tray_state", { state: "idle" }).catch(() => {});
+    }
+  });
 
   // Timer fired announcement. Uses `speakQueued` so we don't cancel an
   // ongoing TTS turn — the announcement appends after whatever is currently
   // being spoken. Mic capture is paused while we speak so the announcement
   // doesn't loop back into Whisper.
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void) | undefined;
-    void (async () => {
-      const off = await listen<{ id: number; label: string }>(
-        "timer:fired",
-        async (e) => {
-          const { label } = e.payload;
-          const message = label
-            ? tRaw(langRef.current, "conversation.timerFiredWithLabel", {
-                label,
-              })
-            : tRaw(langRef.current, "conversation.timerFiredNoLabel");
-          console.info(`[timer] fired: id=${e.payload.id} label="${label}"`);
-          // When muted, the spoken alarm would be silent — surface it on
-          // the HUD instead so the user actually notices the timer fired.
-          const muted = await invoke<boolean>("is_muted").catch(() => false);
-          if (muted) {
-            const hudText = label
-              ? tRaw(langRef.current, "conversation.timerHudWithLabel", {
-                  label,
-                })
-              : tRaw(langRef.current, "conversation.timerHudNoLabel");
-            await invoke("hud_show", {
-              text: hudText,
-              durationMs: 8000,
-            }).catch(() => {});
-            return;
-          }
-          ttsActiveRef.current = true;
-          await invoke("pause_listening").catch(() => {});
-          try {
-            await speakQueued(message, resolveLanguage(langRef.current));
-          } catch (err) {
-            console.error("[timer] tts failed", err);
-          } finally {
-            await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
-            await invoke("resume_listening").catch(() => {});
-            ttsActiveRef.current = false;
-          }
-        },
+  useTauriListener<{ id: number; label: string }>("timer:fired", async (e) => {
+    const { label } = e.payload;
+    const message = label
+      ? tRaw(langRef.current, "conversation.timerFiredWithLabel", { label })
+      : tRaw(langRef.current, "conversation.timerFiredNoLabel");
+    console.info(`[timer] fired: id=${e.payload.id} label="${label}"`);
+    // When muted, the spoken alarm would be silent — surface it on
+    // the HUD instead so the user actually notices the timer fired.
+    const muted = await invoke<boolean>("is_muted").catch(() => false);
+    if (muted) {
+      const hudText = label
+        ? tRaw(langRef.current, "conversation.timerHudWithLabel", { label })
+        : tRaw(langRef.current, "conversation.timerHudNoLabel");
+      await invoke("hud_show", { text: hudText, durationMs: 8000 }).catch(
+        () => {},
       );
-      if (cancelled) {
-        off();
-        return;
-      }
-      unlisten = off;
-    })();
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
+      return;
+    }
+    ttsActiveRef.current = true;
+    await invoke("pause_listening").catch(() => {});
+    try {
+      await speakQueued(message, resolveLanguage(langRef.current));
+    } catch (err) {
+      console.error("[timer] tts failed", err);
+    } finally {
+      await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
+      await invoke("resume_listening").catch(() => {});
+      ttsActiveRef.current = false;
+    }
+  });
 
   // reminder:fired (absolute-time reminders, persisted across restart).
   // Phrased as "○○の時間です" instead of timer's "○○のタイマーです".
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void) | undefined;
-    void (async () => {
-      const off = await listen<{ id: number; label: string }>(
-        "reminder:fired",
-        async (e) => {
-          const { label } = e.payload;
-          const message = label
-            ? tRaw(langRef.current, "conversation.reminderFiredWithLabel", {
-                label,
-              })
-            : tRaw(langRef.current, "conversation.reminderFiredNoLabel");
-          console.info(`[reminder] fired: id=${e.payload.id} label="${label}"`);
-          const muted = await invoke<boolean>("is_muted").catch(() => false);
-          if (muted) {
-            const hudText = label
-              ? tRaw(langRef.current, "conversation.reminderHudWithLabel", {
-                  label,
-                })
-              : tRaw(langRef.current, "conversation.reminderHudNoLabel");
-            await invoke("hud_show", {
-              text: hudText,
-              durationMs: 8000,
-            }).catch(() => {});
-            return;
-          }
-          ttsActiveRef.current = true;
-          await invoke("pause_listening").catch(() => {});
-          try {
-            await speakQueued(message, resolveLanguage(langRef.current));
-          } catch (err) {
-            console.error("[reminder] tts failed", err);
-          } finally {
-            await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
-            await invoke("resume_listening").catch(() => {});
-            ttsActiveRef.current = false;
-          }
-        },
-      );
-      if (cancelled) {
-        off();
+  useTauriListener<{ id: number; label: string }>(
+    "reminder:fired",
+    async (e) => {
+      const { label } = e.payload;
+      const message = label
+        ? tRaw(langRef.current, "conversation.reminderFiredWithLabel", {
+            label,
+          })
+        : tRaw(langRef.current, "conversation.reminderFiredNoLabel");
+      console.info(`[reminder] fired: id=${e.payload.id} label="${label}"`);
+      const muted = await invoke<boolean>("is_muted").catch(() => false);
+      if (muted) {
+        const hudText = label
+          ? tRaw(langRef.current, "conversation.reminderHudWithLabel", {
+              label,
+            })
+          : tRaw(langRef.current, "conversation.reminderHudNoLabel");
+        await invoke("hud_show", { text: hudText, durationMs: 8000 }).catch(
+          () => {},
+        );
         return;
       }
-      unlisten = off;
-    })();
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
+      ttsActiveRef.current = true;
+      await invoke("pause_listening").catch(() => {});
+      try {
+        await speakQueued(message, resolveLanguage(langRef.current));
+      } catch (err) {
+        console.error("[reminder] tts failed", err);
+      } finally {
+        await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
+        await invoke("resume_listening").catch(() => {});
+        ttsActiveRef.current = false;
+      }
+    },
+  );
 
   return { state, error };
 }
