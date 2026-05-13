@@ -13,6 +13,7 @@ import { resolveLanguage } from "../i18n/messages";
 import { useT } from "../i18n/useT";
 import { detectProvider, providerLabel } from "../lib/provider";
 import {
+  hasPersistedAutostart,
   type Language,
   loadSettings,
   type Settings,
@@ -255,7 +256,28 @@ export function SettingsView() {
       const s: Settings = await loadSettings();
       setApiKey(s.openaiApiKey);
       setLanguage(s.language);
-      setAutostart(await isAutostartEnabled());
+      // The persisted preference is the source of truth for the
+      // checkbox; the System Events login-item entry can get silently
+      // dropped when the updater replaces the .app, which would
+      // otherwise show the box as unchecked on first open after an
+      // upgrade. Reconcile the two: persisted == false but plugin says
+      // true means we should disable; persisted == true but plugin
+      // says false means restore. ConversationWorker also does this
+      // on launch so the next boot honors the preference even if the
+      // user never opens this window.
+      const actuallyEnabled = await isAutostartEnabled().catch(() => false);
+      const persisted = await hasPersistedAutostart();
+      const desired = persisted ? s.autostart : actuallyEnabled;
+      if (desired && !actuallyEnabled) {
+        await enableAutostart().catch((e) =>
+          console.warn("[settings] autostart re-heal failed", e),
+        );
+      } else if (!desired && actuallyEnabled) {
+        await disableAutostart().catch((e) =>
+          console.warn("[settings] autostart cleanup failed", e),
+        );
+      }
+      setAutostart(desired);
       await refreshMicStatus();
       await refreshScreenStatus();
       await refreshCalendarStatus();
@@ -424,6 +446,7 @@ export function SettingsView() {
     await saveSettings({
       openaiApiKey: apiKey,
       language,
+      autostart,
     });
     try {
       if (autostart) await enableAutostart();
