@@ -51,10 +51,6 @@ pub fn model_path() -> Option<PathBuf> {
     dirs::home_dir().map(|h| h.join(".chappie/models/voxceleb_ECAPA512_LM.onnx"))
 }
 
-pub fn is_model_downloaded() -> bool {
-    model_path().map(|p| p.exists()).unwrap_or(false)
-}
-
 /// Download the speaker ONNX model into `~/.chappie/models/` if it's not
 /// already there. Emits progress events under the `speaker_model:*`
 /// namespace (separate from `model:*` so the renderer's existing

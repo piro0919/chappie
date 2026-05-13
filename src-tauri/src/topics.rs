@@ -24,12 +24,10 @@
 use chrono::Local;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
-use crate::provider::Provider;
 use crate::summarizer;
 
 const REFRESH_AFTER_DAYS: i64 = 7;

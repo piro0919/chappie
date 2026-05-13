@@ -158,10 +158,8 @@ fn fetch_events_inner(
         .ok_or("Failed to convert end to UTC")?
         .with_timezone(&Utc);
 
-    let start_nsdate =
-        unsafe { NSDate::dateWithTimeIntervalSince1970(start_utc.timestamp() as f64) };
-    let end_nsdate =
-        unsafe { NSDate::dateWithTimeIntervalSince1970(end_utc.timestamp() as f64) };
+    let start_nsdate = NSDate::dateWithTimeIntervalSince1970(start_utc.timestamp() as f64);
+    let end_nsdate = NSDate::dateWithTimeIntervalSince1970(end_utc.timestamp() as f64);
 
     unsafe { store.refreshSourcesIfNecessary() };
     unsafe { store.reset() };

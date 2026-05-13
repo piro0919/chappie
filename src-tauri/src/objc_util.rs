@@ -11,7 +11,7 @@
 /// Run `f` with panic + NSException protection. Returns Err on either,
 /// otherwise the closure's return value.
 pub fn guarded<R, F: FnOnce() -> R>(f: F) -> Result<R, String> {
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| unsafe {
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         objc2::exception::catch(std::panic::AssertUnwindSafe(f))
     }));
     match result {
