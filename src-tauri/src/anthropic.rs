@@ -22,7 +22,6 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::time::Duration;
 use tauri::ipc::Channel;
 
 use crate::openai::{ChatMessage, ChatResult};
@@ -32,12 +31,8 @@ const ENDPOINT: &str = "https://api.anthropic.com/v1/messages";
 const API_VERSION: &str = "2023-06-01";
 const MAX_TOKENS: u32 = 2048;
 
-static HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(120))
-        .build()
-        .expect("failed to build reqwest client")
-});
+static HTTP: Lazy<reqwest::Client> =
+    Lazy::new(|| crate::http::build_client(Some(120), None));
 
 /// Translate the canonical OpenAI-shape tool catalog into Anthropic's
 /// shape. Anthropic uses `name` / `description` / `input_schema` (the

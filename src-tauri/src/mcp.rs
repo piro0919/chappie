@@ -71,9 +71,8 @@ pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
 /// needs longer.
 pub(crate) static HTTP: once_cell::sync::Lazy<reqwest::Client> =
     once_cell::sync::Lazy::new(|| {
-        reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(15))
-            .user_agent("Chappie/1.0 (+https://github.com/piro0919/chappie)")
-            .build()
-            .expect("failed to build mcp http client")
+        crate::http::build_client(
+            Some(15),
+            Some("Chappie/1.0 (+https://github.com/piro0919/chappie)"),
+        )
     });

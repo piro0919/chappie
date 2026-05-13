@@ -14,15 +14,10 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::time::Duration;
 use tauri::ipc::Channel;
 
-static HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(120))
-        .build()
-        .expect("failed to build reqwest client")
-});
+static HTTP: Lazy<reqwest::Client> =
+    Lazy::new(|| crate::http::build_client(Some(120), None));
 
 const MAX_TOOL_ROUNDS: usize = 5;
 

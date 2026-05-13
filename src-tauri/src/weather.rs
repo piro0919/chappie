@@ -6,14 +6,9 @@
 
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use std::time::Duration;
 
-static HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(15))
-        .build()
-        .expect("failed to build reqwest client")
-});
+static HTTP: Lazy<reqwest::Client> =
+    Lazy::new(|| crate::http::build_client(Some(15), None));
 
 #[derive(Deserialize)]
 struct GeoResp {

@@ -11,6 +11,7 @@ mod clipboard;
 mod download;
 mod finder;
 mod gemini;
+mod http;
 mod hud;
 mod i18n;
 mod log_event;

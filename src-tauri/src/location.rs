@@ -50,12 +50,8 @@ static CACHE: Lazy<Mutex<Option<(UserLocation, Instant)>>> =
     Lazy::new(|| Mutex::new(None));
 const TTL: Duration = Duration::from_secs(30 * 60);
 
-static HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(8))
-        .build()
-        .expect("failed to build reqwest client")
-});
+static HTTP: Lazy<reqwest::Client> =
+    Lazy::new(|| crate::http::build_client(Some(8), None));
 
 pub async fn get(force_refresh: bool) -> Result<UserLocation, String> {
     if !force_refresh {

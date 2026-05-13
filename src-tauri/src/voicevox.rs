@@ -88,21 +88,13 @@ fn managed_engine_binary() -> Option<PathBuf> {
 // Dedicated client for engine API calls. 30s timeout: synthesis on a
 // cold engine for a long sentence can take several seconds, well over
 // the 15s mcp/news budget.
-static HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .expect("failed to build voicevox http client")
-});
+static HTTP: Lazy<reqwest::Client> =
+    Lazy::new(|| crate::http::build_client(Some(30), None));
 
 // Separate client for the engine archive download. The default 30s
 // budget can't cover a multi-GB download on slow connections, so this
 // one has no timeout and gets a per-chunk read deadline via the stream.
-static DL_HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
-    reqwest::Client::builder()
-        .build()
-        .expect("failed to build voicevox dl client")
-});
+static DL_HTTP: Lazy<reqwest::Client> = Lazy::new(|| crate::http::build_client(None, None));
 
 /// Returns the engine's `/speakers` payload verbatim.
 #[tauri::command]

@@ -20,19 +20,14 @@ use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::time::Duration;
 use tauri::ipc::Channel;
 
 use crate::openai::{ChatMessage, ChatResult};
 
 const MAX_TOOL_ROUNDS: usize = 5;
 
-static HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(120))
-        .build()
-        .expect("failed to build reqwest client")
-});
+static HTTP: Lazy<reqwest::Client> =
+    Lazy::new(|| crate::http::build_client(Some(120), None));
 
 #[derive(Deserialize, Default)]
 struct StreamCandidate {
