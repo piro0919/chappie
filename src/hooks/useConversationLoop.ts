@@ -15,6 +15,7 @@ import {
   messagesForRequest,
 } from "../lib/conversation-history";
 import { type ChatClient, createChatClient } from "../lib/openai-client";
+import { buildPerTurnPrompt } from "../lib/per-turn-prompt";
 import { type Language, loadSettings } from "../lib/settings";
 import {
   isBargeInCommand,
@@ -37,7 +38,6 @@ import {
 } from "../lib/state-machine";
 import { isSystemMuted, showOnHud } from "../lib/tauri-bridge";
 import { resolveVoiceForWake } from "../lib/voice-selection";
-import { VOICEVOX_CURATED_SPEAKERS } from "../lib/voicevox-speakers";
 import { detectWake } from "../lib/wake-word";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
@@ -184,54 +184,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     // we measured the model continuing the previous character's voice
     // with only the new character's 二人称 mixed in. Right before the
     // user message, it dominates.
-    const vvSpeakerId = voicevoxSpeakerIdRef.current;
-    let perTurnOverride: string | null = null;
-    // Common rules for every per-turn persona injection (both character
-    // and chappie reset). Prevents two failure modes we observed:
-    //  - meta acknowledgments like 「もう一回聞いてくれたんだ」 when the user
-    //    repeats a question — the model picks up the repetition from
-    //    history and comments on it.
-    //  - overly long replies (especially Anthropic) that bury the answer
-    //    in flavor text.
-    const turnRules =
-      "【共通ルール】\n" +
-      "・直前のターンや繰り返し質問への meta コメント（「また」「もう一回」「さっきも」等）はしない。新しい質問として答える。\n" +
-      "・返答は短く、原則 1〜2 文。占い・ニュース要約など内容上必要な場合のみ伸ばしてよい。\n" +
-      "・前置き（「うーんとね」「ちょっと待ってよ」等のフィラー）は不要。本題から入る。";
-    if (vvSpeakerId !== undefined) {
-      const speaker = VOICEVOX_CURATED_SPEAKERS.find(
-        (s) => s.id === vvSpeakerId,
-      );
-      if (speaker) {
-        // Few-shot example utterances grounded in the character's official
-        // /calls/ page voice. Concrete instances keep weaker models
-        // (Gemini Flash / Anthropic Haiku) in character on long answers
-        // where a one-line description alone tends to drift back to neutral.
-        const samplesBlock = speaker.samples?.length
-          ? `\n\n【話し方の例（このキャラのトーン・語尾・一人称が自然に出るよう参考にしてください）】\n${speaker.samples.map((s) => `・「${s}」`).join("\n")}`
-          : "";
-        // Identity-question rule: without this, "自己紹介して" / "誰？" /
-        // "何歳？" gets answered as "I'm Chappie, the hands-free
-        // assistant, with X character's voice" instead of as the
-        // character themselves. The base persona keeps insisting the
-        // assistant is Chappie, so we have to be explicit that for
-        // identity-shaped questions, the character speaks as themselves.
-        const identityRule =
-          "【素性に関する質問の扱い】\n" +
-          "「自己紹介して」「あなた誰？」「名前は？」「何歳？」など本人の属性を聞かれた場合は、**Chappie ではなく上記キャラ本人として** 答える（名前・年齢・性格・特徴を上記設定から拾う）。例：めたん→「わたくしは四国めたん、17歳の高校2年生よ」、ずんだもん→「僕、ずんだもんなのだ。ずんだ餅の精なのだ」。\n" +
-          "Chappie 本体の機能紹介は「何ができるの？」「使い方教えて」と聞かれたときだけで、その場合もキャラの口調のまま喋る。";
-        perTurnOverride = `${speaker.persona}${samplesBlock}\n\n${identityRule}\n\n${turnRules}\n\n（重要：前のターンが別キャラの口調だったとしても、このターンは上記の設定で答えてください。）`;
-      }
-    } else {
-      // Chappie wake: history may still contain assistant messages from a
-      // prior VOICEVOX-character turn (e.g. ずんだもん's 「〜なのだ」). Without
-      // a reset, the model bleeds that 口調 into the next chappie reply.
-      // Reinforce the base persona right before the user message so it
-      // outweighs the recent character-style assistant turns.
-      perTurnOverride =
-        "このターンは「チャッピー」本来の口調で答えてください。直前のターンが別キャラ（ずんだもんやめたん等）の口調だったとしても、その口調・一人称・語尾を引き継がないでください。冒頭のチャッピーのペルソナに従って、フラットで親しみやすい話し方に戻してください。\n\n" +
-        turnRules;
-    }
+    const perTurnOverride = buildPerTurnPrompt(voicevoxSpeakerIdRef.current);
     if (perTurnOverride) {
       requestMessages.splice(requestMessages.length - 1, 0, {
         role: "system",
