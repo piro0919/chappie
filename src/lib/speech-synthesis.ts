@@ -12,6 +12,7 @@
 // loop on settings load and on `settings:updated`.
 
 import { invoke } from "@tauri-apps/api/core";
+import { takeReadySegment } from "./sentence-buffer";
 import type { VoicevoxStyleKey } from "./voicevox-speakers";
 
 /** Massage text just before it goes to the synthesizer so cosmetic glitches
@@ -47,51 +48,6 @@ function pickVoice(lang: string): SpeechSynthesisVoice | null {
 // sound a touch slow at 1.0, but 1.15 felt rushed in practice — 1.05
 // keeps responsiveness without losing intelligibility.
 const TTS_RATE = 1.05;
-
-/** Sentence terminators we split streaming output on. Includes Japanese
- *  full-stop, exclamation, question, and ASCII variants. The ASCII period
- *  is only treated as a terminator when it isn't between digits — this
- *  keeps decimals like `39.6` intact so the streaming TTS doesn't
- *  helpfully split them into "39." and "6". */
-const SENTENCE_TERMINATORS = /[。！？!?]+|(?<!\d)\.(?!\d)/g;
-
-/** After the first utterance fires (the latency-sensitive one), we batch
- *  subsequent sentences until we've accumulated at least this many chars
- *  before speaking. Both backends have a per-utterance gap (WebKit's
- *  macOS Japanese voices add audible silence; VOICEVOX adds an HTTP RTT
- *  and decode), so larger chunks past the first means fewer gaps per
- *  reply. 120 was tuned to feel continuous on multi-paragraph output
- *  (e.g. tarot readings) without making the 2nd chunk wait too long
- *  after the 1st. */
-const FOLLOWUP_MIN_CHARS = 120;
-
-/** Pulls the next "ready to speak" segment off the front of `buffer`,
- *  using the same one-fast-then-batch policy for both engines. Returns
- *  null when nothing is ready (no terminator, or the leading run is
- *  shorter than `FOLLOWUP_MIN_CHARS` after the first utterance). */
-function takeReadySegment(
-  buffer: string,
-  alreadySpoken: boolean,
-): { segment: string; remaining: string } | null {
-  SENTENCE_TERMINATORS.lastIndex = 0;
-  const first = SENTENCE_TERMINATORS.exec(buffer);
-  if (!first) return null;
-  let end = first.index + first[0].length;
-
-  if (alreadySpoken) {
-    while (end < FOLLOWUP_MIN_CHARS) {
-      SENTENCE_TERMINATORS.lastIndex = end;
-      const next = SENTENCE_TERMINATORS.exec(buffer);
-      if (!next) return null;
-      end = next.index + next[0].length;
-    }
-  }
-
-  return {
-    segment: buffer.slice(0, end).trim(),
-    remaining: buffer.slice(end),
-  };
-}
 
 /** Streaming speaker handle returned by `SpeechEngine.createStreamingSpeaker`.
  *  Feed it text chunks as they arrive; flush after no more chunks come. */
