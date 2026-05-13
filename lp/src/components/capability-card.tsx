@@ -8,17 +8,16 @@ import {
 
 export function CapabilityCard({ id }: { id: CapabilityId }): ReactNode {
   const t = useTranslations();
-  const Icon = CAPABILITY_ICONS[id];
+  const icon = CAPABILITY_ICONS[id];
   return (
     <div className="border-(--color-cream-200) flex flex-col rounded-2xl border bg-white p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-12px_rgba(74,56,38,0.25)]">
       <div className="mb-4 flex items-center gap-3">
-        <div className="bg-(--color-blush-200) inline-flex rounded-2xl p-3">
-          <Icon
-            size={20}
-            strokeWidth={2}
-            className="text-(--color-cocoa-600)"
-            aria-hidden
-          />
+        <div
+          className="bg-(--color-blush-200) inline-flex items-center justify-center rounded-2xl text-xl leading-none"
+          style={{ width: 44, height: 44 }}
+          aria-hidden
+        >
+          {icon}
         </div>
         <h3 className="text-(--color-cocoa-700) text-base font-bold">
           {t(`capabilities.items.${id}.title`)}

@@ -13,7 +13,7 @@
     "lead": "A hands-free voice AI assistant that lives in your menu bar. No keyboard, no mouse — just talk.",
     "downloadButton": "Download for Mac",
     "githubButton": "GitHub",
-    "footnote": "Mac (Apple Silicon) · Windows version coming soon · Open source · Indie made"
+    "footnote": "Mac (Apple Silicon) · Windows version coming soon · Open source"
   },
   "capabilities": {
     "eyebrow": "WHAT IT CAN DO",
@@ -30,6 +30,7 @@
         "title": "Chat with you",
         "example1": "\"Summarize today's news\"",
         "example2": "\"How do I say 'good job' in Japanese?\"",
+        "example3": "\"Can I talk something through with you?\"",
         "body": "Casual chat to thoughtful conversations. Chappie remembers the recent flow, so \"about that thing we just talked about\" works."
       },
       "timer": {
@@ -156,7 +157,7 @@
         "example1": "\"My name is piro\"",
         "example2": "\"What do you know about me?\"",
         "example3": "\"Forget that\"",
-        "body": "Name, family, role, preferences — Chappie quietly picks them up from everyday conversation and carries them forward to the next session. No need to say \"remember this\" every time, no need to reintroduce yourself. Say \"forget that\" anytime to drop a memory."
+        "body": "Name, family, role, preferences — Chappie quietly picks them up from everyday conversation and carries them forward to the next session. No need to reintroduce yourself. Say \"forget that\" anytime to drop a memory."
       },
       "music": {
         "title": "Control your music",
@@ -191,7 +192,7 @@
         "example1": "\"Thanks, see you later\"",
         "example2": "\"Goodbye\"",
         "example3": "\"Bye\"",
-        "body": "Chappie picks up on goodbyes by itself and quietly returns to standby. No button to press — just say the next \"chappie\" when you need it again."
+        "body": "Chappie picks up on goodbyes by itself and quietly returns to standby. Just say \"chappie\" again when you need it."
       }
     }
   },
@@ -199,15 +200,20 @@
     "eyebrow": "VOICEVOX integration",
     "heading": "Reply in a character's voice.",
     "lead": "Call out a character name (Zundamon, Metan, etc.) and Chappie replies in that voice. Japanese only.",
-    "imageAlt": "The three flagship VOICEVOX characters: Zundamon, Shikoku Metan, Kasukabe Tsumugi",
+    "imageAlt": "VOICEVOX characters: Zundamon, Shikoku Metan, Kasukabe Tsumugi",
     "lineupHeading": "Available characters",
-    "lineupList": "Zundamon / Shikoku Metan / Kasukabe Tsumugi / Meimei Himari / Sayo / Chugoku Usagi / Tohoku Zunko / Tohoku Kiritan / Tohoku Itako",
     "examplesHeading": "Examples",
-    "example1": "\"Zundamon, how are you?\"",
+    "example1": "\"Zundamon, what's the weather?\"",
     "example2": "\"Metan, what's on today?\"",
-    "example3": "\"Tsumugi, give me a fortune\"",
+    "example3": "\"Tsumugi, take a note\"",
+    "example4": "\"Himari, good work today\"",
+    "example5": "\"Sayo, 25 minute timer\"",
+    "example6": "\"Usagi, play some music\"",
+    "example7": "\"Zunko, read me the news\"",
+    "example8": "\"Kiritan, wake me at 7 tomorrow\"",
+    "example9": "\"Itako, what's today's fortune?\"",
     "setupHeading": "Setup",
-    "setupBody": "Click \"Install character voices\" in Settings (~1.7 GB download). After that, the wake word switches voices automatically. If you already have the official VOICEVOX app installed, no extra download is needed.",
+    "setupBody": "Click \"Install character voices\" in Settings (~1.7 GB). After that, the wake word switches voices automatically. If you already have the official VOICEVOX app installed, no extra download is needed.",
     "credits": "Uses VOICEVOX (https://voicevox.hiroshiba.jp/). Each character voice has its own terms of use; videos and streams must credit the character (\"VOICEVOX:character name\")."
   },
   "menubar": {
@@ -226,11 +232,11 @@
       },
       "voice": {
         "title": "Only responds to your voice",
-        "body": "Enroll your voice once and Chappie tunes out the TV, YouTube, and other people around you. Your voiceprint stays on this Mac and is never sent anywhere."
+        "body": "Enroll your voice once and Chappie tunes out the TV, YouTube, and other people around you. Your voiceprint stays on your device."
       },
       "local": {
         "title": "Voice stays local",
-        "body": "Speech is transcribed entirely on your Mac. The raw audio never leaves the device."
+        "body": "Speech is transcribed entirely on your device."
       },
       "memory": {
         "title": "Remembers what matters",
@@ -238,7 +244,7 @@
       },
       "recall": {
         "title": "Conversations that grow over time (experimental)",
-        "body": "Remembers the flow of your everyday conversations and brings up things you mentioned a few days ago in a natural way. Everything stays on this Mac."
+        "body": "Remembers the flow of your everyday conversations and brings up things you mentioned a few days ago in a natural way."
       },
       "location": {
         "title": "Weather for your town, not the nearest big city",
@@ -277,8 +283,8 @@
     }
   },
   "privacy": {
-    "heading": "Your voice stays on your Mac",
-    "body": "What the mic picks up is converted to text right on your Mac. The recording itself never goes to the internet. Only the text version of your question is sent to an AI service to think up a reply.",
+    "heading": "Your voice stays on your device",
+    "body": "What the mic picks up is converted to text right on your device. The recording itself never goes to the internet. Only the text version of your question is sent to an AI service to think up a reply.",
     "note": "* Requires an API key from one of OpenAI, Gemini, or Anthropic."
   },
   "finalCta": {
@@ -288,6 +294,11 @@
     "githubButton": "GitHub"
   },
   "footer": {
-    "credit": "Chappie"
+    "credit": "Chappie",
+    "githubLink": "GitHub",
+    "releasesLink": "Releases",
+    "issuesLink": "Feedback",
+    "coffeeLink": "Buy me a coffee",
+    "languageLabel": "Language"
   }
 }

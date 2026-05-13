@@ -1,17 +1,4 @@
-import {
-  ArrowRight,
-  Cpu,
-  Download,
-  Fingerprint,
-  Github,
-  Globe,
-  Lock,
-  MapPin,
-  MessageCircle,
-  Mic,
-  RefreshCw,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Download, Github, Mic } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -21,6 +8,7 @@ import { getHeroCapabilities } from "@/lib/capabilities";
 
 const GITHUB_URL = "https://github.com/piro0919/chappie";
 const RELEASE_URL = "https://github.com/piro0919/chappie/releases/latest";
+const COFFEE_URL = "https://buymeacoffee.com/piro0919";
 
 // Regenerate the page once a day so the date-seeded hero capability
 // rotation actually advances in production. Without this, Next captures
@@ -39,16 +27,16 @@ const FEATURE_IDS = [
   "languages",
   "update",
 ] as const;
-const FEATURE_ICONS: Record<(typeof FEATURE_IDS)[number], typeof Mic> = {
-  wake: Mic,
-  voice: Fingerprint,
-  local: Lock,
-  memory: MessageCircle,
-  recall: Sparkles,
-  location: MapPin,
-  menubar: Cpu,
-  languages: Globe,
-  update: RefreshCw,
+const FEATURE_ICONS: Record<(typeof FEATURE_IDS)[number], string> = {
+  wake: "👋",
+  voice: "🎯",
+  local: "🔒",
+  memory: "💭",
+  recall: "✨",
+  location: "📍",
+  menubar: "🍎",
+  languages: "🌐",
+  update: "🔄",
 };
 
 const STATE_IDS = ["idle", "listening", "talking"] as const;
@@ -103,6 +91,8 @@ export default async function Page({
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <a
               href={RELEASE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-(--color-cocoa-600) hover:bg-(--color-cocoa-700) inline-flex items-center gap-2 rounded-2xl px-7 py-3.5 text-base font-semibold text-white shadow-[0_10px_24px_-8px_rgba(74,56,38,0.45)] transition-all hover:-translate-y-0.5"
             >
               <Download size={18} strokeWidth={2.25} />
@@ -110,6 +100,8 @@ export default async function Page({
             </a>
             <a
               href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="border-(--color-cream-300) text-(--color-cocoa-700) hover:bg-(--color-cream-100) inline-flex items-center gap-2 rounded-2xl border bg-white/80 px-7 py-3.5 text-base font-semibold backdrop-blur transition-all hover:-translate-y-0.5"
             >
               <Github size={18} strokeWidth={2.25} />
@@ -182,12 +174,38 @@ export default async function Page({
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="border-(--color-cream-200) rounded-2xl border bg-white p-6">
-                <h3 className="text-(--color-cocoa-700) mb-3 text-sm font-bold tracking-[0.15em]">
+                <h3 className="text-(--color-cocoa-700) mb-4 text-sm font-bold tracking-[0.15em]">
                   {t("characters.lineupHeading")}
                 </h3>
-                <p className="text-(--color-cocoa-600) text-sm leading-relaxed">
-                  {t("characters.lineupList")}
-                </p>
+                <ul className="grid grid-cols-3 gap-3">
+                  {[
+                    { slug: "zundamon", name: "ずんだもん" },
+                    { slug: "metan", name: "四国めたん" },
+                    { slug: "tsumugi", name: "春日部つむぎ" },
+                    { slug: "himari", name: "冥鳴ひまり" },
+                    { slug: "sayo", name: "小夜" },
+                    { slug: "usagi", name: "中国うさぎ" },
+                    { slug: "zunko", name: "東北ずん子" },
+                    { slug: "kiritan", name: "東北きりたん" },
+                    { slug: "itako", name: "東北イタコ" },
+                  ].map((c) => (
+                    <li
+                      key={c.slug}
+                      className="border-(--color-cream-200) flex flex-col items-center gap-1.5 rounded-xl border bg-(--color-cream-50) px-1 py-2"
+                    >
+                      <Image
+                        src={`/characters/${c.slug}-talking.png`}
+                        alt={c.name}
+                        width={88}
+                        height={63}
+                        className="h-9 w-auto"
+                      />
+                      <span className="text-(--color-cocoa-700) text-center text-xs font-medium leading-tight">
+                        {c.name}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               <div className="border-(--color-cream-200) rounded-2xl border bg-white p-6">
@@ -198,6 +216,12 @@ export default async function Page({
                   <li>{t("characters.example1")}</li>
                   <li>{t("characters.example2")}</li>
                   <li>{t("characters.example3")}</li>
+                  <li>{t("characters.example4")}</li>
+                  <li>{t("characters.example5")}</li>
+                  <li>{t("characters.example6")}</li>
+                  <li>{t("characters.example7")}</li>
+                  <li>{t("characters.example8")}</li>
+                  <li>{t("characters.example9")}</li>
                 </ul>
               </div>
             </div>
@@ -256,19 +280,18 @@ export default async function Page({
           </p>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURE_IDS.map((id) => {
-              const Icon = FEATURE_ICONS[id];
+              const icon = FEATURE_ICONS[id];
               return (
                 <div
                   key={id}
                   className="border-(--color-cream-200) rounded-2xl border bg-white p-6 transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-12px_rgba(74,56,38,0.25)]"
                 >
-                  <div className="bg-(--color-blush-200) mb-4 inline-flex rounded-2xl p-3">
-                    <Icon
-                      size={20}
-                      strokeWidth={2}
-                      className="text-(--color-cocoa-600)"
-                      aria-hidden
-                    />
+                  <div
+                    className="bg-(--color-blush-200) mb-4 inline-flex items-center justify-center rounded-2xl text-[28px] leading-none"
+                    style={{ width: 48, height: 48 }}
+                    aria-hidden
+                  >
+                    {icon}
                   </div>
                   <h3 className="text-(--color-cocoa-700) mb-2 text-base font-bold">
                     {t(`features.items.${id}.title`)}
@@ -327,13 +350,12 @@ export default async function Page({
       {/* Privacy callout */}
       <section className="px-6 py-24">
         <div className="border-(--color-cream-200) mx-auto max-w-3xl rounded-3xl border bg-white p-10 text-center shadow-[0_8px_28px_-16px_rgba(74,56,38,0.25)] sm:p-14">
-          <div className="bg-(--color-blush-200) mx-auto mb-6 inline-flex rounded-2xl p-3">
-            <Lock
-              size={22}
-              strokeWidth={2}
-              className="text-(--color-cocoa-700)"
-              aria-hidden
-            />
+          <div
+            className="bg-(--color-blush-200) mx-auto mb-6 inline-flex items-center justify-center rounded-2xl text-2xl"
+            style={{ width: 48, height: 48 }}
+            aria-hidden
+          >
+            🔒
           </div>
           <h2 className="text-(--color-cocoa-700) mb-4 text-2xl font-bold sm:text-3xl">
             {t("privacy.heading")}
@@ -360,6 +382,8 @@ export default async function Page({
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <a
               href={RELEASE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-(--color-cocoa-600) hover:bg-(--color-cocoa-700) inline-flex items-center gap-2 rounded-2xl px-7 py-3.5 text-base font-semibold text-white shadow-[0_10px_24px_-8px_rgba(74,56,38,0.45)] transition-all hover:-translate-y-0.5"
             >
               <Download size={18} strokeWidth={2.25} />
@@ -367,6 +391,8 @@ export default async function Page({
             </a>
             <a
               href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="border-(--color-cream-300) text-(--color-cocoa-700) hover:bg-(--color-cream-100) inline-flex items-center gap-2 rounded-2xl border bg-white/80 px-7 py-3.5 text-base font-semibold backdrop-blur transition-all hover:-translate-y-0.5"
             >
               <Github size={18} strokeWidth={2.25} />
@@ -376,16 +402,84 @@ export default async function Page({
         </div>
       </section>
 
-      <footer className="border-(--color-cream-200) text-(--color-cocoa-400) border-t px-6 py-10 text-center text-xs">
-        <p>
-          © {new Date().getFullYear()} {t("footer.credit")} ·{" "}
-          <a
-            href={GITHUB_URL}
-            className="hover:text-(--color-cocoa-600) underline"
-          >
-            piro0919/chappie
-          </a>
-        </p>
+      <footer className="border-(--color-cream-200) text-(--color-cocoa-400) border-t px-6 py-10 text-xs">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-4">
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-(--color-cocoa-600) transition-colors"
+            >
+              {t("footer.githubLink")}
+            </a>
+            <a
+              href={RELEASE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-(--color-cocoa-600) transition-colors"
+            >
+              {t("footer.releasesLink")}
+            </a>
+            <a
+              href={`${GITHUB_URL}/issues`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-(--color-cocoa-600) transition-colors"
+            >
+              {t("footer.issuesLink")}
+            </a>
+            <a
+              href={COFFEE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-(--color-cocoa-600) transition-colors"
+            >
+              ☕ {t("footer.coffeeLink")}
+            </a>
+            <span className="text-(--color-cream-300)" aria-hidden>
+              |
+            </span>
+            <span className="flex items-center gap-2">
+              <Link
+                href="/ja"
+                aria-current={locale === "ja" ? "page" : undefined}
+                className={
+                  locale === "ja"
+                    ? "text-(--color-cocoa-600) font-semibold"
+                    : "hover:text-(--color-cocoa-600) transition-colors"
+                }
+              >
+                日本語
+              </Link>
+              <span className="text-(--color-cream-300)" aria-hidden>
+                /
+              </span>
+              <Link
+                href="/en"
+                aria-current={locale === "en" ? "page" : undefined}
+                className={
+                  locale === "en"
+                    ? "text-(--color-cocoa-600) font-semibold"
+                    : "hover:text-(--color-cocoa-600) transition-colors"
+                }
+              >
+                English
+              </Link>
+            </span>
+          </nav>
+          <p className="text-center">
+            © {new Date().getFullYear()} {t("footer.credit")} ·{" "}
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-(--color-cocoa-600) underline"
+            >
+              piro0919/chappie
+            </a>
+          </p>
+        </div>
       </footer>
     </main>
   );
