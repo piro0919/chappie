@@ -8,14 +8,15 @@
 //
 // See plan: ~/.claude/plans/plan-harmonic-rose.md
 
-// Phase 1 lands the scaffolding only; nothing calls into it yet (the
-// migration of OpenAI / Anthropic / Gemini happens in subsequent phases).
-// Dead-code warnings are silenced here and lifted as each provider
-// switches to the generic dispatch.
+// Anthropic and Gemini migrate in Phase 3 / 4; their wire-format code
+// still lives in their respective modules until then. Suppress dead-code
+// warnings on the trait surface until every provider has switched over
+// (lifted in Phase 5 cleanup).
 #![allow(dead_code)]
 
 pub mod dispatch;
 pub mod events;
+pub mod openai_impl;
 
 use reqwest::RequestBuilder;
 use serde_json::Value;
