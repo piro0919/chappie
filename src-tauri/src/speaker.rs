@@ -20,13 +20,12 @@
 // Whisper model is handled in `model.rs`. CC-BY-4.0 license; we ship
 // attribution in the LP / README.
 
-use futures_util::StreamExt;
+use crate::download::{download_with_progress, file_exists_nonempty};
 use kaldi_fbank_rust_kautism::{FbankOptions, FrameExtractionOptions, MelBanksOptions, OnlineFbank};
 use std::ffi::CStr;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tauri::{AppHandle, Emitter, Runtime};
-use tokio::io::AsyncWriteExt;
 use tract_onnx::prelude::*;
 
 pub const EMBEDDING_DIM: usize = 192;
@@ -62,48 +61,9 @@ pub fn is_model_downloaded() -> bool {
 /// Whisper download progress UI doesn't try to track both at once).
 pub async fn ensure_model<R: Runtime>(app: AppHandle<R>) -> Result<PathBuf, String> {
     let path = model_path().ok_or_else(|| "no home dir".to_string())?;
-    if path.exists() {
-        if let Ok(meta) = tokio::fs::metadata(&path).await {
-            if meta.len() > 0 {
-                let _ = app.emit(
-                    "speaker_model:ready",
-                    serde_json::json!({ "path": path.to_string_lossy() }),
-                );
-                return Ok(path);
-            }
-        }
+    if !file_exists_nonempty(&path).await {
+        download_with_progress(&app, MODEL_URL, &path, "speaker_model", None).await?;
     }
-    if let Some(parent) = path.parent() {
-        tokio::fs::create_dir_all(parent)
-            .await
-            .map_err(|e| format!("mkdir: {e}"))?;
-    }
-    let res = reqwest::get(MODEL_URL)
-        .await
-        .map_err(|e| format!("request: {e}"))?;
-    let total = res.content_length().unwrap_or(0);
-    let mut received: u64 = 0;
-    let mut stream = res.bytes_stream();
-    let tmp = path.with_extension("onnx.part");
-    let mut file = tokio::fs::File::create(&tmp)
-        .await
-        .map_err(|e| format!("create tmp: {e}"))?;
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| format!("chunk: {e}"))?;
-        file.write_all(&chunk)
-            .await
-            .map_err(|e| format!("write: {e}"))?;
-        received += chunk.len() as u64;
-        let _ = app.emit(
-            "speaker_model:progress",
-            serde_json::json!({ "received": received, "total": total }),
-        );
-    }
-    file.flush().await.map_err(|e| format!("flush: {e}"))?;
-    drop(file);
-    tokio::fs::rename(&tmp, &path)
-        .await
-        .map_err(|e| format!("rename: {e}"))?;
     let _ = app.emit(
         "speaker_model:ready",
         serde_json::json!({ "path": path.to_string_lossy() }),

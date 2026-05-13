@@ -8,6 +8,7 @@ mod caffeinate;
 mod calendar;
 mod capabilities;
 mod clipboard;
+mod download;
 mod finder;
 mod gemini;
 mod hud;

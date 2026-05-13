@@ -14,12 +14,11 @@
 // int64 inputs (input_ids, attention_mask, token_type_ids). We build
 // the symbolic graph once and create concrete tensors per call.
 
-use futures_util::StreamExt;
+use crate::download::{download_with_progress, file_exists_nonempty};
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tauri::{AppHandle, Emitter, Runtime};
 use tokenizers::Tokenizer;
-use tokio::io::AsyncWriteExt;
 use tract_onnx::prelude::*;
 
 pub const EMBEDDING_DIM: usize = 384;
@@ -58,68 +57,30 @@ pub fn is_downloaded() -> bool {
 pub async fn ensure_model<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     let m_path = model_path().ok_or_else(|| "no home dir".to_string())?;
     let t_path = tokenizer_path().ok_or_else(|| "no home dir".to_string())?;
-    if let Some(parent) = m_path.parent() {
-        tokio::fs::create_dir_all(parent)
-            .await
-            .map_err(|e| format!("mkdir: {e}"))?;
-    }
     if !file_exists_nonempty(&m_path).await {
-        download_with_progress(&app, MODEL_URL, &m_path, "model").await?;
+        download_with_progress(
+            &app,
+            MODEL_URL,
+            &m_path,
+            "embedding_model",
+            Some(serde_json::json!({ "kind": "model" })),
+        )
+        .await?;
     }
     if !file_exists_nonempty(&t_path).await {
-        download_with_progress(&app, TOKENIZER_URL, &t_path, "tokenizer").await?;
+        download_with_progress(
+            &app,
+            TOKENIZER_URL,
+            &t_path,
+            "embedding_model",
+            Some(serde_json::json!({ "kind": "tokenizer" })),
+        )
+        .await?;
     }
     let _ = app.emit(
         "embedding_model:ready",
         serde_json::json!({ "model": m_path.to_string_lossy(), "tokenizer": t_path.to_string_lossy() }),
     );
-    Ok(())
-}
-
-async fn file_exists_nonempty(p: &std::path::Path) -> bool {
-    match tokio::fs::metadata(p).await {
-        Ok(m) => m.len() > 0,
-        Err(_) => false,
-    }
-}
-
-async fn download_with_progress<R: Runtime>(
-    app: &AppHandle<R>,
-    url: &str,
-    out: &std::path::Path,
-    kind: &str,
-) -> Result<(), String> {
-    let res = reqwest::get(url).await.map_err(|e| format!("request: {e}"))?;
-    if !res.status().is_success() {
-        return Err(format!("download {kind} HTTP {}", res.status()));
-    }
-    let total = res.content_length().unwrap_or(0);
-    let tmp = out.with_extension("part");
-    let mut file = tokio::fs::File::create(&tmp)
-        .await
-        .map_err(|e| format!("create tmp: {e}"))?;
-    let mut stream = res.bytes_stream();
-    let mut received: u64 = 0;
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| format!("chunk: {e}"))?;
-        file.write_all(&chunk)
-            .await
-            .map_err(|e| format!("write: {e}"))?;
-        received += chunk.len() as u64;
-        let _ = app.emit(
-            "embedding_model:progress",
-            serde_json::json!({
-                "kind": kind,
-                "received": received,
-                "total": total,
-            }),
-        );
-    }
-    file.flush().await.map_err(|e| format!("flush: {e}"))?;
-    drop(file);
-    tokio::fs::rename(&tmp, out)
-        .await
-        .map_err(|e| format!("rename: {e}"))?;
     Ok(())
 }
 
