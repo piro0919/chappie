@@ -80,7 +80,15 @@ pub async fn chat_complete(
         crate::provider::Provider::Gemini => {
             let model = env_override
                 .unwrap_or_else(|| provider.default_model().to_string());
-            crate::gemini::chat_complete(app, api_key, model, messages, on_chunk).await
+            crate::llm::dispatch::chat_complete_generic(
+                &app,
+                crate::llm::gemini_impl::GeminiProvider,
+                api_key,
+                model,
+                messages,
+                on_chunk,
+            )
+            .await
         }
     }
 }

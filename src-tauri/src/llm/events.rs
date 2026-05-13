@@ -55,14 +55,18 @@ pub struct AccumulatedToolCall {
 
 /// Per-stream parser state. Provider impls own its content; the loop
 /// just creates it fresh per round and threads it through
-/// `parse_sse_line` calls. Anthropic uses `pending_event_type` to pair
-/// `event:` lines with the following `data:` payload; OpenAI / Gemini
-/// leave it empty.
+/// `parse_sse_line` calls.
 #[derive(Default, Debug)]
 pub struct ParserState {
-    /// Anthropic-only: the most recent `event:` line, consumed by the
-    /// next `data:` line.
+    /// Anthropic reserved (currently unused): the most recent `event:`
+    /// line, consumed by the next `data:` line. The typed JSON payload
+    /// has its own `type` field so we don't actually need this today.
     pub pending_event_type: Option<String>,
+    /// Gemini-only: monotonic counter for synthetic tool-call indices.
+    /// Gemini emits functionCall parts without explicit indices; this
+    /// assigns one in arrival order per round so the dispatch loop's
+    /// HashMap can key them deterministically.
+    pub tool_call_counter: u32,
 }
 
 /// The output of one streaming round: accumulated text and tool calls,

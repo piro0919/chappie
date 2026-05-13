@@ -39,7 +39,7 @@ impl LlmProvider for AnthropicProvider {
         "anthropic"
     }
 
-    fn endpoint(&self, _model: &str) -> String {
+    fn endpoint(&self, _model: &str, _api_key: &str) -> String {
         ENDPOINT.to_string()
     }
 

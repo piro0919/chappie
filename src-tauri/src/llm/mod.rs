@@ -17,6 +17,7 @@
 pub mod anthropic_impl;
 pub mod dispatch;
 pub mod events;
+pub mod gemini_impl;
 pub mod openai_impl;
 
 use reqwest::RequestBuilder;
@@ -48,11 +49,13 @@ pub trait LlmProvider: Send + Sync {
 
     /// Full URL the streaming request POSTs to. Receives the active
     /// model name for providers that templatize it into the path
-    /// (Gemini's `:streamGenerateContent`).
-    fn endpoint(&self, model: &str) -> String;
+    /// (Gemini's `:streamGenerateContent`) and the api_key for
+    /// providers that pass auth in the URL query (Gemini's `?key=`).
+    fn endpoint(&self, model: &str, api_key: &str) -> String;
 
-    /// Attach provider-specific authentication (header, bearer token,
-    /// `?key=` query) to a reqwest request builder.
+    /// Attach provider-specific authentication (header, bearer token)
+    /// to a reqwest request builder. Providers that put auth in the
+    /// URL return the builder unchanged.
     fn apply_auth(&self, req: RequestBuilder, api_key: &str) -> RequestBuilder;
 
     /// One-time translation from the canonical OpenAI-shape input

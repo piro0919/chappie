@@ -9,7 +9,6 @@ mod capabilities;
 mod clipboard;
 mod download;
 mod finder;
-mod gemini;
 mod http;
 mod hud;
 mod i18n;

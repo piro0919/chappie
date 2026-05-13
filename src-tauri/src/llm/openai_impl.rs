@@ -24,7 +24,7 @@ impl LlmProvider for OpenAiProvider {
         "openai"
     }
 
-    fn endpoint(&self, _model: &str) -> String {
+    fn endpoint(&self, _model: &str, _api_key: &str) -> String {
         format!(
             "{}/chat/completions",
             crate::provider::Provider::OpenAI.base_url()

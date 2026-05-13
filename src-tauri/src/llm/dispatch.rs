@@ -73,7 +73,7 @@ pub async fn chat_complete_generic<P: LlmProvider>(
 
     let mut state = provider.prepare_state(messages);
     let tools = crate::tools::all_tools();
-    let endpoint = provider.endpoint(&model);
+    let endpoint = provider.endpoint(&model, &api_key);
 
     let mut end_conversation = false;
     let mut full_text = String::new();
@@ -318,9 +318,28 @@ async fn consume_stream<P: LlmProvider>(
 
     let mut stream = resp.bytes_stream();
     let mut buf = String::new();
-    while let Some(item) = stream.next().await {
-        let bytes = item.map_err(|e| format!("stream: {e}"))?;
-        buf.push_str(&String::from_utf8_lossy(&bytes));
+    let mut eof = false;
+    loop {
+        if !eof {
+            match stream.next().await {
+                Some(item) => {
+                    let bytes = item.map_err(|e| format!("stream: {e}"))?;
+                    // Normalize CRLF → LF so the \n\n boundary detection
+                    // works regardless of which line ending the server
+                    // uses. Gemini's servers occasionally emit CRLF.
+                    buf.push_str(&String::from_utf8_lossy(&bytes).replace("\r\n", "\n"));
+                }
+                None => {
+                    eof = true;
+                    // Flush a trailing event that wasn't terminated by a
+                    // blank line — happens when the server closes the
+                    // stream right after writing the last event.
+                    if !buf.trim().is_empty() {
+                        buf.push_str("\n\n");
+                    }
+                }
+            }
+        }
 
         while let Some(idx) = buf.find("\n\n") {
             let event: String = buf.drain(..idx + 2).collect();
@@ -384,7 +403,7 @@ async fn consume_stream<P: LlmProvider>(
                 break;
             }
         }
-        if done {
+        if done || eof {
             break;
         }
     }
