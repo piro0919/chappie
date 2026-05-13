@@ -1575,3 +1575,20 @@ export function t(
   }
   return s;
 }
+
+// Compose the chat system prompt by concatenating the persona,
+// TTS-format hint, and past-context guidance for `lang`.
+export function buildSystemPrompt(lang: Language): string {
+  return [
+    t(lang, "systemPrompt.persona"),
+    t(lang, "systemPrompt.formatTts"),
+    t(lang, "systemPrompt.pastContext"),
+  ].join(" ");
+}
+
+// Pick a random wake-word acknowledgement for `lang`. The pool is
+// time-of-day-aware via getWakeAcks.
+export function pickWakeAck(lang: Language): string {
+  const acks = getWakeAcks(lang);
+  return acks[Math.floor(Math.random() * acks.length)];
+}

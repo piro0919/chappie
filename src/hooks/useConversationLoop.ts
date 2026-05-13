@@ -1,7 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
-import { getWakeAcks, resolveLanguage, t as tRaw } from "../i18n/messages";
+import {
+  buildSystemPrompt,
+  pickWakeAck,
+  resolveLanguage,
+  t as tRaw,
+} from "../i18n/messages";
 import {
   addAssistant,
   addUser,
@@ -34,13 +39,6 @@ import { VOICEVOX_CURATED_SPEAKERS } from "../lib/voicevox-speakers";
 import { detectWake } from "../lib/wake-word";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
-function buildSystemPrompt(lang: Language): string {
-  return [
-    tRaw(lang, "systemPrompt.persona"),
-    tRaw(lang, "systemPrompt.formatTts"),
-    tRaw(lang, "systemPrompt.pastContext"),
-  ].join(" ");
-}
 const FOLLOWUP_TIMEOUT_MS = 6000;
 // After Chappie finishes speaking, accept follow-up without requiring a fresh
 // "チャッピー" wake-word for this window. Lets a multi-turn conversation flow.
@@ -55,10 +53,6 @@ const CONTINUE_WINDOW_MS = 6000;
 const MAX_SPEECH_HOLD_MS = 15000;
 // Time the tray "error" state stays visible before auto-recovering.
 const ERROR_DISPLAY_MS = 1800;
-function pickWakeAck(lang: Language): string {
-  const acks = getWakeAcks(lang);
-  return acks[Math.floor(Math.random() * acks.length)];
-}
 // Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
 // room for speaker reverb and ensures Chappie doesn't re-trigger on its tail.
 const POST_TTS_COOLDOWN_MS = 350;
