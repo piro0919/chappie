@@ -14,8 +14,8 @@
 //   that has to be reassembled per index.
 // - `max_tokens` is required.
 //
-// We reuse `openai::execute_tool` and `openai::all_tools()` to avoid
-// duplicating tool implementations and definitions.
+// We reuse `crate::tools::execute_tool` and `crate::tools::all_tools()`
+// to avoid duplicating tool implementations and definitions.
 
 use futures_util::StreamExt;
 use once_cell::sync::Lazy;
@@ -239,7 +239,7 @@ pub async fn chat_complete(
     // 5-minute TTL is fine: voice turns within a conversation are seconds
     // apart, well inside the window.
     let tools = {
-        let mut arr = match translate_tools(&crate::openai::all_tools()) {
+        let mut arr = match translate_tools(&crate::tools::all_tools()) {
             Value::Array(a) => a,
             _ => Vec::new(),
         };
@@ -513,7 +513,7 @@ pub async fn chat_complete(
         for (id, name, args) in tool_uses {
             called_tools.push(name.clone());
             let result =
-                crate::openai::execute_tool(&app, &name, &args, &mut end_conversation).await;
+                crate::tools::execute_tool(&app, &name, &args, &mut end_conversation).await;
             crate::linfo!(
                 &app,
                 "anthropic",

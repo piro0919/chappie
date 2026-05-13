@@ -36,6 +36,7 @@ mod screenshot;
 pub mod session_log;
 pub mod summarizer;
 mod timer;
+mod tools;
 pub mod topics;
 mod tray;
 mod updater;

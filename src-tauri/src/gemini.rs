@@ -12,8 +12,8 @@
 // - Auth is `?key=...` query param, not a Bearer header.
 // - Streaming uses `:streamGenerateContent?alt=sse`.
 //
-// We reuse `crate::openai::execute_tool` to avoid duplicating each tool's
-// implementation, and `crate::openai::all_tools()` for the canonical tool
+// We reuse `crate::tools::execute_tool` to avoid duplicating each tool's
+// implementation, and `crate::tools::all_tools()` for the canonical tool
 // catalog (translated to Gemini's format below).
 
 use futures_util::StreamExt;
@@ -274,7 +274,7 @@ pub async fn chat_complete(
     );
 
     let (mut contents, system_instruction) = translate_messages(messages);
-    let tools = translate_tools(&crate::openai::all_tools());
+    let tools = translate_tools(&crate::tools::all_tools());
 
     let endpoint = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse&key={key}",
@@ -510,7 +510,7 @@ pub async fn chat_complete(
         for (name, args) in function_calls {
             called_tools.push(name.clone());
             let result =
-                crate::openai::execute_tool(&app, &name, &args, &mut end_conversation).await;
+                crate::tools::execute_tool(&app, &name, &args, &mut end_conversation).await;
             // Tool results need to be JSON objects in Gemini's eyes; if our
             // tool returned a JSON-serialized string, parse it back. Plain
             // strings get wrapped in `{ "result": "..." }`.
