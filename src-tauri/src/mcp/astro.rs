@@ -72,8 +72,7 @@ async fn sunmoon(args: &Value) -> String {
     // Sunrise/sunset: ask the API for unformatted UTC times so we can
     // convert to local TZ ourselves with chrono.
     let url = format!(
-        "https://api.sunrise-sunset.org/json?lat={}&lng={}&date={}&formatted=0",
-        lat, lng, date
+        "https://api.sunrise-sunset.org/json?lat={lat}&lng={lng}&date={date}&formatted=0"
     );
     let res = match super::HTTP.get(&url).send().await {
         Ok(r) => r,

@@ -73,7 +73,7 @@ async fn fetch_summary(lang: &str, title: &str) -> Result<String, String> {
         .get(&url)
         .send()
         .await
-        .map_err(|e| format!("fetch failed: {}", e))?;
+        .map_err(|e| format!("fetch failed: {e}"))?;
     if res.status().as_u16() == 404 {
         return Err("not_found".into());
     }
@@ -83,7 +83,7 @@ async fn fetch_summary(lang: &str, title: &str) -> Result<String, String> {
     let v: Value = res
         .json()
         .await
-        .map_err(|e| format!("json parse failed: {}", e))?;
+        .map_err(|e| format!("json parse failed: {e}"))?;
     Ok(json!({
         "title": v.get("title").cloned().unwrap_or(Value::Null),
         "description": v.get("description").cloned().unwrap_or(Value::Null),

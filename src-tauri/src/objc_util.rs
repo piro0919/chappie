@@ -6,8 +6,6 @@
 // modules (mic_permission, calendar, location_native) used to define
 // near-identical helpers; this is the shared version.
 
-#![cfg(target_os = "macos")]
-
 /// Run `f` with panic + NSException protection. Returns Err on either,
 /// otherwise the closure's return value.
 pub fn guarded<R, F: FnOnce() -> R>(f: F) -> Result<R, String> {
@@ -16,7 +14,7 @@ pub fn guarded<R, F: FnOnce() -> R>(f: F) -> Result<R, String> {
     }));
     match result {
         Ok(Ok(v)) => Ok(v),
-        Ok(Err(e)) => Err(format!("ObjC exception: {:?}", e)),
+        Ok(Err(e)) => Err(format!("ObjC exception: {e:?}")),
         Err(_) => Err("panic in ObjC call".to_string()),
     }
 }

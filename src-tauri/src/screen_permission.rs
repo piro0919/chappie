@@ -76,8 +76,7 @@ mod imp {
                     }
                 }
                 eprintln!(
-                    "[screen] SCK callback: content={:?} error={:?} -> granted={granted}",
-                    content, error
+                    "[screen] SCK callback: content={content:?} error={error:?} -> granted={granted}"
                 );
                 if let Some(sender) = tx_clone.lock().unwrap().take() {
                     let _ = sender.send(granted);

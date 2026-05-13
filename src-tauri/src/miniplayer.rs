@@ -38,8 +38,8 @@ fn ensure_window(app: &AppHandle, query: &str) -> Option<WebviewWindow> {
         // Reuse the existing window — just re-navigate so the new query
         // takes effect. Hiding/destroying would lose the user's window
         // position if they'd dragged it.
-        let target = format!("/{}", path); // App URL is relative to the app:// root
-        let _ = win.eval(&format!(
+        let target = format!("/{path}"); // App URL is relative to the app:// root
+        let _ = win.eval(format!(
             "window.location.replace({})",
             serde_json::to_string(&target).unwrap_or_else(|_| "\"\"".into())
         ));

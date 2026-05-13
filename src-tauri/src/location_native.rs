@@ -38,10 +38,12 @@ mod imp {
         ) -> i32;
     }
 
+    pub type LocationFix = (f64, f64, Option<String>);
+
     pub enum Cmd {
         CheckPermission(mpsc::Sender<Result<String, String>>),
         RequestPermission(mpsc::Sender<Result<bool, String>>),
-        GetLocation(mpsc::Sender<Result<(f64, f64, Option<String>), String>>),
+        GetLocation(mpsc::Sender<Result<LocationFix, String>>),
     }
 
     pub struct State {
@@ -194,7 +196,7 @@ mod imp {
         // to ObjC for the duration of the call.
         let block_ptr = RcBlock::as_ptr(&block) as *mut _;
         unsafe {
-            geocoder.reverseGeocodeLocation_completionHandler(&*location, block_ptr);
+            geocoder.reverseGeocodeLocation_completionHandler(&location, block_ptr);
         }
         let deadline = Instant::now() + Duration::from_secs(5);
         loop {

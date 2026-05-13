@@ -74,27 +74,17 @@ fn read_all_records(path: &std::path::Path) -> std::collections::HashMap<i64, Ve
         return out;
     };
     let mut buf = vec![0u8; RECORD_BYTES];
-    loop {
-        match f.read_exact(&mut buf) {
-            Ok(_) => {
-                let mut ts_bytes = [0u8; 8];
-                ts_bytes.copy_from_slice(&buf[..8]);
-                let ts = i64::from_le_bytes(ts_bytes);
-                let mut emb = Vec::with_capacity(EMBEDDING_DIM);
-                for i in 0..EMBEDDING_DIM {
-                    let off = 8 + i * 4;
-                    let b: [u8; 4] = [
-                        buf[off],
-                        buf[off + 1],
-                        buf[off + 2],
-                        buf[off + 3],
-                    ];
-                    emb.push(f32::from_le_bytes(b));
-                }
-                out.insert(ts, emb);
-            }
-            Err(_) => break,
+    while f.read_exact(&mut buf).is_ok() {
+        let mut ts_bytes = [0u8; 8];
+        ts_bytes.copy_from_slice(&buf[..8]);
+        let ts = i64::from_le_bytes(ts_bytes);
+        let mut emb = Vec::with_capacity(EMBEDDING_DIM);
+        for i in 0..EMBEDDING_DIM {
+            let off = 8 + i * 4;
+            let b: [u8; 4] = [buf[off], buf[off + 1], buf[off + 2], buf[off + 3]];
+            emb.push(f32::from_le_bytes(b));
         }
+        out.insert(ts, emb);
     }
     out
 }
@@ -232,7 +222,6 @@ pub fn recall_prompt(query: &str, k: usize) -> String {
         .collect::<Vec<_>>()
         .join("\n\n");
     format!(
-        "現在の話題と関連がありそうな過去のやり取り（自然な流れで活かして良いが、機械的に切り出さない）:\n\n{}",
-        body
+        "現在の話題と関連がありそうな過去のやり取り（自然な流れで活かして良いが、機械的に切り出さない）:\n\n{body}"
     )
 }

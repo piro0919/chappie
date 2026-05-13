@@ -22,7 +22,6 @@
 
 use crate::download::{download_with_progress, file_exists_nonempty};
 use kaldi_fbank_rust_kautism::{FbankOptions, FrameExtractionOptions, MelBanksOptions, OnlineFbank};
-use std::ffi::CStr;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tauri::{AppHandle, Emitter, Runtime};
@@ -130,7 +129,7 @@ fn compute_fbank(samples: &[f32]) -> Option<Vec<f32>> {
             frame_length_ms: 25.0,
             frame_shift_ms: 10.0,
             dither: 0.0,
-            window_type: CStr::from_bytes_with_nul(b"hamming\0").unwrap().as_ptr(),
+            window_type: c"hamming".as_ptr(),
             ..Default::default()
         },
         mel_opts: MelBanksOptions { num_bins: 80, ..Default::default() },

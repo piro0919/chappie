@@ -128,10 +128,10 @@ pub fn clear_all() -> bool {
     };
     let mut ok = true;
     for e in entries.flatten() {
-        if e.path().extension().and_then(|s| s.to_str()) == Some("jsonl") {
-            if std::fs::remove_file(e.path()).is_err() {
-                ok = false;
-            }
+        if e.path().extension().and_then(|s| s.to_str()) == Some("jsonl")
+            && std::fs::remove_file(e.path()).is_err()
+        {
+            ok = false;
         }
     }
     ok

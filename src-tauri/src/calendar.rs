@@ -49,7 +49,7 @@ pub fn init() {
         for cmd in rx {
             match cmd {
                 Cmd::CheckPermission(reply) => {
-                    let _ = reply.send(guarded(|| check_permission_inner()));
+                    let _ = reply.send(guarded(check_permission_inner));
                 }
                 Cmd::RequestPermission(reply) => {
                     let _ = reply.send(guarded(|| request_permission_inner(&store)));
@@ -106,7 +106,7 @@ fn request_permission_inner(store: &EKEventStore) -> Result<bool, String> {
         let _: () = objc2::msg_send![store, requestFullAccessToEventsWithCompletion: &*completion];
     }
 
-    rx.recv().map_err(|e| format!("Permission request failed: {}", e))
+    rx.recv().map_err(|e| format!("Permission request failed: {e}"))
 }
 
 fn fetch_events_inner(

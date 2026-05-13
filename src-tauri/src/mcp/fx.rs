@@ -61,7 +61,7 @@ async fn rate(args: &Value) -> String {
     }
     let amount = args.get("amount").and_then(|v| v.as_f64()).unwrap_or(1.0);
 
-    let url = format!("https://open.er-api.com/v6/latest/{}", base);
+    let url = format!("https://open.er-api.com/v6/latest/{base}");
     let res = match super::HTTP.get(&url).send().await {
         Ok(r) => r,
         Err(e) => return json!({ "error": format!("fetch failed: {}", e) }).to_string(),

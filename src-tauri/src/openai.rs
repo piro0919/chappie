@@ -1731,7 +1731,7 @@ pub async fn chat_complete(
         if stop_now {
             // Even if we short-circuited, run the marker tools so their
             // side effects (e.g. flipping `end_conversation`) take effect.
-            for (_, call) in &tool_calls {
+            for call in tool_calls.values() {
                 called_tools.push(call.name.clone());
                 let args: Value =
                     serde_json::from_str(&call.arguments).unwrap_or(json!({}));

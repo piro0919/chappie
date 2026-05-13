@@ -541,8 +541,7 @@ pub async fn voicevox_install(app: AppHandle) -> Result<(), String> {
     let binary = dir.join("run");
     if !binary.is_file() {
         return Err(format!(
-            "expected binary at {:?} after extract, not found",
-            binary
+            "expected binary at {binary:?} after extract, not found"
         ));
     }
     spawn_engine(binary).await?;

@@ -259,7 +259,7 @@ fn run_capture(
             None,
         ),
         f => {
-            let msg = format!("unsupported sample format {:?}", f);
+            let msg = format!("unsupported sample format {f:?}");
             let _ = ready_tx.send(Err(msg.clone()));
             return Err(msg);
         }

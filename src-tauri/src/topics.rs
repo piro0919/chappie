@@ -84,8 +84,7 @@ pub fn prompt_section() -> String {
         .collect::<Vec<_>>()
         .join("\n");
     format!(
-        "ユーザーの長期トピック / 嗜好（過去 {} 日のサマリから抽出。自然な流れで活かす）:\n{}",
-        SUMMARY_LOOKBACK_DAYS, body
+        "ユーザーの長期トピック / 嗜好（過去 {SUMMARY_LOOKBACK_DAYS} 日のサマリから抽出。自然な流れで活かす）:\n{body}"
     )
 }
 

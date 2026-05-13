@@ -392,7 +392,7 @@ pub fn run() {
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
-            let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             // Detect upgrade and reset the TCC entries that ad-hoc
             // signing's cdhash churn tends to ghost (Screen Recording
@@ -406,11 +406,11 @@ pub fn run() {
                 tcc_reset::reset_on_upgrade(&bundle_id, &current);
             }
 
-            init_tray(&app.handle())?;
-            timer::start_tray_title_ticker(&app.handle());
+            init_tray(app.handle())?;
+            timer::start_tray_title_ticker(app.handle());
             calendar::init();
             location_native::init();
-            reminder::init(&app.handle());
+            reminder::init(app.handle());
             // Speaker recognition: load any prior enrollment + lazily load
             // the ONNX model. Both are best-effort; the audio pipeline
             // treats "no enrollment" / "model missing" as permissive
@@ -434,7 +434,7 @@ pub fn run() {
             // platforms without the .app bundle or when nothing is found —
             // the renderer falls back to the default 50021 endpoint in that
             // case (legacy manual-launch path).
-            voicevox::init_engine(&app.handle());
+            voicevox::init_engine(app.handle());
 
             // Auto-update check in Rust so the dialog is window-independent
             // (the JS `ask()` API attaches to the current window as a sheet,
