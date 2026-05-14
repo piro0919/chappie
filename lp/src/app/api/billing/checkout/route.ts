@@ -1,22 +1,31 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { verifyBearer } from "@/lib/auth";
+import { corsPreflight, withCors } from "@/lib/cors";
 import { APP_BASE_URL, PRICE_ID, stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+export function OPTIONS() {
+  return corsPreflight();
+}
+
 export async function POST(req: NextRequest) {
   if (!PRICE_ID) {
-    return NextResponse.json(
-      { error: "server misconfigured: STRIPE_PRICE_ID missing" },
-      { status: 500 },
+    return withCors(
+      NextResponse.json(
+        { error: "server misconfigured: STRIPE_PRICE_ID missing" },
+        { status: 500 },
+      ),
     );
   }
 
   const user = await verifyBearer(req.headers.get("authorization"));
   if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return withCors(
+      NextResponse.json({ error: "unauthorized" }, { status: 401 }),
+    );
   }
 
   const { data: existing } = await supabaseAdmin
@@ -41,11 +50,13 @@ export async function POST(req: NextRequest) {
   });
 
   if (!session.url) {
-    return NextResponse.json(
-      { error: "checkout session has no url" },
-      { status: 500 },
+    return withCors(
+      NextResponse.json(
+        { error: "checkout session has no url" },
+        { status: 500 },
+      ),
     );
   }
 
-  return NextResponse.json({ url: session.url });
+  return withCors(NextResponse.json({ url: session.url }));
 }

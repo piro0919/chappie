@@ -43,3 +43,4 @@ lp/next-env.d.ts
 lp/tsconfig.tsbuildinfo
 lp/public/sitemap*.xml
 lp/public/robots.txt
+.vercel

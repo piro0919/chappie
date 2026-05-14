@@ -104,7 +104,7 @@ async function upsertSubscription(userId: string, sub: Stripe.Subscription) {
   const customerId =
     typeof sub.customer === "string" ? sub.customer : sub.customer.id;
 
-  await supabaseAdmin.from("subscription").upsert(
+  const { error } = await supabaseAdmin.from("subscription").upsert(
     {
       user_id: userId,
       stripe_customer_id: customerId,
@@ -115,6 +115,9 @@ async function upsertSubscription(userId: string, sub: Stripe.Subscription) {
     },
     { onConflict: "user_id" },
   );
+  if (error) {
+    throw new Error(`subscription upsert failed: ${error.message}`);
+  }
 }
 
 async function lookupUserIdFromCustomer(
