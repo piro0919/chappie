@@ -90,6 +90,7 @@ type Messages = {
     voicevoxExtracting: string;
     voicevoxVerifying: string;
     voicevoxCredits: string;
+    voicevoxPaidLockHud: string;
     speakerLabel: string;
     speakerDescription: string;
     speakerStatusEnrolled: string;
@@ -244,6 +245,7 @@ const ja: Messages = {
     voicevoxVerifying: "起動確認中…",
     voicevoxCredits:
       "VOICEVOX (https://voicevox.hiroshiba.jp/) を使用しています。各キャラクターの音声には個別の利用規約があります。動画・配信等で使用する場合は「VOICEVOX:キャラ名」の表記が必要です。",
+    voicevoxPaidLockHud: "🔒 このキャラは Pro で解放できます",
     speakerLabel: "話者認識",
     speakerDescription:
       "あなたの声を覚えさせると、テレビ・YouTube・他の人の声に反応しなくなります。",
@@ -411,6 +413,7 @@ const en: Messages = {
     voicevoxVerifying: "Verifying…",
     voicevoxCredits:
       'Uses VOICEVOX (https://voicevox.hiroshiba.jp/). Each character voice has its own terms of use; videos and streams must credit the character ("VOICEVOX:character name").',
+    voicevoxPaidLockHud: "🔒 Unlock this character with Pro",
     speakerLabel: "Voice recognition",
     speakerDescription:
       "Enroll your voice so Chappie ignores TV, YouTube, and other people.",
@@ -579,6 +582,7 @@ const es: Messages = {
     voicevoxVerifying: "Verificando…",
     voicevoxCredits:
       'Usa VOICEVOX (https://voicevox.hiroshiba.jp/). Cada voz tiene sus propios términos de uso; vídeos y streams deben acreditar al personaje ("VOICEVOX:nombre del personaje").',
+    voicevoxPaidLockHud: "🔒 Desbloquea este personaje con Pro",
     speakerLabel: "Reconocimiento de voz",
     speakerDescription:
       "Al registrar tu voz, Chappie deja de responder a la TV, YouTube u otras personas.",
@@ -747,6 +751,7 @@ const fr: Messages = {
     voicevoxVerifying: "Vérification…",
     voicevoxCredits:
       "Utilise VOICEVOX (https://voicevox.hiroshiba.jp/). Chaque voix a ses propres conditions ; les vidéos et streams doivent créditer le personnage (« VOICEVOX:nom du personnage »).",
+    voicevoxPaidLockHud: "🔒 Débloquez ce personnage avec Pro",
     speakerLabel: "Reconnaissance vocale",
     speakerDescription:
       "Une fois ta voix enregistrée, Chappie ignore la TV, YouTube et les autres voix.",
@@ -915,6 +920,7 @@ const de: Messages = {
     voicevoxVerifying: "Wird geprüft…",
     voicevoxCredits:
       'Verwendet VOICEVOX (https://voicevox.hiroshiba.jp/). Jede Stimme hat eigene Nutzungsbedingungen; Videos und Streams müssen den Charakter nennen („VOICEVOX:Charaktername").',
+    voicevoxPaidLockHud: "🔒 Schalte diesen Charakter mit Pro frei",
     speakerLabel: "Sprechererkennung",
     speakerDescription:
       "Wenn deine Stimme registriert ist, reagiert Chappie nicht mehr auf TV, YouTube oder andere.",
@@ -1079,6 +1085,7 @@ const zh: Messages = {
     voicevoxVerifying: "验证中…",
     voicevoxCredits:
       "使用了 VOICEVOX (https://voicevox.hiroshiba.jp/)。各角色语音有各自的使用条款；视频和直播须标注「VOICEVOX:角色名」。",
+    voicevoxPaidLockHud: "🔒 使用 Pro 解锁该角色",
     speakerLabel: "说话人识别",
     speakerDescription:
       "登记你的声音后，Chappie 不会再被电视、YouTube 或其他人的声音激活。",
@@ -1245,6 +1252,7 @@ const pt: Messages = {
     voicevoxVerifying: "Verificando…",
     voicevoxCredits:
       'Usa o VOICEVOX (https://voicevox.hiroshiba.jp/). Cada voz tem seus próprios termos de uso; vídeos e streams devem creditar o personagem ("VOICEVOX:nome do personagem").',
+    voicevoxPaidLockHud: "🔒 Desbloqueie este personagem com Pro",
     speakerLabel: "Reconhecimento de voz",
     speakerDescription:
       "Depois de registrar sua voz, o Chappie deixa de responder à TV, YouTube ou outras pessoas.",
@@ -1412,6 +1420,7 @@ const ko: Messages = {
     voicevoxVerifying: "확인 중…",
     voicevoxCredits:
       'VOICEVOX (https://voicevox.hiroshiba.jp/) 를 사용합니다. 캐릭터별 음성에는 각각의 이용 약관이 있습니다. 동영상·방송 등에서 사용 시 "VOICEVOX:캐릭터 이름" 표기가 필요합니다.',
+    voicevoxPaidLockHud: "🔒 Pro로 이 캐릭터를 해제하세요",
     speakerLabel: "화자 인식",
     speakerDescription:
       "내 목소리를 등록하면 TV, YouTube, 다른 사람의 목소리에는 반응하지 않습니다.",
@@ -1580,6 +1589,7 @@ const it: Messages = {
     voicevoxVerifying: "Verifica…",
     voicevoxCredits:
       'Usa VOICEVOX (https://voicevox.hiroshiba.jp/). Ogni voce ha i propri termini d\'uso; video e stream devono accreditare il personaggio ("VOICEVOX:nome personaggio").',
+    voicevoxPaidLockHud: "🔒 Sblocca questo personaggio con Pro",
     speakerLabel: "Riconoscimento vocale",
     speakerDescription:
       "Registrando la tua voce, Chappie smette di rispondere alla TV, YouTube o ad altre persone.",

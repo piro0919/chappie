@@ -38,6 +38,7 @@ import {
 } from "../lib/state-machine";
 import { isSystemMuted, showOnHud } from "../lib/tauri-bridge";
 import { resolveVoiceForWake } from "../lib/voice-selection";
+import { isPaidSpeaker } from "../lib/voicevox-speakers";
 import { detectWake } from "../lib/wake-word";
 import { useTauriListener } from "./useTauriListener";
 
@@ -68,6 +69,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const historyRef = useRef<History>(createHistory(buildSystemPrompt("auto")));
   const apiKeyRef = useRef<string>("");
   const subscriptionTokenRef = useRef<string>("");
+  // Mirrors `subscriptionStatus in {"active","trialing"}`. Read every turn
+  // by `applyVoiceForWake` to decide whether paid VOICEVOX characters are
+  // unlocked. Updated by the initial-load and settings:updated paths.
+  const subscriptionPaidRef = useRef<boolean>(false);
   const modeRef = useRef<"free" | "byok">("free");
   const chatClientRef = useRef<ChatClient | null>(null);
   const langRef = useRef<Language>("auto");
@@ -375,6 +380,23 @@ export function useConversationLoop(): { state: State; error: string | null } {
   //   ずんだもん / めたん etc → VOICEVOX with that speaker
   // The next wake overwrites whatever the previous turn set.
   function applyVoiceForWake(speakerId: number | undefined): void {
+    // Paid VOICEVOX characters fall back to chappie's default voice when the
+    // user isn't on Pro. We still let the LLM turn run, just without the
+    // character persona/voice — and surface the lock via HUD so the user
+    // knows why ずんだもん answered instead of the character they called.
+    if (
+      speakerId !== undefined &&
+      isPaidSpeaker(speakerId) &&
+      !subscriptionPaidRef.current
+    ) {
+      console.info(
+        `[loop] applyVoiceForWake paid-locked speaker=${speakerId} → chappie default`,
+      );
+      void showOnHud(
+        tRaw(langRef.current, "settings.voicevoxPaidLockHud"),
+      ).catch(() => {});
+      speakerId = undefined;
+    }
     voicevoxSpeakerIdRef.current = speakerId;
     const { engineOpts, trayCharacter } = resolveVoiceForWake(speakerId);
     console.info(
@@ -535,6 +557,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
         subscriptionTokenRef.current = s.subscriptionAccessToken;
+        subscriptionPaidRef.current =
+          s.subscriptionStatus === "active" ||
+          s.subscriptionStatus === "trialing";
         modeRef.current = s.mode;
         langRef.current = s.language;
         historyRef.current = createHistory(buildSystemPrompt(s.language));
@@ -743,6 +768,8 @@ export function useConversationLoop(): { state: State; error: string | null } {
     const langChanged = langRef.current !== s.language;
     apiKeyRef.current = s.openaiApiKey;
     subscriptionTokenRef.current = s.subscriptionAccessToken;
+    subscriptionPaidRef.current =
+      s.subscriptionStatus === "active" || s.subscriptionStatus === "trialing";
     modeRef.current = s.mode;
     langRef.current = s.language;
     if (langChanged) {

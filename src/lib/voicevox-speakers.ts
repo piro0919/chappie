@@ -46,6 +46,12 @@ export interface VoicevoxSpeaker {
    *  `styles.normal`; kept as a flat field so existing callers (engine
    *  cache key, settings) don't have to change. */
   id: number;
+  /** Pricing tier. `"free"` works for everyone (only ずんだもん today);
+   *  `"paid"` requires an active subscription. Missing = `"paid"` by
+   *  default — adding a speaker without thinking should not give away
+   *  the Pro lever. The wake-word router falls back to chappie's default
+   *  voice + a HUD nudge when a paid speaker is invoked without Pro. */
+  tier?: "free" | "paid";
   /** Human-readable label (used in logs / future debug surfaces). */
   label: string;
   /** Spoken forms that, when used as a wake-word, switch to this
@@ -91,6 +97,7 @@ export interface VoicevoxSpeaker {
 export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
   {
     id: 3,
+    tier: "free",
     label: "ずんだもん（ノーマル）",
     wakeNames: ["ずんだもん", "ズンダモン", "ずんだ"],
     persona:
@@ -243,3 +250,15 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
     trayCharacter: "itako",
   },
 ];
+
+/** True when the given speaker id requires an active subscription.
+ *  Speakers missing a `tier` are treated as paid (safe default — adding a
+ *  speaker without thinking should not silently give away the Pro lever).
+ *  Unknown ids return false so the chappie default voice (no speaker id)
+ *  is never gated. */
+export function isPaidSpeaker(speakerId: number | undefined): boolean {
+  if (speakerId === undefined) return false;
+  const sp = VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId);
+  if (!sp) return false;
+  return (sp.tier ?? "paid") === "paid";
+}
