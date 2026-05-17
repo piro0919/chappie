@@ -5,6 +5,7 @@
 // substitution uses `{name}` style placeholders.
 
 import type { Language } from "../lib/settings";
+import { VOICEVOX_CURATED_SPEAKERS } from "../lib/voicevox-speakers";
 
 type Messages = {
   common: { loading: string };
@@ -1811,7 +1812,19 @@ function timeBand(hour: number): TimeBand {
   return "lateNight";
 }
 
-export function getWakeAcks(lang: Language, hour?: number): string[] {
+export function getWakeAcks(
+  lang: Language,
+  hour?: number,
+  speakerId?: number,
+): string[] {
+  // Per-character wake acks (in-character 口調) take priority over the
+  // language pool — saying "ずんだもん" should make her answer "なのだ",
+  // not the generic "はーい". VOICEVOX speakers are Japanese-only so the
+  // `lang` arg is ignored when a speaker pool exists.
+  if (speakerId !== undefined) {
+    const sp = VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId);
+    if (sp?.wakeAcks && sp.wakeAcks.length > 0) return sp.wakeAcks;
+  }
   const pool = WAKE_ACKS[resolveLanguage(lang)];
   const h = hour ?? new Date().getHours();
   const band = timeBand(h);
@@ -1887,8 +1900,9 @@ export function buildSystemPrompt(lang: Language): string {
 }
 
 // Pick a random wake-word acknowledgement for `lang`. The pool is
-// time-of-day-aware via getWakeAcks.
-export function pickWakeAck(lang: Language): string {
-  const acks = getWakeAcks(lang);
+// time-of-day-aware via getWakeAcks. When `speakerId` is set and the
+// speaker has a `wakeAcks` list, that in-character pool wins.
+export function pickWakeAck(lang: Language, speakerId?: number): string {
+  const acks = getWakeAcks(lang, undefined, speakerId);
   return acks[Math.floor(Math.random() * acks.length)];
 }

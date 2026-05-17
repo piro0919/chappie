@@ -74,6 +74,13 @@ export interface VoicevoxSpeaker {
    *  is not enough to keep Anthropic / Gemini in character on long
    *  responses. */
   samples?: string[];
+  /** In-character wake-word acknowledgements ("はいなのだ" for ずんだもん,
+   *  "なぁに？" for めたん, etc.) spoken back when the user wakes Chappie
+   *  with this character's name and no body. When set + non-empty,
+   *  overrides the language-level wake-ack pool in `messages.ts`. Keep
+   *  each line short (under ~15 chars) — they're spoken instantly before
+   *  the user has time to start the real request. */
+  wakeAcks?: string[];
   /** Logical-emotion → engine-style-id map. `normal` should always
    *  equal `id`. Missing keys fall back to `normal` at synth time. */
   styles: Partial<Record<VoicevoxStyleKey, number>> & { normal: number };
@@ -110,6 +117,14 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "それはずんだ餅と関係ないのだ。",
       "了解したのだ、まかせるのだ！",
     ],
+    wakeAcks: [
+      "なんなのだ？",
+      "呼んだのだ？",
+      "ずんだもんはここにいるのだ。",
+      "どうしたのだ？",
+      "なになになのだ？",
+      "はいなのだ。",
+    ],
     styles: { normal: 3, sweet: 1, tsun: 7, sad: 76, strong: 5 },
     trayCharacter: "zundamon",
   },
@@ -126,6 +141,14 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "そんなの当たり前でしょ。",
       "わたくしが調べてあげるわ。",
       "ふぅん、面白いじゃない。",
+    ],
+    wakeAcks: [
+      "なぁに？",
+      "呼んだかしら？",
+      "わたくしに何か用？",
+      "あら、なぁに？",
+      "はい、なぁに？",
+      "ふん、なんの用？",
     ],
     styles: { normal: 2, sweet: 0, tsun: 6, strong: 4 },
     trayCharacter: "metan",
@@ -144,6 +167,14 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "うわ、それヤバめだね。",
       "オタクくん、もうちょい詳しく教えて？",
     ],
+    wakeAcks: [
+      "なーに？",
+      "呼んだじゃん？",
+      "あーしのこと呼んだ？",
+      "うい〜、どした？",
+      "なになに？",
+      "はーい、なに？",
+    ],
     styles: { normal: 8 },
     trayCharacter: "tsumugi",
   },
@@ -160,6 +191,14 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "それは少し気になりますね。",
       "私が調べておきますので、お任せください。",
       "ふふ、可愛らしいですね。",
+    ],
+    wakeAcks: [
+      "はい、なんでしょう？",
+      "お呼びでしょうか？",
+      "私に何か御用ですか？",
+      "どうされましたか？",
+      "はい、ここにいますよ。",
+      "ふふ、なんですか？",
     ],
     styles: { normal: 14 },
     trayCharacter: "himari",
@@ -178,6 +217,14 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "ふふ、小夜はそう思うにゃ。",
       "あなたとお話しするの、小夜は楽しいよ。",
     ],
+    wakeAcks: [
+      "やっほー、なーに？",
+      "小夜だよ、どうしたの？",
+      "呼んだ？",
+      "なになに？",
+      "はーい、小夜はここにいるよ。",
+      "あなた、なにかご用？",
+    ],
     styles: { normal: 46 },
     trayCharacter: "sayo",
   },
@@ -194,6 +241,14 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "…別に、いいけど。",
       "ちょっと…時間いる。",
       "それで…合ってる。",
+    ],
+    wakeAcks: [
+      "…はい。",
+      "…なに？",
+      "…呼んだ？",
+      "…どうしたの。",
+      "…うん、聞いてる。",
+      "…なんでしょう。",
     ],
     styles: { normal: 61, sad: 63, strong: 62 },
     trayCharacter: "usagi",
@@ -212,6 +267,14 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "みんなで頑張ろうね。",
       "私に任せておいて。",
     ],
+    wakeAcks: [
+      "はーい、なぁに？",
+      "呼んでくれたの？",
+      "どうしたの？",
+      "私で良ければ聞くよ。",
+      "ふふ、なぁに？",
+      "うん、聞いてるよ。",
+    ],
     styles: { normal: 107 },
     trayCharacter: "zunko",
   },
@@ -229,6 +292,14 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "はぁ、しょうがないわね。",
       "わたしが調べる。あなたは待ってて。",
     ],
+    wakeAcks: [
+      "なに。",
+      "呼んだ？",
+      "あなた、何の用？",
+      "はぁ、なに。",
+      "聞いてる、続けて。",
+      "用件は？",
+    ],
     styles: { normal: 108 },
     trayCharacter: "kiritan",
   },
@@ -245,6 +316,14 @@ export const VOICEVOX_CURATED_SPEAKERS: VoicevoxSpeaker[] = [
       "ふふ、お安い御用ですわ。",
       "みなさん、少々お待ちくださいませ。",
       "あら、それは存じませんでしたわ。",
+    ],
+    wakeAcks: [
+      "はい、なんですの？",
+      "お呼びでしょうか？",
+      "あら、どうされましたの？",
+      "あたしを呼びましたわね？",
+      "ふふ、なんですの？",
+      "はい、ここにおりますわ。",
     ],
     styles: { normal: 109 },
     trayCharacter: "itako",

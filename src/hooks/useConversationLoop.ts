@@ -545,7 +545,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // speaking immediately, and `withMutedCapture` would block the
       // pipeline for the cooldown duration.
       void (async () => {
-        const ack = pickWakeAck(langRef.current);
+        const ack = pickWakeAck(langRef.current, m.speakerId);
         if (await isSystemMuted()) {
           await invoke("hud_show", {
             text: `👂 ${ack}`,
