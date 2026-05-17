@@ -453,10 +453,6 @@ export default async function Page({
           </h2>
           <p className="text-(--color-cocoa-500) mx-auto max-w-xl text-base leading-relaxed">
             {t("privacy.body")}
-            <br />
-            <span className="text-(--color-cocoa-400) mt-2 inline-block text-sm">
-              {t("privacy.note")}
-            </span>
           </p>
         </div>
       </section>

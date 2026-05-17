@@ -305,8 +305,7 @@
   },
   "privacy": {
     "heading": "Your voice stays on your device",
-    "body": "What the mic picks up is converted to text right on your device. The recording itself never goes to the internet. Only the text version of your question is sent to an AI service to think up a reply.",
-    "note": "* Start chatting right after download — no API key needed. Free mode includes 5 chats per day. Add your own API key (OpenAI / Gemini / Anthropic) in Settings to switch to unlimited."
+    "body": "What the mic picks up is converted to text right on your device. The recording itself never goes to the internet. Only the text version of your question is sent to an AI service to think up a reply."
   },
   "finalCta": {
     "heading": "Try saying hello.",
