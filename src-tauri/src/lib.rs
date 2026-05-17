@@ -28,6 +28,7 @@ mod notes;
 mod objc_util;
 pub mod openai;
 mod power;
+mod proactive;
 mod provider;
 pub mod embedding;
 pub mod rag;
@@ -330,6 +331,22 @@ fn speaker_enroll(samples: Vec<f32>) -> Result<(), String> {
     speaker::save_enrollment(centroid)
 }
 
+/// Replace the proactive scheduler's config snapshot. Called by the
+/// renderer on startup and whenever the user saves Settings, so the
+/// 30-second tick loop picks up changes without a process restart.
+#[tauri::command]
+fn set_proactive_config(config: proactive::Config) {
+    proactive::set_config(config);
+}
+
+/// Push the renderer's idle/busy state into the proactive scheduler.
+/// Currently stored but unused — v2 reads it for the idle-chatter
+/// feature. Called on every state-machine transition.
+#[tauri::command]
+fn notify_idle_state(idle: bool) {
+    proactive::notify_idle(idle);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -403,6 +420,8 @@ pub fn run() {
             voicevox::voicevox_install,
             voicevox::voicevox_uninstall,
             tool_usage::list_tool_usage,
+            set_proactive_config,
+            notify_idle_state,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -440,6 +459,11 @@ pub fn run() {
             calendar::init();
             location_native::init();
             reminder::init(app.handle());
+            // Proactive scheduler: ticks every 30s and emits
+            // `proactive:fired` for morning brief / calendar pre-warning.
+            // No-op until the renderer pushes a config via
+            // `set_proactive_config`, so first-run installs stay silent.
+            proactive::init(app.handle());
             // Speaker recognition: load any prior enrollment + lazily load
             // the ONNX model. Both are best-effort; the audio pipeline
             // treats "no enrollment" / "model missing" as permissive

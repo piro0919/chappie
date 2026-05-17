@@ -113,6 +113,42 @@ fn format_forecast(place: &str, fc: &ForecastResp) -> String {
     out.trim_end().to_string()
 }
 
+/// Minimal "current conditions" snapshot used by callers that need
+/// structured data instead of the user-facing formatted forecast
+/// (e.g. proactive weather alerts comparing current vs. prior state).
+/// Always fetches via the same Open-Meteo endpoint so behavior matches
+/// `lookup_by_coords`.
+pub struct CurrentSnapshot {
+    pub weather_code: u32,
+    pub temp_c: f64,
+}
+
+pub async fn current_snapshot(lat: f64, lon: f64) -> Result<CurrentSnapshot, String> {
+    let fc_url = format!(
+        "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,weather_code&timezone=auto",
+    );
+    let fc: ForecastResp = HTTP
+        .get(&fc_url)
+        .send()
+        .await
+        .map_err(|e| format!("snapshot request: {e}"))?
+        .json()
+        .await
+        .map_err(|e| format!("snapshot decode: {e}"))?;
+    let c = fc.current.ok_or("no current weather in response")?;
+    Ok(CurrentSnapshot {
+        weather_code: c.weather_code.unwrap_or(0),
+        temp_c: c.temperature_2m.unwrap_or(0.0),
+    })
+}
+
+/// Localized name for a weather code. Re-exports `weather_code_to_jp`
+/// under a stable public name so callers (proactive alerts) don't have
+/// to reach into private helpers.
+pub fn weather_code_label(code: u32) -> &'static str {
+    weather_code_to_jp(code)
+}
+
 pub async fn lookup_by_coords(
     lat: f64,
     lon: f64,

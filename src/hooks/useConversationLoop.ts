@@ -16,7 +16,7 @@ import {
 } from "../lib/conversation-history";
 import { type ChatClient, createChatClient } from "../lib/openai-client";
 import { buildPerTurnPrompt } from "../lib/per-turn-prompt";
-import { type Language, loadSettings } from "../lib/settings";
+import { type Language, loadSettings, type Settings } from "../lib/settings";
 import {
   isBargeInCommand,
   isExternalAudioCancelCommand,
@@ -38,7 +38,10 @@ import {
 } from "../lib/state-machine";
 import { isSystemMuted, showOnHud } from "../lib/tauri-bridge";
 import { resolveVoiceForWake } from "../lib/voice-selection";
-import { isPaidSpeaker } from "../lib/voicevox-speakers";
+import {
+  isPaidSpeaker,
+  VOICEVOX_CURATED_SPEAKERS,
+} from "../lib/voicevox-speakers";
 import { detectWake } from "../lib/wake-word";
 import { useTauriListener } from "./useTauriListener";
 
@@ -60,6 +63,89 @@ const ERROR_DISPLAY_MS = 1800;
 // Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
 // room for speaker reverb and ensures Chappie doesn't re-trigger on its tail.
 const POST_TTS_COOLDOWN_MS = 350;
+
+// Rewrite a template-based proactive line into the active VOICEVOX
+// character's 口調. No-op when chappie's default voice is active, or
+// when the user is on Free (the 5/day quota shouldn't be burned on
+// proactive flavoring), or when the LLM call fails. Returns the
+// original text in every fallback case so the caller can speak
+// something regardless.
+async function rewriteInPersona(
+  speakText: string,
+  lang: Language,
+  speakerId: number | undefined,
+  mode: string,
+  chatClient: ChatClient | null,
+): Promise<string> {
+  if (speakerId === undefined || mode === "free" || !chatClient) {
+    return speakText;
+  }
+  const persona = VOICEVOX_CURATED_SPEAKERS.find(
+    (s) => s.id === speakerId,
+  )?.persona;
+  if (!persona) return speakText;
+  const resolved = resolveLanguage(lang);
+  const system = `You are Chappie, currently voiced as a VOICEVOX character. Rewrite the user-provided sentence in the character's 口調 (speech style) described below. Keep the meaning and information identical — do not add or drop facts. Output ONE sentence only in ${resolved}, no markdown, no quotes, no preamble. Output just the rewritten sentence.\n\n--- character ---\n${persona}`;
+  try {
+    const result = await chatClient.complete([
+      { role: "system", content: system },
+      { role: "user", content: speakText },
+    ]);
+    const trimmed = result.text.trim().replace(/^[「『"']+|[」』"']+$/g, "");
+    return trimmed || speakText;
+  } catch (err) {
+    console.warn("[proactive] persona rewrite failed, using template", err);
+    return speakText;
+  }
+}
+
+// One-shot system prompt for LLM-generated idle chatter. Kept separate
+// from the conversation persona because we don't want tool calls,
+// don't want history awareness, and want a single-sentence shape.
+// Language is named explicitly so the model doesn't drift to English
+// when the user is on JP/etc. The wording stays English regardless of
+// `lang` — it's an instruction to the model, not user-facing text.
+function buildIdleChatterPrompt(lang: Language): string {
+  const resolved = resolveLanguage(lang);
+  return `You are Chappie, a hands-free voice assistant. The user has been silent and idle for a while. Break the silence with ONE short casual remark in ${resolved} — an observation, a light greeting, or a gentle nudge. Do NOT ask big questions. Do NOT use markdown, code blocks, lists, or emoji. Just one natural spoken sentence as if you turned your head and said something off the cuff. Keep it under 25 words. Do not repeat a previous remark.`;
+}
+
+// Mirror the renderer's proactive settings into the Rust scheduler.
+// Called once on startup and again whenever `settings:updated` fires so
+// toggle changes apply on the very next tick without a restart.
+async function pushProactiveConfig(s: Settings): Promise<void> {
+  await invoke("set_proactive_config", {
+    config: {
+      morningBriefEnabled: s.proactiveMorningBriefEnabled,
+      morningBriefTime: s.proactiveMorningBriefTime,
+      calendarEnabled: s.proactiveCalendarEnabled,
+      calendarLeadMin: s.proactiveCalendarLeadMin,
+      weatherEnabled: s.proactiveWeatherEnabled,
+      idleChatterEnabled: s.proactiveIdleChatterEnabled,
+      idleChatterAfterMin: s.proactiveIdleChatterAfterMin,
+      quietHoursStart: s.proactiveQuietHoursStart,
+      quietHoursEnd: s.proactiveQuietHoursEnd,
+    },
+  }).catch((err) => {
+    console.warn("[proactive] set_proactive_config failed", err);
+  });
+}
+
+// Discriminated payload for `proactive:fired` (emitted by Rust
+// `proactive::tick`). Matches the `#[serde(tag = "kind")]` enum on the
+// Rust side; renderer composes the user-facing text from i18n.
+type ProactiveFiredPayload =
+  | {
+      kind: "morningBrief";
+      weather: string;
+      temp: number;
+      eventCount: number;
+      firstTime: string | null;
+      firstTitle: string | null;
+    }
+  | { kind: "calendarWarning"; leadMin: number; title: string }
+  | { kind: "weatherAlert"; detail: string }
+  | { kind: "idleChatter"; phraseIndex: number; context: string };
 
 export function useConversationLoop(): { state: State; error: string | null } {
   const [state, setState] = useState<State>({ state: "initializing" });
@@ -135,11 +221,20 @@ export function useConversationLoop(): { state: State; error: string | null } {
   function dispatch(event: MachineEvent) {
     const next = transition(machineRef.current, event);
     if (next === machineRef.current) return;
+    const prevIdle = machineRef.current.state.state === "idle";
     machineRef.current = next;
     setState(next.state);
     // Tray's enum names match the top-level discriminator, so the
     // sub-flags (bargeIn / awaitingContinuation) stay JS-side.
     void invoke("set_tray_state", { state: next.state.state }).catch(() => {});
+    // Push idle/busy state to the Rust proactive scheduler whenever
+    // the boolean flips, so the v2 idle-chatter feature (and any
+    // future "is it OK to interrupt?" check) sees an accurate signal
+    // without polling.
+    const nextIdle = next.state.state === "idle";
+    if (nextIdle !== prevIdle) {
+      void invoke("notify_idle_state", { idle: nextIdle }).catch(() => {});
+    }
   }
 
   function clearFollowupTimer() {
@@ -616,6 +711,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         void invoke("set_tray_state", { state: "initializing" }).catch(
           () => {},
         );
+        void pushProactiveConfig(s);
         progressOff = await listen<{ received: number; total: number }>(
           "model:progress",
           (e) => {
@@ -851,6 +947,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       s.mode === "free" ||
       s.mode === "paid" ||
       (s.mode === "byok" && !!s.openaiApiKey);
+    void pushProactiveConfig(s);
     if (wasBlocked && nowOk) {
       setError(null);
       // Machine is in `error` from the init-time initializationFailed
@@ -931,6 +1028,174 @@ export function useConversationLoop(): { state: State; error: string | null } {
       }
     },
   );
+
+  // proactive:fired — Chappie speaks on its own initiative (morning
+  // briefing or calendar pre-warning). Payload is tagged by `kind`;
+  // the renderer composes the user-facing text from the i18n catalog
+  // and routes to TTS or HUD via the same mute-aware path as the
+  // other fire-and-forget announcements.
+  useTauriListener<ProactiveFiredPayload>("proactive:fired", async (e) => {
+    const p = e.payload;
+    let speakText: string;
+    let hudText: string;
+    if (p.kind === "morningBrief") {
+      const params: Record<string, string> = {
+        weather: p.weather,
+        temp: String(p.temp),
+        count: String(p.eventCount),
+      };
+      if (p.firstTime && p.firstTitle) {
+        params.firstTime = p.firstTime;
+        params.firstTitle = p.firstTitle;
+        speakText = tRaw(
+          langRef.current,
+          "conversation.proactiveMorningBriefWithEvents",
+          params,
+        );
+      } else if (p.eventCount === 0) {
+        speakText = tRaw(
+          langRef.current,
+          "conversation.proactiveMorningBriefNoEvents",
+          params,
+        );
+      } else {
+        speakText = tRaw(
+          langRef.current,
+          "conversation.proactiveMorningBriefWeatherOnly",
+          params,
+        );
+      }
+      hudText = tRaw(
+        langRef.current,
+        "conversation.proactiveMorningBriefHud",
+        params,
+      );
+    } else if (p.kind === "calendarWarning") {
+      const params = {
+        leadMin: String(p.leadMin),
+        title: p.title,
+      };
+      speakText = tRaw(
+        langRef.current,
+        "conversation.proactiveCalendarWarning",
+        params,
+      );
+      hudText = tRaw(
+        langRef.current,
+        "conversation.proactiveCalendarHud",
+        params,
+      );
+    } else if (p.kind === "weatherAlert") {
+      const params = { detail: p.detail };
+      speakText = tRaw(
+        langRef.current,
+        "conversation.proactiveWeatherAlert",
+        params,
+      );
+      hudText = tRaw(
+        langRef.current,
+        "conversation.proactiveWeatherAlertHud",
+        params,
+      );
+    } else {
+      const slot = Math.min(Math.max(p.phraseIndex, 0), 4);
+      // Static key list keeps t()'s string-literal union happy; the
+      // Rust side bounds phrase_index to 0..IDLE_CHATTER_PHRASE_COUNT
+      // which is wired to match this array length.
+      const phraseKeys = [
+        "conversation.proactiveIdleChatterPhrase1",
+        "conversation.proactiveIdleChatterPhrase2",
+        "conversation.proactiveIdleChatterPhrase3",
+        "conversation.proactiveIdleChatterPhrase4",
+        "conversation.proactiveIdleChatterPhrase5",
+      ] as const;
+      const fallback = tRaw(langRef.current, phraseKeys[slot]);
+      // Free mode shares its 5/day quota with this — burning daily
+      // calls on unsolicited chatter is anti-feature, so Free always
+      // uses the static phrase. BYOK/Paid pay their own bill so
+      // they can afford LLM-generated variety.
+      let chatter = fallback;
+      if (modeRef.current !== "free" && chatClientRef.current) {
+        try {
+          const basePrompt = buildIdleChatterPrompt(langRef.current);
+          // If a VOICEVOX character is the current voice, prepend its
+          // persona so the chatter matches the speaker's 口調 (e.g.
+          // ずんだもん's "〜なのだ"). Default chappie voice = no
+          // persona injection (chappie's neutral tone is the default).
+          const speakerId = voicevoxSpeakerIdRef.current;
+          const persona =
+            speakerId !== undefined
+              ? (VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId)
+                  ?.persona ?? "")
+              : "";
+          const systemContent = [
+            basePrompt,
+            persona ? `\n\n--- character ---\n${persona}` : "",
+            p.context
+              ? `\n\n--- context ---\n${p.context}\n--- end context ---\nUse the context naturally if relevant; do not list it back verbatim. Skip mentioning context that doesn't fit a casual remark.`
+              : "",
+          ].join("");
+          const result = await chatClientRef.current.complete([
+            { role: "system", content: systemContent },
+            { role: "user", content: "[idle]" },
+          ]);
+          const trimmed = result.text.trim();
+          if (trimmed) chatter = trimmed;
+        } catch (err) {
+          console.warn(
+            "[proactive] idle chatter LLM call failed, using fallback",
+            err,
+          );
+        }
+      }
+      speakText = chatter;
+      hudText = chatter;
+    }
+    // Template-based fires (morning/calendar/weather) get rewritten
+    // through the active character's 口調. Idle chatter already runs
+    // through an LLM path with persona injected, so it skips this.
+    if (p.kind !== "idleChatter") {
+      speakText = await rewriteInPersona(
+        speakText,
+        langRef.current,
+        voicevoxSpeakerIdRef.current,
+        modeRef.current,
+        chatClientRef.current,
+      );
+    }
+    console.info(`[proactive] fired: kind=${p.kind}`);
+    const muted = await invoke<boolean>("is_muted").catch(() => false);
+    if (muted) {
+      // Idle chatter is low-priority filler — when the user has
+      // muted the system they're clearly not in a chat mood, so we
+      // skip entirely (no HUD nudge). Other kinds surface on HUD.
+      if (p.kind === "idleChatter") return;
+      await invoke("hud_show", { text: hudText, durationMs: 10000 }).catch(
+        () => {},
+      );
+      return;
+    }
+    // Calendar warnings + weather alerts also surface on the HUD even
+    // when audible — the cue is time-critical and missing the spoken
+    // form (e.g. user away from the desk) would defeat the feature.
+    // Morning brief skips the HUD when audible to avoid double-clutter.
+    if (p.kind === "calendarWarning" || p.kind === "weatherAlert") {
+      void invoke("hud_show", { text: hudText, durationMs: 10000 }).catch(
+        () => {},
+      );
+    }
+    ttsActiveRef.current = true;
+    await invoke("pause_listening").catch(() => {});
+    try {
+      await speakQueued(speakText, resolveLanguage(langRef.current));
+    } catch (err) {
+      console.error("[proactive] tts failed", err);
+    } finally {
+      await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
+      await invoke("resume_listening").catch(() => {});
+      ttsActiveRef.current = false;
+    }
+  });
 
   return { state, error };
 }

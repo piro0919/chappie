@@ -99,6 +99,23 @@ export type Settings = {
   subscriptionEmail: string;
   subscriptionStatus: SubscriptionStatus;
   subscriptionPeriodEnd: string;
+  /**
+   * Proactive notifications — Chappie speaks up on its own. Each
+   * source has its own toggle (no separate master switch); defaults
+   * are OFF so a fresh install stays silent until the user opts in.
+   * Times are HH:MM in the user's local timezone. Quiet hours apply
+   * to all proactive output so the user can sleep without being
+   * woken up.
+   */
+  proactiveMorningBriefEnabled: boolean;
+  proactiveMorningBriefTime: string;
+  proactiveCalendarEnabled: boolean;
+  proactiveCalendarLeadMin: number;
+  proactiveWeatherEnabled: boolean;
+  proactiveIdleChatterEnabled: boolean;
+  proactiveIdleChatterAfterMin: number;
+  proactiveQuietHoursStart: string;
+  proactiveQuietHoursEnd: string;
 };
 
 const DEFAULTS: Settings = {
@@ -111,6 +128,15 @@ const DEFAULTS: Settings = {
   subscriptionEmail: "",
   subscriptionStatus: "inactive",
   subscriptionPeriodEnd: "",
+  proactiveMorningBriefEnabled: false,
+  proactiveMorningBriefTime: "07:00",
+  proactiveCalendarEnabled: false,
+  proactiveCalendarLeadMin: 15,
+  proactiveWeatherEnabled: false,
+  proactiveIdleChatterEnabled: false,
+  proactiveIdleChatterAfterMin: 60,
+  proactiveQuietHoursStart: "07:00",
+  proactiveQuietHoursEnd: "22:00",
 };
 const FILE = "settings.json";
 
@@ -175,6 +201,33 @@ export async function loadSettings(): Promise<Settings> {
     subscriptionPeriodEnd:
       (await store.get<string>("subscriptionPeriodEnd")) ??
       DEFAULTS.subscriptionPeriodEnd,
+    proactiveMorningBriefEnabled:
+      (await store.get<boolean>("proactiveMorningBriefEnabled")) ??
+      DEFAULTS.proactiveMorningBriefEnabled,
+    proactiveMorningBriefTime:
+      (await store.get<string>("proactiveMorningBriefTime")) ??
+      DEFAULTS.proactiveMorningBriefTime,
+    proactiveCalendarEnabled:
+      (await store.get<boolean>("proactiveCalendarEnabled")) ??
+      DEFAULTS.proactiveCalendarEnabled,
+    proactiveCalendarLeadMin:
+      (await store.get<number>("proactiveCalendarLeadMin")) ??
+      DEFAULTS.proactiveCalendarLeadMin,
+    proactiveWeatherEnabled:
+      (await store.get<boolean>("proactiveWeatherEnabled")) ??
+      DEFAULTS.proactiveWeatherEnabled,
+    proactiveIdleChatterEnabled:
+      (await store.get<boolean>("proactiveIdleChatterEnabled")) ??
+      DEFAULTS.proactiveIdleChatterEnabled,
+    proactiveIdleChatterAfterMin:
+      (await store.get<number>("proactiveIdleChatterAfterMin")) ??
+      DEFAULTS.proactiveIdleChatterAfterMin,
+    proactiveQuietHoursStart:
+      (await store.get<string>("proactiveQuietHoursStart")) ??
+      DEFAULTS.proactiveQuietHoursStart,
+    proactiveQuietHoursEnd:
+      (await store.get<string>("proactiveQuietHoursEnd")) ??
+      DEFAULTS.proactiveQuietHoursEnd,
   };
 }
 
@@ -218,6 +271,45 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.subscriptionPeriodEnd !== undefined) {
     await store.set("subscriptionPeriodEnd", patch.subscriptionPeriodEnd);
+  }
+  if (patch.proactiveMorningBriefEnabled !== undefined) {
+    await store.set(
+      "proactiveMorningBriefEnabled",
+      patch.proactiveMorningBriefEnabled,
+    );
+  }
+  if (patch.proactiveMorningBriefTime !== undefined) {
+    await store.set(
+      "proactiveMorningBriefTime",
+      patch.proactiveMorningBriefTime,
+    );
+  }
+  if (patch.proactiveCalendarEnabled !== undefined) {
+    await store.set("proactiveCalendarEnabled", patch.proactiveCalendarEnabled);
+  }
+  if (patch.proactiveCalendarLeadMin !== undefined) {
+    await store.set("proactiveCalendarLeadMin", patch.proactiveCalendarLeadMin);
+  }
+  if (patch.proactiveWeatherEnabled !== undefined) {
+    await store.set("proactiveWeatherEnabled", patch.proactiveWeatherEnabled);
+  }
+  if (patch.proactiveIdleChatterEnabled !== undefined) {
+    await store.set(
+      "proactiveIdleChatterEnabled",
+      patch.proactiveIdleChatterEnabled,
+    );
+  }
+  if (patch.proactiveIdleChatterAfterMin !== undefined) {
+    await store.set(
+      "proactiveIdleChatterAfterMin",
+      patch.proactiveIdleChatterAfterMin,
+    );
+  }
+  if (patch.proactiveQuietHoursStart !== undefined) {
+    await store.set("proactiveQuietHoursStart", patch.proactiveQuietHoursStart);
+  }
+  if (patch.proactiveQuietHoursEnd !== undefined) {
+    await store.set("proactiveQuietHoursEnd", patch.proactiveQuietHoursEnd);
   }
   await store.save();
 }

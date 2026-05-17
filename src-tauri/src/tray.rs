@@ -763,8 +763,8 @@ pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
         WebviewUrl::App("index.html?view=settings".into()),
     )
     .title("Chappie 設定")
-    .inner_size(480.0, 360.0)
-    .resizable(false)
+    .inner_size(480.0, 720.0)
+    .resizable(true)
     .focused(true)
     .build()?;
     // Accessory-mode (LSUIElement) apps don't normally come to the front

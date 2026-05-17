@@ -123,6 +123,23 @@ type Messages = {
     ltmForget: string;
     ltmForgetConfirm: string;
     ltmForgetDone: string;
+    proactiveLabel: string;
+    proactiveDescription: string;
+    proactiveMasterToggle: string;
+    proactiveMorningBriefToggle: string;
+    proactiveMorningBriefTimeLabel: string;
+    proactiveCalendarToggle: string;
+    proactiveCalendarLeadLabel: string;
+    proactiveCalendarLead5: string;
+    proactiveCalendarLead10: string;
+    proactiveCalendarLead15: string;
+    proactiveCalendarLead30: string;
+    proactiveWeatherToggle: string;
+    proactiveIdleChatterToggle: string;
+    proactiveIdleChatterAfterLabel: string;
+    proactiveIdleChatterAfterUnit: string;
+    proactiveQuietHoursLabel: string;
+    proactiveQuietHoursDescription: string;
     save: string;
     saved: string;
   };
@@ -138,6 +155,19 @@ type Messages = {
     timerHudNoLabel: string;
     reminderHudWithLabel: string;
     reminderHudNoLabel: string;
+    proactiveMorningBriefWithEvents: string;
+    proactiveMorningBriefNoEvents: string;
+    proactiveMorningBriefWeatherOnly: string;
+    proactiveMorningBriefHud: string;
+    proactiveCalendarWarning: string;
+    proactiveCalendarHud: string;
+    proactiveWeatherAlert: string;
+    proactiveWeatherAlertHud: string;
+    proactiveIdleChatterPhrase1: string;
+    proactiveIdleChatterPhrase2: string;
+    proactiveIdleChatterPhrase3: string;
+    proactiveIdleChatterPhrase4: string;
+    proactiveIdleChatterPhrase5: string;
     fallbackError: string;
     modelProgress: string;
     modelFetchFailed: string;
@@ -287,6 +317,25 @@ const ja: Messages = {
     ltmForgetConfirm:
       "本当に会話ログ・日次サマリ・トピックを全部削除しますか？モデルファイルと「私について」の記憶（save_memory のもの）は残ります。",
     ltmForgetDone: "削除しました",
+    proactiveLabel: "プロアクティブ通知",
+    proactiveDescription:
+      "Chappie の方から話しかけます。朝のブリーフィングや、カレンダー予定の事前通知など。",
+    proactiveMasterToggle: "有効にする",
+    proactiveMorningBriefToggle: "朝のブリーフィング",
+    proactiveMorningBriefTimeLabel: "時刻",
+    proactiveCalendarToggle: "カレンダー予定の事前通知",
+    proactiveCalendarLeadLabel: "何分前に通知するか",
+    proactiveCalendarLead5: "5 分前",
+    proactiveCalendarLead10: "10 分前",
+    proactiveCalendarLead15: "15 分前",
+    proactiveCalendarLead30: "30 分前",
+    proactiveWeatherToggle: "天候アラート",
+    proactiveIdleChatterToggle: "アイドル時の雑談",
+    proactiveIdleChatterAfterLabel: "話しかけ始める間隔",
+    proactiveIdleChatterAfterUnit: "分",
+    proactiveQuietHoursLabel: "通知する時間帯",
+    proactiveQuietHoursDescription:
+      "この時間帯のみプロアクティブ通知が発火します。範囲外は無音。",
     save: "保存",
     saved: "保存しました",
   },
@@ -305,6 +354,22 @@ const ja: Messages = {
     timerHudNoLabel: "⏲ タイマー",
     reminderHudWithLabel: "⏰ {label}",
     reminderHudNoLabel: "⏰ リマインダー",
+    proactiveMorningBriefWithEvents:
+      "おはようございます。今日は {weather}、{temp}℃ です。予定が {count} 件、最初は {firstTime} から {firstTitle} です。",
+    proactiveMorningBriefNoEvents:
+      "おはようございます。今日は {weather}、{temp}℃ です。今日の予定は無いようです。",
+    proactiveMorningBriefWeatherOnly:
+      "おはようございます。今日は {weather}、{temp}℃ です。",
+    proactiveMorningBriefHud: "☀ {weather} {temp}℃ / 予定 {count}",
+    proactiveCalendarWarning: "{leadMin} 分後に {title} です。",
+    proactiveCalendarHud: "📅 {title}（{leadMin}分後）",
+    proactiveWeatherAlert: "{detail}",
+    proactiveWeatherAlertHud: "⚠ {detail}",
+    proactiveIdleChatterPhrase1: "そういえば、最近どうですか？",
+    proactiveIdleChatterPhrase2: "ちょっと話しかけたくなりました。",
+    proactiveIdleChatterPhrase3: "なにか手伝えること、ありますか？",
+    proactiveIdleChatterPhrase4: "そろそろ休憩はいかがですか？",
+    proactiveIdleChatterPhrase5: "おつかれさまです。",
     fallbackError: "うまく繋がりませんでした。",
     modelProgress: "Whisper モデルを取得中… {pct}%",
     modelFetchFailed: "モデル取得に失敗: {err}",
@@ -459,6 +524,25 @@ const en: Messages = {
     ltmForgetConfirm:
       'Really delete all conversation logs, daily summaries, and topic snapshots? The model file and your saved "about me" facts (from save_memory) will stay.',
     ltmForgetDone: "Deleted",
+    proactiveLabel: "Proactive notifications",
+    proactiveDescription:
+      "Chappie speaks up on its own — morning briefings and calendar pre-warnings.",
+    proactiveMasterToggle: "Enable",
+    proactiveMorningBriefToggle: "Morning briefing",
+    proactiveMorningBriefTimeLabel: "Time",
+    proactiveCalendarToggle: "Calendar pre-warning",
+    proactiveCalendarLeadLabel: "Lead time",
+    proactiveCalendarLead5: "5 min before",
+    proactiveCalendarLead10: "10 min before",
+    proactiveCalendarLead15: "15 min before",
+    proactiveCalendarLead30: "30 min before",
+    proactiveWeatherToggle: "Weather alerts",
+    proactiveIdleChatterToggle: "Idle chatter",
+    proactiveIdleChatterAfterLabel: "Start chatter after",
+    proactiveIdleChatterAfterUnit: "min",
+    proactiveQuietHoursLabel: "Active hours",
+    proactiveQuietHoursDescription:
+      "Proactive notifications fire only during this window; silent outside it.",
     save: "Save",
     saved: "Saved",
   },
@@ -477,6 +561,22 @@ const en: Messages = {
     timerHudNoLabel: "⏲ Timer",
     reminderHudWithLabel: "⏰ {label}",
     reminderHudNoLabel: "⏰ Reminder",
+    proactiveMorningBriefWithEvents:
+      "Good morning. It's {weather}, {temp}°C today. You have {count} events; first is {firstTitle} at {firstTime}.",
+    proactiveMorningBriefNoEvents:
+      "Good morning. It's {weather}, {temp}°C today. Nothing on the calendar.",
+    proactiveMorningBriefWeatherOnly:
+      "Good morning. It's {weather}, {temp}°C today.",
+    proactiveMorningBriefHud: "☀ {weather} {temp}°C / {count} events",
+    proactiveCalendarWarning: "{title} starts in {leadMin} minutes.",
+    proactiveCalendarHud: "📅 {title} (in {leadMin}m)",
+    proactiveWeatherAlert: "{detail}",
+    proactiveWeatherAlertHud: "⚠ {detail}",
+    proactiveIdleChatterPhrase1: "By the way, how's it going?",
+    proactiveIdleChatterPhrase2: "Just felt like saying hi.",
+    proactiveIdleChatterPhrase3: "Anything I can help with?",
+    proactiveIdleChatterPhrase4: "Maybe time for a break?",
+    proactiveIdleChatterPhrase5: "Good work today.",
     fallbackError: "Couldn't connect.",
     modelProgress: "Downloading Whisper model… {pct}%",
     modelFetchFailed: "Model fetch failed: {err}",
@@ -632,6 +732,25 @@ const es: Messages = {
     ltmForgetConfirm:
       '¿Eliminar todos los registros de conversación, resúmenes diarios y temas? El archivo del modelo y los datos guardados de "sobre mí" (con save_memory) se mantienen.',
     ltmForgetDone: "Borrado",
+    proactiveLabel: "Notificaciones proactivas",
+    proactiveDescription:
+      "Chappie habla por iniciativa propia: resumen matutino y avisos previos del calendario.",
+    proactiveMasterToggle: "Activar",
+    proactiveMorningBriefToggle: "Resumen matutino",
+    proactiveMorningBriefTimeLabel: "Hora",
+    proactiveCalendarToggle: "Aviso previo del calendario",
+    proactiveCalendarLeadLabel: "Antelación",
+    proactiveCalendarLead5: "5 min antes",
+    proactiveCalendarLead10: "10 min antes",
+    proactiveCalendarLead15: "15 min antes",
+    proactiveCalendarLead30: "30 min antes",
+    proactiveWeatherToggle: "Alertas meteorológicas",
+    proactiveIdleChatterToggle: "Charla en inactivo",
+    proactiveIdleChatterAfterLabel: "Iniciar charla tras",
+    proactiveIdleChatterAfterUnit: "min",
+    proactiveQuietHoursLabel: "Horas activas",
+    proactiveQuietHoursDescription:
+      "Las notificaciones proactivas solo se activan en este intervalo.",
     save: "Guardar",
     saved: "Guardado",
   },
@@ -650,6 +769,22 @@ const es: Messages = {
     timerHudNoLabel: "⏲ Temporizador",
     reminderHudWithLabel: "⏰ {label}",
     reminderHudNoLabel: "⏰ Recordatorio",
+    proactiveMorningBriefWithEvents:
+      "Buenos días. Hoy hace {weather}, {temp}°C. Tienes {count} eventos; el primero es {firstTitle} a las {firstTime}.",
+    proactiveMorningBriefNoEvents:
+      "Buenos días. Hoy hace {weather}, {temp}°C. No hay eventos en el calendario.",
+    proactiveMorningBriefWeatherOnly:
+      "Buenos días. Hoy hace {weather}, {temp}°C.",
+    proactiveMorningBriefHud: "☀ {weather} {temp}°C / {count} eventos",
+    proactiveCalendarWarning: "{title} empieza en {leadMin} minutos.",
+    proactiveCalendarHud: "📅 {title} (en {leadMin}m)",
+    proactiveWeatherAlert: "{detail}",
+    proactiveWeatherAlertHud: "⚠ {detail}",
+    proactiveIdleChatterPhrase1: "Por cierto, ¿cómo va?",
+    proactiveIdleChatterPhrase2: "Solo quería saludar.",
+    proactiveIdleChatterPhrase3: "¿En qué puedo ayudarte?",
+    proactiveIdleChatterPhrase4: "¿Tal vez un descanso?",
+    proactiveIdleChatterPhrase5: "Buen trabajo hoy.",
     fallbackError: "No se pudo conectar.",
     modelProgress: "Descargando el modelo de Whisper… {pct}%",
     modelFetchFailed: "Falló la descarga del modelo: {err}",
@@ -805,6 +940,25 @@ const fr: Messages = {
     ltmForgetConfirm:
       "Vraiment supprimer tous les journaux de conversation, résumés quotidiens et sujets ? Le fichier du modèle et les faits enregistrés « à mon sujet » (via save_memory) restent.",
     ltmForgetDone: "Supprimé",
+    proactiveLabel: "Notifications proactives",
+    proactiveDescription:
+      "Chappie prend la parole de lui-même : briefing matinal et avertissements du calendrier.",
+    proactiveMasterToggle: "Activer",
+    proactiveMorningBriefToggle: "Briefing matinal",
+    proactiveMorningBriefTimeLabel: "Heure",
+    proactiveCalendarToggle: "Pré-avertissement calendrier",
+    proactiveCalendarLeadLabel: "Délai",
+    proactiveCalendarLead5: "5 min avant",
+    proactiveCalendarLead10: "10 min avant",
+    proactiveCalendarLead15: "15 min avant",
+    proactiveCalendarLead30: "30 min avant",
+    proactiveWeatherToggle: "Alertes météo",
+    proactiveIdleChatterToggle: "Bavardage en idle",
+    proactiveIdleChatterAfterLabel: "Démarrer après",
+    proactiveIdleChatterAfterUnit: "min",
+    proactiveQuietHoursLabel: "Heures actives",
+    proactiveQuietHoursDescription:
+      "Les notifications proactives ne se déclenchent que pendant cette plage.",
     save: "Enregistrer",
     saved: "Enregistré",
   },
@@ -823,6 +977,22 @@ const fr: Messages = {
     timerHudNoLabel: "⏲ Minuteur",
     reminderHudWithLabel: "⏰ {label}",
     reminderHudNoLabel: "⏰ Rappel",
+    proactiveMorningBriefWithEvents:
+      "Bonjour. Aujourd'hui {weather}, {temp}°C. Vous avez {count} événements ; le premier est {firstTitle} à {firstTime}.",
+    proactiveMorningBriefNoEvents:
+      "Bonjour. Aujourd'hui {weather}, {temp}°C. Aucun événement au calendrier.",
+    proactiveMorningBriefWeatherOnly:
+      "Bonjour. Aujourd'hui {weather}, {temp}°C.",
+    proactiveMorningBriefHud: "☀ {weather} {temp}°C / {count} événements",
+    proactiveCalendarWarning: "{title} commence dans {leadMin} minutes.",
+    proactiveCalendarHud: "📅 {title} (dans {leadMin}m)",
+    proactiveWeatherAlert: "{detail}",
+    proactiveWeatherAlertHud: "⚠ {detail}",
+    proactiveIdleChatterPhrase1: "Au fait, comment ça va ?",
+    proactiveIdleChatterPhrase2: "J'avais envie de discuter.",
+    proactiveIdleChatterPhrase3: "Je peux vous aider ?",
+    proactiveIdleChatterPhrase4: "Une petite pause ?",
+    proactiveIdleChatterPhrase5: "Bon travail aujourd'hui.",
     fallbackError: "Impossible de se connecter.",
     modelProgress: "Téléchargement du modèle Whisper… {pct}%",
     modelFetchFailed: "Échec du téléchargement du modèle : {err}",
@@ -978,6 +1148,25 @@ const de: Messages = {
     ltmForgetConfirm:
       "Wirklich alle Gesprächsprotokolle, Tageszusammenfassungen und Themen löschen? Die Modelldatei und die gespeicherten Profil-Fakten (via save_memory) bleiben erhalten.",
     ltmForgetDone: "Gelöscht",
+    proactiveLabel: "Proaktive Benachrichtigungen",
+    proactiveDescription:
+      "Chappie meldet sich von selbst — Morgenbriefing und Kalender-Vorwarnungen.",
+    proactiveMasterToggle: "Aktivieren",
+    proactiveMorningBriefToggle: "Morgenbriefing",
+    proactiveMorningBriefTimeLabel: "Uhrzeit",
+    proactiveCalendarToggle: "Kalender-Vorwarnung",
+    proactiveCalendarLeadLabel: "Vorlaufzeit",
+    proactiveCalendarLead5: "5 Min. vorher",
+    proactiveCalendarLead10: "10 Min. vorher",
+    proactiveCalendarLead15: "15 Min. vorher",
+    proactiveCalendarLead30: "30 Min. vorher",
+    proactiveWeatherToggle: "Wetterwarnungen",
+    proactiveIdleChatterToggle: "Smalltalk im Leerlauf",
+    proactiveIdleChatterAfterLabel: "Beginnt nach",
+    proactiveIdleChatterAfterUnit: "Min",
+    proactiveQuietHoursLabel: "Aktive Zeiten",
+    proactiveQuietHoursDescription:
+      "Proaktive Benachrichtigungen werden nur in diesem Zeitraum ausgelöst.",
     save: "Speichern",
     saved: "Gespeichert",
   },
@@ -996,6 +1185,22 @@ const de: Messages = {
     timerHudNoLabel: "⏲ Timer",
     reminderHudWithLabel: "⏰ {label}",
     reminderHudNoLabel: "⏰ Erinnerung",
+    proactiveMorningBriefWithEvents:
+      "Guten Morgen. Heute {weather}, {temp}°C. Sie haben {count} Termine; der erste ist {firstTitle} um {firstTime}.",
+    proactiveMorningBriefNoEvents:
+      "Guten Morgen. Heute {weather}, {temp}°C. Keine Termine im Kalender.",
+    proactiveMorningBriefWeatherOnly:
+      "Guten Morgen. Heute {weather}, {temp}°C.",
+    proactiveMorningBriefHud: "☀ {weather} {temp}°C / {count} Termine",
+    proactiveCalendarWarning: "{title} beginnt in {leadMin} Minuten.",
+    proactiveCalendarHud: "📅 {title} (in {leadMin}m)",
+    proactiveWeatherAlert: "{detail}",
+    proactiveWeatherAlertHud: "⚠ {detail}",
+    proactiveIdleChatterPhrase1: "Übrigens, wie läuft's?",
+    proactiveIdleChatterPhrase2: "Wollte nur kurz Hallo sagen.",
+    proactiveIdleChatterPhrase3: "Kann ich irgendwie helfen?",
+    proactiveIdleChatterPhrase4: "Vielleicht Zeit für eine Pause?",
+    proactiveIdleChatterPhrase5: "Gut gemacht heute.",
     fallbackError: "Verbindung fehlgeschlagen.",
     modelProgress: "Whisper-Modell wird geladen… {pct}%",
     modelFetchFailed: "Modell-Download fehlgeschlagen: {err}",
@@ -1146,6 +1351,24 @@ const zh: Messages = {
     ltmForgetConfirm:
       "确定要删除所有对话日志、每日总结和话题快照吗？模型文件和保存的「关于我」的资料（通过 save_memory）会保留。",
     ltmForgetDone: "已删除",
+    proactiveLabel: "主动通知",
+    proactiveDescription: "Chappie 会主动发起对话 —— 早间简报和日历提前提醒。",
+    proactiveMasterToggle: "启用",
+    proactiveMorningBriefToggle: "早间简报",
+    proactiveMorningBriefTimeLabel: "时间",
+    proactiveCalendarToggle: "日历提前提醒",
+    proactiveCalendarLeadLabel: "提前时间",
+    proactiveCalendarLead5: "5 分钟前",
+    proactiveCalendarLead10: "10 分钟前",
+    proactiveCalendarLead15: "15 分钟前",
+    proactiveCalendarLead30: "30 分钟前",
+    proactiveWeatherToggle: "天气警报",
+    proactiveIdleChatterToggle: "空闲时闲聊",
+    proactiveIdleChatterAfterLabel: "开始闲聊间隔",
+    proactiveIdleChatterAfterUnit: "分钟",
+    proactiveQuietHoursLabel: "通知时段",
+    proactiveQuietHoursDescription:
+      "仅在此时段内发出主动通知，时段外保持静默。",
     save: "保存",
     saved: "已保存",
   },
@@ -1162,6 +1385,21 @@ const zh: Messages = {
     timerHudNoLabel: "⏲ 计时器",
     reminderHudWithLabel: "⏰ {label}",
     reminderHudNoLabel: "⏰ 提醒",
+    proactiveMorningBriefWithEvents:
+      "早上好。今天{weather}、{temp}℃。今天有 {count} 个日程，最先是 {firstTime} 的「{firstTitle}」。",
+    proactiveMorningBriefNoEvents:
+      "早上好。今天{weather}、{temp}℃。今天的日历是空的。",
+    proactiveMorningBriefWeatherOnly: "早上好。今天{weather}、{temp}℃。",
+    proactiveMorningBriefHud: "☀ {weather} {temp}℃ / {count} 个日程",
+    proactiveCalendarWarning: "{leadMin} 分钟后是「{title}」。",
+    proactiveCalendarHud: "📅 {title}（{leadMin}分钟后）",
+    proactiveWeatherAlert: "{detail}",
+    proactiveWeatherAlertHud: "⚠ {detail}",
+    proactiveIdleChatterPhrase1: "对了，最近怎么样？",
+    proactiveIdleChatterPhrase2: "想跟你打个招呼。",
+    proactiveIdleChatterPhrase3: "有什么需要帮忙的吗？",
+    proactiveIdleChatterPhrase4: "要不要休息一下？",
+    proactiveIdleChatterPhrase5: "辛苦了。",
     fallbackError: "连接失败。",
     modelProgress: "正在下载 Whisper 模型… {pct}%",
     modelFetchFailed: "模型下载失败:{err}",
@@ -1317,6 +1555,25 @@ const pt: Messages = {
     ltmForgetConfirm:
       "Excluir todos os registros de conversa, resumos diários e tópicos? O arquivo do modelo e os dados salvos sobre você (via save_memory) permanecem.",
     ltmForgetDone: "Apagado",
+    proactiveLabel: "Notificações proativas",
+    proactiveDescription:
+      "O Chappie fala por iniciativa própria — resumo matinal e avisos antecipados do calendário.",
+    proactiveMasterToggle: "Ativar",
+    proactiveMorningBriefToggle: "Resumo matinal",
+    proactiveMorningBriefTimeLabel: "Horário",
+    proactiveCalendarToggle: "Aviso prévio do calendário",
+    proactiveCalendarLeadLabel: "Antecedência",
+    proactiveCalendarLead5: "5 min antes",
+    proactiveCalendarLead10: "10 min antes",
+    proactiveCalendarLead15: "15 min antes",
+    proactiveCalendarLead30: "30 min antes",
+    proactiveWeatherToggle: "Alertas meteorológicos",
+    proactiveIdleChatterToggle: "Conversa em ocioso",
+    proactiveIdleChatterAfterLabel: "Iniciar após",
+    proactiveIdleChatterAfterUnit: "min",
+    proactiveQuietHoursLabel: "Horas ativas",
+    proactiveQuietHoursDescription:
+      "Notificações proativas só disparam neste intervalo.",
     save: "Salvar",
     saved: "Salvo",
   },
@@ -1335,6 +1592,21 @@ const pt: Messages = {
     timerHudNoLabel: "⏲ Timer",
     reminderHudWithLabel: "⏰ {label}",
     reminderHudNoLabel: "⏰ Lembrete",
+    proactiveMorningBriefWithEvents:
+      "Bom dia. Hoje está {weather}, {temp}°C. Você tem {count} eventos; o primeiro é {firstTitle} às {firstTime}.",
+    proactiveMorningBriefNoEvents:
+      "Bom dia. Hoje está {weather}, {temp}°C. Nenhum evento no calendário.",
+    proactiveMorningBriefWeatherOnly: "Bom dia. Hoje está {weather}, {temp}°C.",
+    proactiveMorningBriefHud: "☀ {weather} {temp}°C / {count} eventos",
+    proactiveCalendarWarning: "{title} começa em {leadMin} minutos.",
+    proactiveCalendarHud: "📅 {title} (em {leadMin}m)",
+    proactiveWeatherAlert: "{detail}",
+    proactiveWeatherAlertHud: "⚠ {detail}",
+    proactiveIdleChatterPhrase1: "A propósito, como vai?",
+    proactiveIdleChatterPhrase2: "Tive vontade de conversar.",
+    proactiveIdleChatterPhrase3: "Posso ajudar com algo?",
+    proactiveIdleChatterPhrase4: "Que tal uma pausa?",
+    proactiveIdleChatterPhrase5: "Bom trabalho hoje.",
     fallbackError: "Não foi possível conectar.",
     modelProgress: "Baixando o modelo do Whisper… {pct}%",
     modelFetchFailed: "Falha ao baixar o modelo: {err}",
@@ -1489,6 +1761,25 @@ const ko: Messages = {
     ltmForgetConfirm:
       '정말로 모든 대화 로그, 일일 요약, 화제 스냅샷을 삭제할까요? 모델 파일과 저장된 "나에 대해" 정보(save_memory로 저장한 것)는 남습니다.',
     ltmForgetDone: "삭제됨",
+    proactiveLabel: "능동적 알림",
+    proactiveDescription:
+      "Chappie가 먼저 말을 겁니다 — 아침 브리핑과 일정 사전 알림.",
+    proactiveMasterToggle: "사용",
+    proactiveMorningBriefToggle: "아침 브리핑",
+    proactiveMorningBriefTimeLabel: "시간",
+    proactiveCalendarToggle: "일정 사전 알림",
+    proactiveCalendarLeadLabel: "사전 시간",
+    proactiveCalendarLead5: "5분 전",
+    proactiveCalendarLead10: "10분 전",
+    proactiveCalendarLead15: "15분 전",
+    proactiveCalendarLead30: "30분 전",
+    proactiveWeatherToggle: "날씨 알림",
+    proactiveIdleChatterToggle: "유휴 시 잡담",
+    proactiveIdleChatterAfterLabel: "잡담 시작 간격",
+    proactiveIdleChatterAfterUnit: "분",
+    proactiveQuietHoursLabel: "알림 시간대",
+    proactiveQuietHoursDescription:
+      "이 시간대에만 능동적 알림이 발생합니다. 범위 밖에서는 무음.",
     save: "저장",
     saved: "저장되었습니다",
   },
@@ -1507,6 +1798,22 @@ const ko: Messages = {
     timerHudNoLabel: "⏲ 타이머",
     reminderHudWithLabel: "⏰ {label}",
     reminderHudNoLabel: "⏰ 알림",
+    proactiveMorningBriefWithEvents:
+      "좋은 아침입니다. 오늘은 {weather}, {temp}°C입니다. 일정이 {count}건 있고, 첫 일정은 {firstTime}의 「{firstTitle}」입니다.",
+    proactiveMorningBriefNoEvents:
+      "좋은 아침입니다. 오늘은 {weather}, {temp}°C입니다. 오늘 일정은 없습니다.",
+    proactiveMorningBriefWeatherOnly:
+      "좋은 아침입니다. 오늘은 {weather}, {temp}°C입니다.",
+    proactiveMorningBriefHud: "☀ {weather} {temp}°C / 일정 {count}",
+    proactiveCalendarWarning: "{leadMin}분 후에 「{title}」입니다.",
+    proactiveCalendarHud: "📅 {title}({leadMin}분 후)",
+    proactiveWeatherAlert: "{detail}",
+    proactiveWeatherAlertHud: "⚠ {detail}",
+    proactiveIdleChatterPhrase1: "그러고 보니, 요즘 어떠세요?",
+    proactiveIdleChatterPhrase2: "잠깐 말 걸고 싶었어요.",
+    proactiveIdleChatterPhrase3: "도와드릴 거 있나요?",
+    proactiveIdleChatterPhrase4: "잠깐 쉬는 건 어때요?",
+    proactiveIdleChatterPhrase5: "수고 많으셨어요.",
     fallbackError: "연결할 수 없었어요.",
     modelProgress: "Whisper 모델 다운로드 중… {pct}%",
     modelFetchFailed: "모델 다운로드 실패: {err}",
@@ -1662,6 +1969,25 @@ const it: Messages = {
     ltmForgetConfirm:
       "Davvero eliminare tutti i log delle conversazioni, i riassunti quotidiani e gli argomenti? Il file del modello e i fatti salvati su di te (tramite save_memory) restano.",
     ltmForgetDone: "Eliminato",
+    proactiveLabel: "Notifiche proattive",
+    proactiveDescription:
+      "Chappie parla di sua iniziativa: briefing mattutino e avvisi anticipati del calendario.",
+    proactiveMasterToggle: "Attiva",
+    proactiveMorningBriefToggle: "Briefing mattutino",
+    proactiveMorningBriefTimeLabel: "Orario",
+    proactiveCalendarToggle: "Avviso anticipato del calendario",
+    proactiveCalendarLeadLabel: "Anticipo",
+    proactiveCalendarLead5: "5 min prima",
+    proactiveCalendarLead10: "10 min prima",
+    proactiveCalendarLead15: "15 min prima",
+    proactiveCalendarLead30: "30 min prima",
+    proactiveWeatherToggle: "Allerte meteo",
+    proactiveIdleChatterToggle: "Chiacchiere in idle",
+    proactiveIdleChatterAfterLabel: "Inizia dopo",
+    proactiveIdleChatterAfterUnit: "min",
+    proactiveQuietHoursLabel: "Orari attivi",
+    proactiveQuietHoursDescription:
+      "Le notifiche proattive si attivano solo in questo intervallo.",
     save: "Salva",
     saved: "Salvato",
   },
@@ -1680,6 +2006,21 @@ const it: Messages = {
     timerHudNoLabel: "⏲ Timer",
     reminderHudWithLabel: "⏰ {label}",
     reminderHudNoLabel: "⏰ Promemoria",
+    proactiveMorningBriefWithEvents:
+      "Buongiorno. Oggi {weather}, {temp}°C. Hai {count} eventi; il primo è {firstTitle} alle {firstTime}.",
+    proactiveMorningBriefNoEvents:
+      "Buongiorno. Oggi {weather}, {temp}°C. Nessun evento in calendario.",
+    proactiveMorningBriefWeatherOnly: "Buongiorno. Oggi {weather}, {temp}°C.",
+    proactiveMorningBriefHud: "☀ {weather} {temp}°C / {count} eventi",
+    proactiveCalendarWarning: "{title} inizia tra {leadMin} minuti.",
+    proactiveCalendarHud: "📅 {title} (tra {leadMin}m)",
+    proactiveWeatherAlert: "{detail}",
+    proactiveWeatherAlertHud: "⚠ {detail}",
+    proactiveIdleChatterPhrase1: "A proposito, come va?",
+    proactiveIdleChatterPhrase2: "Volevo solo salutarti.",
+    proactiveIdleChatterPhrase3: "Posso aiutarti in qualcosa?",
+    proactiveIdleChatterPhrase4: "Magari una pausa?",
+    proactiveIdleChatterPhrase5: "Buon lavoro oggi.",
     fallbackError: "Connessione non riuscita.",
     modelProgress: "Download del modello Whisper… {pct}%",
     modelFetchFailed: "Download del modello fallito: {err}",

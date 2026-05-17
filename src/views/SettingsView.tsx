@@ -56,6 +56,21 @@ export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
   const [language, setLanguage] = useState<Language>("auto");
   const [autostart, setAutostart] = useState(false);
+  const [proactiveMorningBriefEnabled, setProactiveMorningBriefEnabled] =
+    useState(false);
+  const [proactiveMorningBriefTime, setProactiveMorningBriefTime] =
+    useState("07:00");
+  const [proactiveCalendarEnabled, setProactiveCalendarEnabled] =
+    useState(false);
+  const [proactiveCalendarLeadMin, setProactiveCalendarLeadMin] = useState(15);
+  const [proactiveWeatherEnabled, setProactiveWeatherEnabled] = useState(false);
+  const [proactiveIdleChatterEnabled, setProactiveIdleChatterEnabled] =
+    useState(false);
+  const [proactiveIdleChatterAfterMin, setProactiveIdleChatterAfterMin] =
+    useState(60);
+  const [proactiveQuietHoursStart, setProactiveQuietHoursStart] =
+    useState("07:00");
+  const [proactiveQuietHoursEnd, setProactiveQuietHoursEnd] = useState("22:00");
   const [subscriptionEmail, setSubscriptionEmail] = useState("");
   const [subscriptionStatus, setSubscriptionStatus] =
     useState<SubscriptionStatus>("inactive");
@@ -208,6 +223,15 @@ export function SettingsView() {
       setSubscriptionEmail(s.subscriptionEmail);
       setSubscriptionStatus(s.subscriptionStatus);
       setSubscriptionPeriodEnd(s.subscriptionPeriodEnd);
+      setProactiveMorningBriefEnabled(s.proactiveMorningBriefEnabled);
+      setProactiveMorningBriefTime(s.proactiveMorningBriefTime);
+      setProactiveCalendarEnabled(s.proactiveCalendarEnabled);
+      setProactiveCalendarLeadMin(s.proactiveCalendarLeadMin);
+      setProactiveWeatherEnabled(s.proactiveWeatherEnabled);
+      setProactiveIdleChatterEnabled(s.proactiveIdleChatterEnabled);
+      setProactiveIdleChatterAfterMin(s.proactiveIdleChatterAfterMin);
+      setProactiveQuietHoursStart(s.proactiveQuietHoursStart);
+      setProactiveQuietHoursEnd(s.proactiveQuietHoursEnd);
       // Hydrate supabase-js and pull live subscription state in the
       // background. If the network is down we'll just keep showing the
       // cached values from settings.json.
@@ -498,6 +522,15 @@ export function SettingsView() {
       openaiApiKey: apiKey,
       language,
       autostart,
+      proactiveMorningBriefEnabled,
+      proactiveMorningBriefTime,
+      proactiveCalendarEnabled,
+      proactiveCalendarLeadMin,
+      proactiveWeatherEnabled,
+      proactiveIdleChatterEnabled,
+      proactiveIdleChatterAfterMin,
+      proactiveQuietHoursStart,
+      proactiveQuietHoursEnd,
     });
     try {
       if (autostart) await enableAutostart();
@@ -680,7 +713,7 @@ export function SettingsView() {
                   disabled={
                     subscriptionBusy === "sending" || !emailInput.includes("@")
                   }
-                  style={{ alignSelf: "flex-start" }}
+                  style={{ alignSelf: "flex-end" }}
                 >
                   {t("settings.subscriptionSendMagicLink")}
                 </button>
@@ -715,7 +748,13 @@ export function SettingsView() {
                         })}
                       </p>
                     )}
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: 8,
+                      }}
+                    >
                       <button
                         type="button"
                         onClick={handleManage}
@@ -737,7 +776,13 @@ export function SettingsView() {
                     <p className={styles.note} style={{ marginTop: 0 }}>
                       {t("settings.subscriptionStatusFreeNote")}
                     </p>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: 8,
+                      }}
+                    >
                       <button
                         type="button"
                         onClick={handleUpgrade}
@@ -1102,6 +1147,164 @@ export function SettingsView() {
           >
             {t("settings.ltmForget")}
           </button>
+        </div>
+      </section>
+
+      {/* Proactive notifications — Chappie speaks up on its own. */}
+      <section className={styles.card}>
+        <div className={styles.statusRow}>
+          <span className={styles.statusLabel}>
+            {t("settings.proactiveLabel")}
+          </span>
+        </div>
+        <p className={styles.note}>{t("settings.proactiveDescription")}</p>
+        <div
+          style={{
+            marginTop: 8,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          <label className={styles.checkRow}>
+            <input
+              type="checkbox"
+              checked={proactiveMorningBriefEnabled}
+              onChange={(e) =>
+                setProactiveMorningBriefEnabled(e.target.checked)
+              }
+            />
+            {t("settings.proactiveMorningBriefToggle")}
+          </label>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              paddingLeft: 24,
+            }}
+          >
+            <label htmlFor="proactiveMorningBriefTime">
+              {t("settings.proactiveMorningBriefTimeLabel")}
+            </label>
+            <input
+              id="proactiveMorningBriefTime"
+              type="time"
+              value={proactiveMorningBriefTime}
+              onChange={(e) => setProactiveMorningBriefTime(e.target.value)}
+            />
+          </div>
+          <label className={styles.checkRow}>
+            <input
+              type="checkbox"
+              checked={proactiveCalendarEnabled}
+              onChange={(e) => setProactiveCalendarEnabled(e.target.checked)}
+            />
+            {t("settings.proactiveCalendarToggle")}
+          </label>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              paddingLeft: 24,
+            }}
+          >
+            <label htmlFor="proactiveCalendarLeadMin">
+              {t("settings.proactiveCalendarLeadLabel")}
+            </label>
+            <select
+              id="proactiveCalendarLeadMin"
+              className={styles.select}
+              style={{ width: "auto" }}
+              value={String(proactiveCalendarLeadMin)}
+              onChange={(e) =>
+                setProactiveCalendarLeadMin(Number(e.target.value))
+              }
+            >
+              <option value="5">{t("settings.proactiveCalendarLead5")}</option>
+              <option value="10">
+                {t("settings.proactiveCalendarLead10")}
+              </option>
+              <option value="15">
+                {t("settings.proactiveCalendarLead15")}
+              </option>
+              <option value="30">
+                {t("settings.proactiveCalendarLead30")}
+              </option>
+            </select>
+          </div>
+          <label className={styles.checkRow}>
+            <input
+              type="checkbox"
+              checked={proactiveWeatherEnabled}
+              onChange={(e) => setProactiveWeatherEnabled(e.target.checked)}
+            />
+            {t("settings.proactiveWeatherToggle")}
+          </label>
+          <label className={styles.checkRow}>
+            <input
+              type="checkbox"
+              checked={proactiveIdleChatterEnabled}
+              onChange={(e) => setProactiveIdleChatterEnabled(e.target.checked)}
+            />
+            {t("settings.proactiveIdleChatterToggle")}
+          </label>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              paddingLeft: 24,
+            }}
+          >
+            <label htmlFor="proactiveIdleChatterAfterMin">
+              {t("settings.proactiveIdleChatterAfterLabel")}
+            </label>
+            <input
+              id="proactiveIdleChatterAfterMin"
+              type="number"
+              min={5}
+              max={480}
+              step={5}
+              value={proactiveIdleChatterAfterMin}
+              onChange={(e) =>
+                setProactiveIdleChatterAfterMin(Number(e.target.value))
+              }
+              style={{ width: 80 }}
+            />
+            <span>{t("settings.proactiveIdleChatterAfterUnit")}</span>
+          </div>
+          <div style={{ marginTop: 4 }}>
+            <span className={styles.statusLabel}>
+              {t("settings.proactiveQuietHoursLabel")}
+            </span>
+            <p className={styles.note} style={{ marginTop: 0 }}>
+              {t("settings.proactiveQuietHoursDescription")}
+            </p>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
+              <input
+                type="time"
+                value={proactiveQuietHoursStart}
+                onChange={(e) => setProactiveQuietHoursStart(e.target.value)}
+                aria-label="quiet hours start"
+              />
+              <span>—</span>
+              <input
+                type="time"
+                value={proactiveQuietHoursEnd}
+                onChange={(e) => setProactiveQuietHoursEnd(e.target.value)}
+                aria-label="quiet hours end"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
