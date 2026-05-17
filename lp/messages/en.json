@@ -216,6 +216,27 @@
     "setupBody": "Click \"Install character voices\" in Settings (~1.7 GB). After that, the wake word switches voices automatically. If you already have the official VOICEVOX app installed, no extra download is needed.",
     "credits": "Uses VOICEVOX (https://voicevox.hiroshiba.jp/). Each character voice has its own terms of use; videos and streams must credit the character (\"VOICEVOX:character name\")."
   },
+  "pricing": {
+    "eyebrow": "PRICING",
+    "heading": "Free is plenty. Pro unlocks everything.",
+    "lead": "No signup, no card — start using it today. Upgrade to Pro when you want the full character lineup.",
+    "freePlanName": "Free",
+    "freePlanPrice": "$0",
+    "freePlanPriceNote": "Free forever",
+    "freePlanFeature1": "Up to 5 conversations a day",
+    "freePlanFeature2": "Zundamon character included",
+    "freePlanFeature3": "No account or API key required",
+    "freePlanCta": "Download & start",
+    "proPlanName": "Pro",
+    "proPlanPrice": "¥500",
+    "proPlanPriceNote": "/ month",
+    "proPlanFeature1": "Unlimited conversations",
+    "proPlanFeature2": "8 premium VOICEVOX characters (Metan, Tsumugi, Himari, SAYO, Usagi, Zunko, Kiritan, Itako)",
+    "proPlanFeature3": "Cancel anytime",
+    "proPlanCta": "Subscribe from in-app Settings",
+    "proBadge": "RECOMMENDED",
+    "byokNote": "Want to use your own OpenAI, Anthropic, or Gemini key? \"BYOK\" mode is also free. If you subscribe to Pro, premium characters stay unlocked while on BYOK."
+  },
   "menubar": {
     "eyebrow": "LIVES IN THE MENU BAR",
     "headingLine1": "Always tucked into the menu bar.",

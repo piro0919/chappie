@@ -216,6 +216,27 @@
     "setupBody": "設定から「キャラ機能をインストール」を 1 回実行（約 1.7GB）するだけ。次回以降は呼びかけるだけで切り替わります。VOICEVOX 公式アプリを既にインストールしている場合は、追加ダウンロード不要でそのまま使えます。",
     "credits": "VOICEVOX (https://voicevox.hiroshiba.jp/) を使用しています。動画・配信での利用には「VOICEVOX:キャラ名」のクレジット表記が必要です。"
   },
+  "pricing": {
+    "eyebrow": "プラン",
+    "heading": "Free でも便利。Pro でフル開放。",
+    "lead": "アカウント登録なしで今日から使えます。キャラを増やしたくなったら Pro に。",
+    "freePlanName": "Free",
+    "freePlanPrice": "¥0",
+    "freePlanPriceNote": "ずっと無料",
+    "freePlanFeature1": "1 日 5 回まで会話",
+    "freePlanFeature2": "「ずんだもん」が使える",
+    "freePlanFeature3": "アカウント登録・API キー不要",
+    "freePlanCta": "ダウンロードして使う",
+    "proPlanName": "Pro",
+    "proPlanPrice": "¥500",
+    "proPlanPriceNote": "/ 月",
+    "proPlanFeature1": "回数制限なしで会話",
+    "proPlanFeature2": "VOICEVOX キャラ 8 体（めたん・つむぎ・ひまり・SAYO・うさぎ・ずん子・きりたん・イタコ）",
+    "proPlanFeature3": "いつでも解約可・初月から日割りなし",
+    "proPlanCta": "アプリ内の設定から申し込み",
+    "proBadge": "おすすめ",
+    "byokNote": "自分の OpenAI / Anthropic / Gemini キーを使いたい場合は「BYOK」モード（無料）も選べます。Pro に加入していれば BYOK モードでもプレミアムキャラを使えます。"
+  },
   "menubar": {
     "eyebrow": "メニューバーに常駐",
     "headingLine1": "ずっとメニューバーの隅っこに。",

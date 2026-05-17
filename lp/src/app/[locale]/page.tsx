@@ -242,6 +242,97 @@ export default async function Page({
         </section>
       )}
 
+      {/* Pricing */}
+      <section className="bg-(--color-cream-100) px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-(--color-cocoa-500) mb-3 text-center text-xs font-bold tracking-[0.25em]">
+            {t("pricing.eyebrow")}
+          </h2>
+          <p className="text-(--color-cocoa-700) mx-auto mb-3 max-w-2xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
+            {t("pricing.heading")}
+          </p>
+          <p className="text-(--color-cocoa-500) mx-auto mb-12 max-w-xl text-center text-base">
+            {t("pricing.lead")}
+          </p>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            {/* Free plan */}
+            <div className="border-(--color-cream-200) flex flex-col rounded-2xl border bg-white p-8">
+              <h3 className="text-(--color-cocoa-700) mb-2 text-xl font-bold">
+                {t("pricing.freePlanName")}
+              </h3>
+              <div className="mb-6 flex items-baseline gap-2">
+                <span className="text-(--color-cocoa-700) text-4xl font-bold">
+                  {t("pricing.freePlanPrice")}
+                </span>
+                <span className="text-(--color-cocoa-500) text-sm">
+                  {t("pricing.freePlanPriceNote")}
+                </span>
+              </div>
+              <ul className="text-(--color-cocoa-700) mb-8 flex-1 space-y-3 text-sm">
+                <li className="flex items-start gap-2">
+                  <span aria-hidden>✓</span>
+                  <span>{t("pricing.freePlanFeature1")}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span aria-hidden>✓</span>
+                  <span>{t("pricing.freePlanFeature2")}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span aria-hidden>✓</span>
+                  <span>{t("pricing.freePlanFeature3")}</span>
+                </li>
+              </ul>
+              <a
+                href="https://github.com/piro0919/chappie/releases/latest"
+                className="border-(--color-cocoa-700) text-(--color-cocoa-700) hover:bg-(--color-cocoa-700) inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-bold transition-all hover:text-white"
+              >
+                {t("pricing.freePlanCta")}
+              </a>
+            </div>
+
+            {/* Pro plan */}
+            <div className="border-(--color-blush-300) bg-(--color-blush-100) relative flex flex-col rounded-2xl border-2 p-8 shadow-[0_18px_40px_-20px_rgba(74,56,38,0.35)]">
+              <span className="bg-(--color-cocoa-700) absolute -top-3 right-6 rounded-full px-3 py-1 text-xs font-bold tracking-[0.2em] text-white">
+                {t("pricing.proBadge")}
+              </span>
+              <h3 className="text-(--color-cocoa-700) mb-2 text-xl font-bold">
+                {t("pricing.proPlanName")}
+              </h3>
+              <div className="mb-6 flex items-baseline gap-2">
+                <span className="text-(--color-cocoa-700) text-4xl font-bold">
+                  {t("pricing.proPlanPrice")}
+                </span>
+                <span className="text-(--color-cocoa-500) text-sm">
+                  {t("pricing.proPlanPriceNote")}
+                </span>
+              </div>
+              <ul className="text-(--color-cocoa-700) mb-8 flex-1 space-y-3 text-sm">
+                <li className="flex items-start gap-2">
+                  <span aria-hidden>✓</span>
+                  <span>{t("pricing.proPlanFeature1")}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span aria-hidden>✓</span>
+                  <span>{t("pricing.proPlanFeature2")}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span aria-hidden>✓</span>
+                  <span>{t("pricing.proPlanFeature3")}</span>
+                </li>
+              </ul>
+              <p className="text-(--color-cocoa-500) text-sm">
+                {t("pricing.proPlanCta")}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-(--color-cocoa-400) mx-auto mt-8 max-w-3xl text-center text-xs leading-relaxed">
+            {t("pricing.byokNote")}
+          </p>
+        </div>
+      </section>
+
       {/* Menubar showcase */}
       <section className="px-6 py-20">
         <div className="mx-auto max-w-4xl text-center">
