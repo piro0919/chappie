@@ -40,14 +40,20 @@ export function resolveMode(
   storedMode: Mode | undefined,
   apiKey: string,
   subscriptionStatus: SubscriptionStatus,
+  subscriptionEmail: string,
 ): Mode {
   // First-time migration: a pre-Free-mode user with a saved API key was
   // a BYOK user — preserve that behavior. No key + no `mode` is a fresh
   // (or wiped) install → Free.
   const initial: Mode = storedMode ?? (apiKey.trim() ? "byok" : "free");
-  // Demote paid → free when the subscription is no longer entitled.
+  // Demote paid → free only when the user is signed out. A signed-in
+  // user with `inactive`/`canceled` status is mid-checkout or has a
+  // lapsed sub — they still need the Pro panel visible to see the
+  // Upgrade button. The chat-path gate elsewhere uses `subscriptionStatus`
+  // directly, so a non-active "paid" mode here doesn't unlock quota.
   if (
     initial === "paid" &&
+    !subscriptionEmail.trim() &&
     subscriptionStatus !== "active" &&
     subscriptionStatus !== "trialing"
   ) {
@@ -128,7 +134,15 @@ export async function loadSettings(): Promise<Settings> {
   const subscriptionStatus =
     (await store.get<SubscriptionStatus>("subscriptionStatus")) ??
     DEFAULTS.subscriptionStatus;
-  const mode = resolveMode(storedMode, apiKey, subscriptionStatus);
+  const subscriptionEmail =
+    (await store.get<string>("subscriptionEmail")) ??
+    DEFAULTS.subscriptionEmail;
+  const mode = resolveMode(
+    storedMode,
+    apiKey,
+    subscriptionStatus,
+    subscriptionEmail,
+  );
   // Persist a paid → free demote so subsequent loads agree without
   // re-running the resolve, and so other windows see the change.
   if (storedMode === "paid" && mode === "free") {
@@ -146,9 +160,7 @@ export async function loadSettings(): Promise<Settings> {
     subscriptionRefreshToken:
       (await store.get<string>("subscriptionRefreshToken")) ??
       DEFAULTS.subscriptionRefreshToken,
-    subscriptionEmail:
-      (await store.get<string>("subscriptionEmail")) ??
-      DEFAULTS.subscriptionEmail,
+    subscriptionEmail,
     subscriptionStatus,
     subscriptionPeriodEnd:
       (await store.get<string>("subscriptionPeriodEnd")) ??

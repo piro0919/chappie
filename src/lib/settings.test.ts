@@ -119,36 +119,48 @@ describe("settings", () => {
 
 describe("resolveMode", () => {
   it("first-time install with no key → free", () => {
-    expect(resolveMode(undefined, "", "inactive")).toBe("free");
+    expect(resolveMode(undefined, "", "inactive", "")).toBe("free");
   });
 
   it("first-time migration: saved key + no stored mode → byok", () => {
-    expect(resolveMode(undefined, "sk-test", "inactive")).toBe("byok");
+    expect(resolveMode(undefined, "sk-test", "inactive", "")).toBe("byok");
   });
 
   it("stored byok wins over BYOK heuristic absence", () => {
-    expect(resolveMode("byok", "", "inactive")).toBe("byok");
+    expect(resolveMode("byok", "", "inactive", "")).toBe("byok");
   });
 
   it("stored paid with active subscription stays paid", () => {
-    expect(resolveMode("paid", "", "active")).toBe("paid");
+    expect(resolveMode("paid", "", "active", "u@x.test")).toBe("paid");
   });
 
   it("stored paid with trialing subscription stays paid", () => {
-    expect(resolveMode("paid", "", "trialing")).toBe("paid");
+    expect(resolveMode("paid", "", "trialing", "u@x.test")).toBe("paid");
   });
 
-  it("stored paid with canceled subscription demotes to free", () => {
-    expect(resolveMode("paid", "", "canceled")).toBe("free");
+  it("stored paid + canceled + signed out demotes to free", () => {
+    expect(resolveMode("paid", "", "canceled", "")).toBe("free");
   });
 
-  it("stored paid with inactive subscription demotes to free", () => {
-    expect(resolveMode("paid", "", "inactive")).toBe("free");
+  it("stored paid + inactive + signed out demotes to free", () => {
+    expect(resolveMode("paid", "", "inactive", "")).toBe("free");
+  });
+
+  it("stored paid + inactive + signed in stays paid (mid-checkout)", () => {
+    // A user who has signed in but not yet completed Stripe checkout
+    // is in a transient state — we must keep mode=paid so the Pro
+    // panel renders the Upgrade button.
+    expect(resolveMode("paid", "", "inactive", "u@x.test")).toBe("paid");
+  });
+
+  it("stored paid + canceled + signed in stays paid (lapsed sub)", () => {
+    // Lapsed sub: user is still signed in, sees Upgrade to re-subscribe.
+    expect(resolveMode("paid", "", "canceled", "u@x.test")).toBe("paid");
   });
 
   it("does NOT auto-promote: free + active subscription stays free", () => {
     // Existing free users with a subscription must opt-in to paid via
     // the radio — we don't silently change their LLM routing.
-    expect(resolveMode("free", "", "active")).toBe("free");
+    expect(resolveMode("free", "", "active", "u@x.test")).toBe("free");
   });
 });

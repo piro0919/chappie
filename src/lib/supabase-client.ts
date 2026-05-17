@@ -3,7 +3,7 @@ import {
   type Session,
   type SupabaseClient,
 } from "@supabase/supabase-js";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
   loadSettings,
   type SubscriptionStatus,
@@ -222,14 +222,14 @@ export async function installDeepLinkHandler(): Promise<UnlistenFn> {
         if (access && refresh) {
           await applyAuthCallback(access, refresh);
           await refreshStatus().catch(() => {});
-          window.dispatchEvent(new Event("settings:updated"));
+          await emit("settings:updated", {});
         }
       } else if (
         url.hostname === "refresh" ||
         url.pathname.replace(/^\//, "") === "refresh"
       ) {
         await refreshStatus().catch(() => {});
-        window.dispatchEvent(new Event("settings:updated"));
+        await emit("settings:updated", {});
       }
     } catch {
       // Ignore malformed URLs.
