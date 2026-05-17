@@ -321,9 +321,12 @@ export default async function Page({
                   <span>{t("pricing.proPlanFeature3")}</span>
                 </li>
               </ul>
-              <p className="text-(--color-cocoa-500) text-sm">
+              <a
+                href="https://github.com/piro0919/chappie/releases/latest"
+                className="bg-(--color-cocoa-700) inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-bold text-white transition-all hover:opacity-90"
+              >
                 {t("pricing.proPlanCta")}
-              </p>
+              </a>
             </div>
           </div>
 
