@@ -890,7 +890,7 @@ export function SettingsView() {
             {t("settings.screenAccess")}
           </span>
           <span
-            className={`${styles.badge} ${screen.status === "granted" ? styles.badgeGranted : styles.badgeDenied}`}
+            className={`${styles.badge} ${screen.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
           >
             <span className={styles.badgeDot} />
             {screen.status === "granted"
@@ -940,7 +940,7 @@ export function SettingsView() {
             {t("settings.calendarAccess")}
           </span>
           <span
-            className={`${styles.badge} ${calendar.status === "granted" ? styles.badgeGranted : styles.badgeDenied}`}
+            className={`${styles.badge} ${calendar.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
           >
             <span className={styles.badgeDot} />
             {calendar.status === "granted"
