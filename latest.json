@@ -1,11 +1,11 @@
 {
-  "version": "0.11.5",
+  "version": "0.12.0",
   "notes": "",
-  "pub_date": "2026-05-13T19:35:52.652Z",
+  "pub_date": "2026-05-17T18:27:08.315Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSSk5lODVTRnk3VTJ0c1NxT3ZIWThpcWo4MzJBUnRwSVJsdmNIYUhOeWZvTCtjVDR4dy9kMEZybmM2bFUzVG1SZ2xLWVlsWTRTdnlTMDZJRnJkOXM3QnVpT0piM0FkaEFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc4NzAwOTQwCWZpbGU6Q2hhcHBpZS5hcHAudGFyLmd6CkkrNjVUNm1DcXo2c3djSXpkZ2ptWVdsZ2RGUHBtTUd2Qm00N1l1RVZIZTh4UjRaQ1A0VW84dUxsbUZCcDVvd3JwR1R1QWR0eGpYVlZhTlhWOEI2ZkFRPT0K",
-      "url": "https://github.com/piro0919/chappie/releases/download/v0.11.5/Chappie.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSSk5lODVTRnk3VTRHZDg5dEMxUlFjYWVMeno5ZDFmdWh3d3IyWnlXcno2dnlZRzdkV3ROdXFnNlhpNUZLczgvNGFSVFZSakFhU3M2MHNNRXBFMWRsQ2hhWFdiWWk5bFE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5MDQyNDE2CWZpbGU6Q2hhcHBpZS5hcHAudGFyLmd6CkEzblhySzEydE9Pelozdmd4RTBzdjVNcFdqdm1ZeFRiQ3FQL09QMGNMd0F1YWp5bVlUaCtZRUQyQkN3NHRTVkxpTFJJZWVjZEdJMW00aDZwelBBOEJnPT0K",
+      "url": "https://github.com/piro0919/chappie/releases/download/v0.12.0/Chappie.app.tar.gz"
     }
   }
 }
