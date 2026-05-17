@@ -46,17 +46,25 @@ export function resolveMode(
   // a BYOK user — preserve that behavior. No key + no `mode` is a fresh
   // (or wiped) install → Free.
   const initial: Mode = storedMode ?? (apiKey.trim() ? "byok" : "free");
+  const isSignedIn = subscriptionEmail.trim().length > 0;
+  const isEntitled =
+    subscriptionStatus === "active" || subscriptionStatus === "trialing";
+  // Recovery from the pre-v0.12 demote bug: that version demoted
+  // paid → free during the post-signin-pre-checkout window and
+  // persisted the result. Affected users are stuck on `free` even
+  // after a successful payment. The combination of "signed in +
+  // entitled + stored free" is paradoxical — there is no UI path that
+  // produces it legitimately (sign-out clears email + status), so
+  // promoting back to paid is safe.
+  if (initial === "free" && isSignedIn && isEntitled) {
+    return "paid";
+  }
   // Demote paid → free only when the user is signed out. A signed-in
   // user with `inactive`/`canceled` status is mid-checkout or has a
   // lapsed sub — they still need the Pro panel visible to see the
   // Upgrade button. The chat-path gate elsewhere uses `subscriptionStatus`
   // directly, so a non-active "paid" mode here doesn't unlock quota.
-  if (
-    initial === "paid" &&
-    !subscriptionEmail.trim() &&
-    subscriptionStatus !== "active" &&
-    subscriptionStatus !== "trialing"
-  ) {
+  if (initial === "paid" && !isSignedIn && !isEntitled) {
     return "free";
   }
   return initial;
@@ -143,10 +151,12 @@ export async function loadSettings(): Promise<Settings> {
     subscriptionStatus,
     subscriptionEmail,
   );
-  // Persist a paid → free demote so subsequent loads agree without
-  // re-running the resolve, and so other windows see the change.
-  if (storedMode === "paid" && mode === "free") {
-    await store.set("mode", "free");
+  // Persist transitions where resolveMode disagrees with the store, so
+  // subsequent loads agree without re-running the resolve and so other
+  // windows see the change. Covers both the paid → free demote (signed
+  // out + inactive) and the free → paid recovery (legacy demote bug).
+  if (storedMode !== undefined && storedMode !== mode) {
+    await store.set("mode", mode);
     await store.save();
   }
   return {

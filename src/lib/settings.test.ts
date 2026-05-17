@@ -158,9 +158,36 @@ describe("resolveMode", () => {
     expect(resolveMode("paid", "", "canceled", "u@x.test")).toBe("paid");
   });
 
-  it("does NOT auto-promote: free + active subscription stays free", () => {
-    // Existing free users with a subscription must opt-in to paid via
-    // the radio — we don't silently change their LLM routing.
-    expect(resolveMode("free", "", "active", "u@x.test")).toBe("free");
+  it("free + active + signed in promotes to paid (legacy bug recovery)", () => {
+    // Pre-v0.12 had a resolveMode that demoted paid → free during the
+    // post-signin-pre-checkout window. Affected users had their mode
+    // persisted as "free" even after a successful payment. The combo
+    // (free + signed-in + entitled) has no legitimate UI path —
+    // sign-out always clears email/status — so promoting is safe.
+    expect(resolveMode("free", "", "active", "u@x.test")).toBe("paid");
+  });
+
+  it("free + trialing + signed in also promotes to paid", () => {
+    expect(resolveMode("free", "", "trialing", "u@x.test")).toBe("paid");
+  });
+
+  it("free + signed out + active stays free (impossible legit state)", () => {
+    // Defensive: if subscriptionEmail is empty, treat as a fresh free
+    // user even when status somehow reports active. Sign-out always
+    // empties the email so this is the only safe choice.
+    expect(resolveMode("free", "", "active", "")).toBe("free");
+  });
+
+  it("free + inactive + signed in stays free", () => {
+    // Mid-signin before checkout: subscriptionEmail is set but no
+    // subscription exists yet. Free is the correct mode until they
+    // explicitly opt into paid via the radio.
+    expect(resolveMode("free", "", "inactive", "u@x.test")).toBe("free");
+  });
+
+  it("byok + active + signed in stays byok", () => {
+    // BYOK users who happen to have a subscription (e.g. paid in the
+    // past, then switched to their own key) keep their explicit choice.
+    expect(resolveMode("byok", "sk-key", "active", "u@x.test")).toBe("byok");
   });
 });
