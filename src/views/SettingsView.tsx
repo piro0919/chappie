@@ -59,6 +59,8 @@ export function SettingsView() {
   const [subscriptionEmail, setSubscriptionEmail] = useState("");
   const [subscriptionStatus, setSubscriptionStatus] =
     useState<SubscriptionStatus>("inactive");
+  const subscriptionEntitled =
+    subscriptionStatus === "active" || subscriptionStatus === "trialing";
   const [subscriptionPeriodEnd, setSubscriptionPeriodEnd] = useState("");
   const [emailInput, setEmailInput] = useState("");
   const [subscriptionBusy, setSubscriptionBusy] = useState<
@@ -579,12 +581,23 @@ export function SettingsView() {
         <div className={styles.row}>
           <span className={styles.rowLabel}>{t("settings.modeLabel")}</span>
           <div>
-            <label style={{ display: "block", marginBottom: 4 }}>
+            {/* Free is disabled while the user has an entitled
+                subscription — paying and falling back to the 5/day
+                quota would be a UX foot-gun. Sign out (in the Pro
+                panel below) to revert to Free. */}
+            <label
+              style={{
+                display: "block",
+                marginBottom: 4,
+                opacity: subscriptionEntitled ? 0.5 : 1,
+              }}
+            >
               <input
                 type="radio"
                 name="mode"
                 value="free"
                 checked={mode === "free"}
+                disabled={subscriptionEntitled}
                 onChange={() => setMode("free")}
               />{" "}
               {t("settings.modeFree")}

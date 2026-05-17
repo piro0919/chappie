@@ -81,9 +81,13 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const apiKeyRef = useRef<string>("");
   const subscriptionTokenRef = useRef<string>("");
   // Paid premium features (VOICEVOX premium speakers) gate on
-  // `mode === "paid"` rather than the orthogonal subscriptionStatus —
-  // BYOK and Paid are mutually exclusive by product design.
+  // `subscriptionStatus` rather than `mode`, so a paying user who has
+  // chosen BYOK for LLM routing still gets the premium voices they
+  // paid for. `mode` controls only the chat-path (free quota / proxy
+  // bypass / direct provider call); entitlement to premium content is
+  // an orthogonal concern decided by Stripe.
   const modeRef = useRef<"free" | "paid" | "byok">("free");
+  const subscriptionEntitledRef = useRef<boolean>(false);
   const chatClientRef = useRef<ChatClient | null>(null);
   const langRef = useRef<Language>("auto");
   const followupTimerRef = useRef<number | null>(null);
@@ -396,7 +400,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     if (
       speakerId !== undefined &&
       isPaidSpeaker(speakerId) &&
-      modeRef.current !== "paid"
+      !subscriptionEntitledRef.current
     ) {
       console.info(
         `[loop] applyVoiceForWake paid-locked speaker=${speakerId} → chappie default`,
@@ -572,6 +576,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
         apiKeyRef.current = s.openaiApiKey;
         subscriptionTokenRef.current = s.subscriptionAccessToken;
         modeRef.current = s.mode;
+        subscriptionEntitledRef.current =
+          s.subscriptionStatus === "active" ||
+          s.subscriptionStatus === "trialing";
         langRef.current = s.language;
         historyRef.current = createHistory(buildSystemPrompt(s.language));
         const resolvedLang = resolveLanguage(s.language);
@@ -796,6 +803,8 @@ export function useConversationLoop(): { state: State; error: string | null } {
     apiKeyRef.current = s.openaiApiKey;
     subscriptionTokenRef.current = s.subscriptionAccessToken;
     modeRef.current = s.mode;
+    subscriptionEntitledRef.current =
+      s.subscriptionStatus === "active" || s.subscriptionStatus === "trialing";
     langRef.current = s.language;
     if (langChanged) {
       historyRef.current = {

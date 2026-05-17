@@ -198,7 +198,7 @@ const ja: Messages = {
     modePaidNote:
       "回数制限なし＋プレミアム VOICEVOX キャラが使えます。下のサブスクリプション欄から申し込めます。",
     modeByokNote:
-      "OpenAI / Anthropic / Gemini のキーで回数制限なく使えます。料金はキーの発行元から請求されます。プレミアムキャラを使うには Pro に切り替えてください。",
+      "OpenAI / Anthropic / Gemini のキーで回数制限なく使えます。料金はキーの発行元から請求されます。Pro に加入している場合は、BYOK のままでもプレミアムキャラを使えます。",
     modePaidDisabledHint: "（Pro 加入で選択できます）",
     subscriptionLabel: "アカウントとサブスクリプション",
     subscriptionSignedOut:
@@ -370,7 +370,7 @@ const en: Messages = {
     modePaidNote:
       "No daily limit and premium VOICEVOX characters unlocked. Subscribe in the section below.",
     modeByokNote:
-      "Use your own OpenAI, Anthropic, or Gemini key — no daily limit. You'll be billed by the provider. Switch to Pro to use premium characters.",
+      "Use your own OpenAI, Anthropic, or Gemini key — no daily limit. You'll be billed by the provider. If you also have an active Pro subscription, premium characters remain unlocked while on BYOK.",
     modePaidDisabledHint: "(subscribe to Pro to enable)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
@@ -543,7 +543,7 @@ const es: Messages = {
     modePaidNote:
       "Sin límite diario y personajes VOICEVOX premium desbloqueados. Suscríbete en la sección de abajo.",
     modeByokNote:
-      "Usa tu propia clave de OpenAI, Anthropic o Gemini — sin límite diario. El proveedor te facturará directamente. Cambia a Pro para usar personajes premium.",
+      "Usa tu propia clave de OpenAI, Anthropic o Gemini — sin límite diario. El proveedor te facturará directamente. Si también tienes una suscripción Pro activa, los personajes premium seguirán desbloqueados en BYOK.",
     modePaidDisabledHint: "(suscríbete a Pro para activar)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
@@ -716,7 +716,7 @@ const fr: Messages = {
     modePaidNote:
       "Pas de limite quotidienne et personnages VOICEVOX premium débloqués. Abonnez-vous dans la section ci-dessous.",
     modeByokNote:
-      "Utilisez votre propre clé OpenAI, Anthropic ou Gemini — sans limite quotidienne. Le fournisseur vous facturera directement. Passez à Pro pour utiliser les personnages premium.",
+      "Utilisez votre propre clé OpenAI, Anthropic ou Gemini — sans limite quotidienne. Le fournisseur vous facturera directement. Si vous avez également un abonnement Pro actif, les personnages premium restent débloqués en BYOK.",
     modePaidDisabledHint: "(abonnez-vous à Pro pour activer)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
@@ -889,7 +889,7 @@ const de: Messages = {
     modePaidNote:
       "Kein Tageslimit und Premium-VOICEVOX-Charaktere freigeschaltet. Abonniere unten im Bereich.",
     modeByokNote:
-      "Nutze deinen eigenen OpenAI-, Anthropic- oder Gemini-Schlüssel — ohne Tageslimit. Die Abrechnung erfolgt direkt beim Anbieter. Für Premium-Charaktere wechsle zu Pro.",
+      "Nutze deinen eigenen OpenAI-, Anthropic- oder Gemini-Schlüssel — ohne Tageslimit. Die Abrechnung erfolgt direkt beim Anbieter. Mit aktivem Pro-Abo bleiben Premium-Charaktere auch unter BYOK freigeschaltet.",
     modePaidDisabledHint: "(Pro abonnieren zum Aktivieren)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
@@ -1057,7 +1057,7 @@ const zh: Messages = {
     modeFreeNote: "无需 API 密钥。每天 5 条，日本时间 9:00 重置。",
     modePaidNote: "无每日限制，并解锁高级 VOICEVOX 角色。请在下方订阅。",
     modeByokNote:
-      "使用您自己的 OpenAI、Anthropic 或 Gemini 密钥 — 无每日限制。费用由您直接支付给服务方。如需使用高级角色，请切换到 Pro。",
+      "使用您自己的 OpenAI、Anthropic 或 Gemini 密钥 — 无每日限制。费用由您直接支付给服务方。如已订阅 Pro，在 BYOK 模式下仍可使用高级角色。",
     modePaidDisabledHint: "（订阅 Pro 后可选）",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
@@ -1228,7 +1228,7 @@ const pt: Messages = {
     modePaidNote:
       "Sem limite diário e personagens VOICEVOX premium desbloqueados. Assine na seção abaixo.",
     modeByokNote:
-      "Use sua própria chave OpenAI, Anthropic ou Gemini — sem limite diário. O provedor cobrará você diretamente. Mude para Pro para usar personagens premium.",
+      "Use sua própria chave OpenAI, Anthropic ou Gemini — sem limite diário. O provedor cobrará você diretamente. Se você também tem uma assinatura Pro ativa, os personagens premium permanecem desbloqueados no BYOK.",
     modePaidDisabledHint: "(assine Pro para ativar)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
@@ -1400,7 +1400,7 @@ const ko: Messages = {
     modePaidNote:
       "일일 제한 없음과 프리미엄 VOICEVOX 캐릭터 잠금 해제. 아래 섹션에서 구독하세요.",
     modeByokNote:
-      "OpenAI, Anthropic, Gemini 키를 직접 사용해 제한 없이 쓸 수 있습니다. 요금은 제공사에 직접 지불합니다. 프리미엄 캐릭터를 사용하려면 Pro로 전환하세요.",
+      "OpenAI, Anthropic, Gemini 키를 직접 사용해 제한 없이 쓸 수 있습니다. 요금은 제공사에 직접 지불합니다. Pro에 가입 중이라면 BYOK에서도 프리미엄 캐릭터를 사용할 수 있습니다.",
     modePaidDisabledHint: "(Pro 구독 시 선택 가능)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
@@ -1573,7 +1573,7 @@ const it: Messages = {
     modePaidNote:
       "Nessun limite giornaliero e personaggi VOICEVOX premium sbloccati. Iscriviti nella sezione qui sotto.",
     modeByokNote:
-      "Usa la tua chiave OpenAI, Anthropic o Gemini — senza limite giornaliero. Il provider ti fatturerà direttamente. Passa a Pro per usare i personaggi premium.",
+      "Usa la tua chiave OpenAI, Anthropic o Gemini — senza limite giornaliero. Il provider ti fatturerà direttamente. Se hai anche un abbonamento Pro attivo, i personaggi premium restano sbloccati in BYOK.",
     modePaidDisabledHint: "(iscriviti a Pro per attivare)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
