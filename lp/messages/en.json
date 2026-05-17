@@ -224,18 +224,18 @@
     "freePlanPrice": "$0",
     "freePlanPriceNote": "Free forever",
     "freePlanFeature1": "Up to 5 conversations a day",
-    "freePlanFeature2": "Zundamon character included",
+    "freePlanFeature2": "",
     "freePlanFeature3": "No account or API key required",
     "freePlanCta": "Download & start",
     "proPlanName": "Pro",
     "proPlanPrice": "¥500",
     "proPlanPriceNote": "/ month",
     "proPlanFeature1": "Unlimited conversations",
-    "proPlanFeature2": "All 9 VOICEVOX characters unlocked",
+    "proPlanFeature2": "",
     "proPlanFeature3": "Cancel anytime",
     "proPlanCta": "Download & start Pro",
     "proBadge": "RECOMMENDED",
-    "byokNote": "Want to use your own OpenAI, Anthropic, or Gemini key? \"BYOK\" mode is also free. If you subscribe to Pro, premium characters stay unlocked while on BYOK."
+    "byokNote": "Want to use your own OpenAI, Anthropic, or Gemini key? \"BYOK\" mode is also free — bypass the daily limit at no cost."
   },
   "menubar": {
     "eyebrow": "LIVES IN THE MENU BAR",

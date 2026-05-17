@@ -270,18 +270,21 @@ export default async function Page({
                 </span>
               </div>
               <ul className="text-(--color-cocoa-700) mb-8 flex-1 space-y-3 text-sm">
-                <li className="flex items-start gap-2">
-                  <span aria-hidden>✓</span>
-                  <span>{t("pricing.freePlanFeature1")}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span aria-hidden>✓</span>
-                  <span>{t("pricing.freePlanFeature2")}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span aria-hidden>✓</span>
-                  <span>{t("pricing.freePlanFeature3")}</span>
-                </li>
+                {(
+                  [
+                    "pricing.freePlanFeature1",
+                    "pricing.freePlanFeature2",
+                    "pricing.freePlanFeature3",
+                  ] as const
+                )
+                  .map((key) => t(key))
+                  .filter((label) => label.length > 0)
+                  .map((label) => (
+                    <li key={label} className="flex items-start gap-2">
+                      <span aria-hidden>✓</span>
+                      <span>{label}</span>
+                    </li>
+                  ))}
               </ul>
               <a
                 href="https://github.com/piro0919/chappie/releases/latest"
@@ -308,18 +311,21 @@ export default async function Page({
                 </span>
               </div>
               <ul className="text-(--color-cocoa-700) mb-8 flex-1 space-y-3 text-sm">
-                <li className="flex items-start gap-2">
-                  <span aria-hidden>✓</span>
-                  <span>{t("pricing.proPlanFeature1")}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span aria-hidden>✓</span>
-                  <span>{t("pricing.proPlanFeature2")}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span aria-hidden>✓</span>
-                  <span>{t("pricing.proPlanFeature3")}</span>
-                </li>
+                {(
+                  [
+                    "pricing.proPlanFeature1",
+                    "pricing.proPlanFeature2",
+                    "pricing.proPlanFeature3",
+                  ] as const
+                )
+                  .map((key) => t(key))
+                  .filter((label) => label.length > 0)
+                  .map((label) => (
+                    <li key={label} className="flex items-start gap-2">
+                      <span aria-hidden>✓</span>
+                      <span>{label}</span>
+                    </li>
+                  ))}
               </ul>
               <a
                 href="https://github.com/piro0919/chappie/releases/latest"
