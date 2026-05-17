@@ -62,29 +62,32 @@ const ERROR_DISPLAY_MS = 1800;
 const POST_TTS_COOLDOWN_MS = 350;
 
 export function useConversationLoop(): { state: State; error: string | null } {
-  const [state, setState] = useState<State>("idle");
+  const [state, setState] = useState<State>({ state: "initializing" });
   const [error, setError] = useState<string | null>(null);
 
   const machineRef = useRef<Machine>(createMachine());
+
+  // Sub-flag helpers. These read the machine state instead of standalone
+  // refs so the discriminated-union remains the source of truth.
+  function isAwaitingContinuation(): boolean {
+    const s = machineRef.current.state;
+    return s.state === "listening" && s.awaitingContinuation;
+  }
+  function isBargeInActive(): boolean {
+    const s = machineRef.current.state;
+    return s.state === "speaking" && s.bargeIn;
+  }
   const historyRef = useRef<History>(createHistory(buildSystemPrompt("auto")));
   const apiKeyRef = useRef<string>("");
   const subscriptionTokenRef = useRef<string>("");
-  // Mirrors `subscriptionStatus in {"active","trialing"}`. Read every turn
-  // by `applyVoiceForWake` to decide whether paid VOICEVOX characters are
-  // unlocked. Updated by the initial-load and settings:updated paths.
-  const subscriptionPaidRef = useRef<boolean>(false);
-  const modeRef = useRef<"free" | "byok">("free");
+  // Paid premium features (VOICEVOX premium speakers) gate on
+  // `mode === "paid"` rather than the orthogonal subscriptionStatus —
+  // BYOK and Paid are mutually exclusive by product design.
+  const modeRef = useRef<"free" | "paid" | "byok">("free");
   const chatClientRef = useRef<ChatClient | null>(null);
   const langRef = useRef<Language>("auto");
-  const awaitingBodyRef = useRef(false);
   const followupTimerRef = useRef<number | null>(null);
   const ttsActiveRef = useRef(false);
-  // True while the renderer is in voice-barge-in mode — TTS is playing,
-  // mic stays hot via `enter_barge_in_mode` (audio.rs raises VAD/RMS
-  // thresholds), and incoming speech events are filtered through
-  // `isBargeInCommand`. Mutually exclusive with the wake-ack /
-  // timer-announcement paths, which still use full pause_listening.
-  const bargeInActiveRef = useRef(false);
   // True while any external audio source (YouTube miniplayer today,
   // Spotify / Apple Music in the future) is actively producing sound
   // that can leak into the mic. While set, handleSpeech drops everything
@@ -130,7 +133,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
     if (next === machineRef.current) return;
     machineRef.current = next;
     setState(next.state);
-    void invoke("set_tray_state", { state: next.state }).catch(() => {});
+    // Tray's enum names match the top-level discriminator, so the
+    // sub-flags (bargeIn / awaitingContinuation) stay JS-side.
+    void invoke("set_tray_state", { state: next.state.state }).catch(() => {});
   }
 
   function clearFollowupTimer() {
@@ -147,8 +152,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
   function armFollowupTimer(ms: number) {
     clearFollowupTimer();
     followupTimerRef.current = window.setTimeout(() => {
-      awaitingBodyRef.current = false;
       followupTimerRef.current = null;
+      // speechTimeout transitions listening → idle, which naturally
+      // clears awaitingContinuation as part of the state change.
       dispatch({ type: "speechTimeout" });
     }, ms);
   }
@@ -236,9 +242,12 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // audio.rs raises VAD + RMS thresholds in this mode to reject
       // speaker reverb; the renderer further filters events through
       // `isBargeInCommand` in handleSpeech.
-      bargeInActiveRef.current = true;
       void invoke("enter_barge_in_mode").catch(() => {});
+      // responseReady takes us thinking → speaking{bargeIn:false}; the
+      // immediate bargeInStarted flips the sub-flag to true so handleSpeech
+      // honours stop-commands during streaming TTS.
       dispatch({ type: "responseReady", reply: "" });
+      dispatch({ type: "bargeInStarted" });
       speaker = createStreamingSpeaker(resolveLanguage(langRef.current));
     };
 
@@ -360,9 +369,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
         console.error("tts flush failed", e);
       }
       // Cooldown + exit barge-in mode — restores normal VAD/RMS bars
-      // and lets full-length wake utterances through again.
+      // and lets full-length wake utterances through again. The
+      // bargeIn sub-flag is cleared by the speechDone transition below.
       await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
-      bargeInActiveRef.current = false;
       await invoke("exit_barge_in_mode").catch(() => {});
       ttsActiveRef.current = false;
     }
@@ -387,7 +396,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     if (
       speakerId !== undefined &&
       isPaidSpeaker(speakerId) &&
-      !subscriptionPaidRef.current
+      modeRef.current !== "paid"
     ) {
       console.info(
         `[loop] applyVoiceForWake paid-locked speaker=${speakerId} → chappie default`,
@@ -413,14 +422,16 @@ export function useConversationLoop(): { state: State; error: string | null } {
   }
 
   function startContinuationWindow() {
-    dispatch({ type: "wakeDetected" });
-    awaitingBodyRef.current = true;
+    // continuationOpened goes idle → listening{awaitingContinuation:true}
+    // — the machine now carries the "we're waiting for follow-up without
+    // a fresh wake word" state directly.
+    dispatch({ type: "continuationOpened" });
     armFollowupTimer(CONTINUE_WINDOW_MS);
   }
 
   async function handleSpeech(text: string) {
     console.info(
-      `[loop] speech recv: "${text}" tts=${ttsActiveRef.current} state=${machineRef.current.state} awaiting=${awaitingBodyRef.current} ext=${externalAudioActiveRef.current}`,
+      `[loop] speech recv: "${text}" tts=${ttsActiveRef.current} state=${machineRef.current.state.state} awaiting=${isAwaitingContinuation()} ext=${externalAudioActiveRef.current}`,
     );
     // External audio (miniplayer today; music later) is producing sound
     // that's leaking into the mic. Honor only cancel/close commands;
@@ -446,16 +457,16 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // stays hot, but only short whitelisted commands are honored as
       // "stop talking". Anything else is almost certainly Chappie's own
       // speaker reverb leaking through Whisper, so drop it silently.
-      if (bargeInActiveRef.current && isBargeInCommand(text)) {
+      if (isBargeInActive() && isBargeInCommand(text)) {
         console.info(`[loop] BARGE-IN matched: "${text}" — cancelling TTS`);
         cancelSpeech();
-        bargeInActiveRef.current = false;
         ttsActiveRef.current = false;
         void invoke("exit_barge_in_mode").catch(() => {});
         // Drop into idle and arm a continuation window so the user can
         // re-issue without saying the wake-word again. The runTurn flow
         // will see the cancelled engine when it reaches `flush()` and
-        // return promptly without producing any more audio.
+        // return promptly without producing any more audio. speechDone
+        // also clears the bargeIn sub-flag as part of the transition.
         dispatch({ type: "speechDone" });
         startContinuationWindow();
         return;
@@ -463,7 +474,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       console.info(`[loop] dropped: tts active (text="${text.slice(0, 30)}")`);
       return;
     }
-    const cur = machineRef.current.state;
+    const cur = machineRef.current.state.state;
     if (cur === "thinking" || cur === "speaking" || cur === "error") {
       console.info(`[loop] dropped: state=${cur}`);
       return;
@@ -476,15 +487,16 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // turn. The speech-active listener already cleared the followup
       // timer when VAD picked the segment up; re-arm it now so we keep
       // waiting instead of silently ticking down toward idle.
-      if (awaitingBodyRef.current) {
+      if (isAwaitingContinuation()) {
         armFollowupTimer(CONTINUE_WINDOW_MS);
       }
       return;
     }
 
-    if (awaitingBodyRef.current) {
+    if (isAwaitingContinuation()) {
       console.info(`[loop] body received: "${text}"`);
-      awaitingBodyRef.current = false;
+      // speechCaptured below transitions listening → thinking which
+      // naturally clears awaitingContinuation as the state changes.
       clearFollowupTimer();
       const body = text.trim();
       if (!body) {
@@ -519,8 +531,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
     applyVoiceForWake(m.speakerId);
 
     if (m.body === "") {
-      dispatch({ type: "wakeDetected" });
-      awaitingBodyRef.current = true;
+      // Bare wake — we're waiting for the body. Use continuationOpened
+      // so the machine carries the "awaiting body" sub-flag instead of
+      // tracking it in a separate ref.
+      dispatch({ type: "continuationOpened" });
       armFollowupTimer(FOLLOWUP_TIMEOUT_MS);
       // Quick "はい" acknowledgement so the user knows we're listening.
       // Fire-and-forget — we don't await it because the user may start
@@ -557,9 +571,6 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const s = await loadSettings();
         apiKeyRef.current = s.openaiApiKey;
         subscriptionTokenRef.current = s.subscriptionAccessToken;
-        subscriptionPaidRef.current =
-          s.subscriptionStatus === "active" ||
-          s.subscriptionStatus === "trialing";
         modeRef.current = s.mode;
         langRef.current = s.language;
         historyRef.current = createHistory(buildSystemPrompt(s.language));
@@ -568,14 +579,15 @@ export function useConversationLoop(): { state: State; error: string | null } {
           () => {},
         );
         void invoke("set_app_language", { lang: resolvedLang }).catch(() => {});
-        // Free mode always has a usable client (device id is server-side);
-        // BYOK requires a non-empty key.
+        // Free / Paid both route through the proxy; the token getter
+        // attaches the Bearer only when the user is on Paid (BYOK skips
+        // the proxy entirely and uses the user's own provider key).
         chatClientRef.current =
-          s.mode === "free"
+          s.mode === "free" || s.mode === "paid"
             ? createChatClient(
                 "",
                 DEFAULT_MODEL,
-                "free",
+                s.mode,
                 undefined,
                 () => subscriptionTokenRef.current,
               )
@@ -583,6 +595,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
               ? createChatClient(s.openaiApiKey, DEFAULT_MODEL, "byok")
               : null;
 
+        // Initial tray sync mirrors the machine's starting "initializing"
+        // state (dispatch only fires on transitions, so the very first
+        // tray push needs to be explicit).
         void invoke("set_tray_state", { state: "initializing" }).catch(
           () => {},
         );
@@ -605,7 +620,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
           ).catch(() => false);
           if (!granted) {
             setError(tRaw(langRef.current, "conversation.micDenied"));
-            void invoke("set_tray_state", { state: "error" }).catch(() => {});
+            dispatch({
+              type: "initializationFailed",
+              message: "mic denied",
+            });
             return;
           }
           // Optional permissions (Screen Recording / Calendar / Location)
@@ -623,7 +641,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
               err: String(e),
             }),
           );
-          void invoke("set_tray_state", { state: "error" }).catch(() => {});
+          dispatch({
+            type: "initializationFailed",
+            message: `model fetch failed: ${e}`,
+          });
           return;
         } finally {
           progressOff?.();
@@ -644,12 +665,12 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // else is dropped silently — it's Chappie's voice echoing back.
         const offBargeIn = await listen<string>("speech-bargein", (e) => {
           const text = e.payload;
-          if (bargeInActiveRef.current && isBargeInCommand(text)) {
+          if (isBargeInActive() && isBargeInCommand(text)) {
             console.info(`[loop] BARGE-IN (echo-path) matched: "${text}"`);
             cancelSpeech();
-            bargeInActiveRef.current = false;
             ttsActiveRef.current = false;
             void invoke("exit_barge_in_mode").catch(() => {});
+            // speechDone clears the bargeIn sub-flag via the state transition.
             dispatch({ type: "speechDone" });
             startContinuationWindow();
           } else {
@@ -665,7 +686,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // The timer gets re-armed on hallucination drop or after the body
         // is consumed normally.
         const offActive = await listen("speech-active", () => {
-          if (awaitingBodyRef.current) {
+          if (isAwaitingContinuation()) {
             // Don't clear — re-arm with a longer ceiling. Rust can drop the
             // segment silently (too-short / low-rms / speaker-gate reject /
             // Whisper empty) which means no `speech` event would ever arrive
@@ -697,9 +718,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
           }
           console.info("[loop] BARGE-IN (tray menu) cancelling TTS");
           cancelSpeech();
-          bargeInActiveRef.current = false;
           ttsActiveRef.current = false;
           void invoke("exit_barge_in_mode").catch(() => {});
+          // speechDone clears the bargeIn sub-flag via the state transition.
           dispatch({ type: "speechDone" });
           startContinuationWindow();
         });
@@ -727,7 +748,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
               err: String(e),
             }),
           );
-          void invoke("set_tray_state", { state: "error" }).catch(() => {});
+          dispatch({
+            type: "initializationFailed",
+            message: `mic start failed: ${e}`,
+          });
           return;
         }
 
@@ -739,11 +763,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // Free mode has no key requirement.
         if (modeRef.current === "byok" && !apiKeyRef.current) {
           setError(tRaw(langRef.current, "conversation.apiKeyMissingLong"));
-          void invoke("set_tray_state", { state: "error" }).catch(() => {});
+          dispatch({
+            type: "initializationFailed",
+            message: "byok key missing",
+          });
           return;
         }
 
-        void invoke("set_tray_state", { state: "idle" }).catch(() => {});
+        dispatch({ type: "initializationDone" });
       } catch (e) {
         console.error("conversation loop init failed", e);
         setError(String(e));
@@ -768,8 +795,6 @@ export function useConversationLoop(): { state: State; error: string | null } {
     const langChanged = langRef.current !== s.language;
     apiKeyRef.current = s.openaiApiKey;
     subscriptionTokenRef.current = s.subscriptionAccessToken;
-    subscriptionPaidRef.current =
-      s.subscriptionStatus === "active" || s.subscriptionStatus === "trialing";
     modeRef.current = s.mode;
     langRef.current = s.language;
     if (langChanged) {
@@ -784,11 +809,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
       void invoke("set_app_language", { lang: resolvedLang }).catch(() => {});
     }
     chatClientRef.current =
-      s.mode === "free"
+      s.mode === "free" || s.mode === "paid"
         ? createChatClient(
             "",
             DEFAULT_MODEL,
-            "free",
+            s.mode,
             undefined,
             () => subscriptionTokenRef.current,
           )
@@ -797,11 +822,16 @@ export function useConversationLoop(): { state: State; error: string | null } {
           : null;
     // Recover from the "no API key" / startup-error state once the
     // user gives us a working configuration (added key, or switched
-    // to Free mode).
-    const nowOk = s.mode === "free" || (s.mode === "byok" && !!s.openaiApiKey);
+    // to Free / Paid mode).
+    const nowOk =
+      s.mode === "free" ||
+      s.mode === "paid" ||
+      (s.mode === "byok" && !!s.openaiApiKey);
     if (wasBlocked && nowOk) {
       setError(null);
-      void invoke("set_tray_state", { state: "idle" }).catch(() => {});
+      // Machine is in `error` from the init-time initializationFailed
+      // dispatch; errorAcknowledged drops us back to idle.
+      dispatch({ type: "errorAcknowledged" });
     }
   });
 

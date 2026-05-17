@@ -571,7 +571,10 @@ export function SettingsView() {
         )}
       </section>
 
-      {/* Mode (Free / BYOK) */}
+      {/* Mode (Free / Pro / BYOK). The selected mode reveals its own
+          config below the radio — Pro shows magic-link sign-in /
+          subscription status, BYOK shows the API key input, Free has
+          nothing else to configure. */}
       <section className={styles.card}>
         <div className={styles.row}>
           <span className={styles.rowLabel}>{t("settings.modeLabel")}</span>
@@ -586,6 +589,16 @@ export function SettingsView() {
               />{" "}
               {t("settings.modeFree")}
             </label>
+            <label style={{ display: "block", marginBottom: 4 }}>
+              <input
+                type="radio"
+                name="mode"
+                value="paid"
+                checked={mode === "paid"}
+                onChange={() => setMode("paid")}
+              />{" "}
+              {t("settings.modePaid")}
+            </label>
             <label style={{ display: "block" }}>
               <input
                 type="radio"
@@ -598,22 +611,25 @@ export function SettingsView() {
             </label>
           </div>
         </div>
+
         <p className={styles.note}>
           {mode === "free"
             ? t("settings.modeFreeNote")
-            : t("settings.modeByokNote")}
+            : mode === "paid"
+              ? t("settings.modePaidNote")
+              : t("settings.modeByokNote")}
         </p>
-      </section>
 
-      {/* Subscription — Magic Link sign-in + Pro upgrade. Visible in both
-          modes: Free users gain unlimited daily quota, BYOK users gain
-          VOICEVOX characters beyond the free Zundamon. */}
-      <section className={styles.card}>
-        <div className={styles.row}>
-          <span className={styles.rowLabel}>
-            {t("settings.subscriptionLabel")}
-          </span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {/* Pro panel: email sign-in when signed out, status + manage when in. */}
+        {mode === "paid" && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              marginTop: 12,
+            }}
+          >
             {!subscriptionEmail ? (
               <>
                 <p className={styles.note} style={{ marginTop: 0 }}>
@@ -714,16 +730,11 @@ export function SettingsView() {
               </>
             )}
           </div>
-        </div>
-      </section>
+        )}
 
-      {/* API key — only relevant for BYOK */}
-      {mode === "byok" && (
-        <section className={styles.card}>
-          <div className={styles.row}>
-            <label className={styles.rowLabel} htmlFor="api-key">
-              {t("settings.apiKey")}
-            </label>
+        {/* BYOK panel: API key input + provider detection hint. */}
+        {mode === "byok" && (
+          <div style={{ marginTop: 12 }}>
             <input
               id="api-key"
               type="password"
@@ -734,26 +745,30 @@ export function SettingsView() {
               spellCheck={false}
               placeholder={t("settings.apiKeyPlaceholder")}
             />
-          </div>
-          {(() => {
-            const trimmed = apiKey.trim();
-            if (!trimmed) {
-              return <p className={styles.note}>{t("settings.apiKeyNote")}</p>;
-            }
-            const provider = detectProvider(trimmed);
-            if (provider) {
+            {(() => {
+              const trimmed = apiKey.trim();
+              if (!trimmed) {
+                return (
+                  <p className={styles.note}>{t("settings.apiKeyNote")}</p>
+                );
+              }
+              const provider = detectProvider(trimmed);
+              if (provider) {
+                return (
+                  <p className={styles.note}>
+                    {t("settings.apiKeyDetected", {
+                      provider: providerLabel(provider),
+                    })}
+                  </p>
+                );
+              }
               return (
-                <p className={styles.note}>
-                  {t("settings.apiKeyDetected", {
-                    provider: providerLabel(provider),
-                  })}
-                </p>
+                <p className={styles.note}>{t("settings.apiKeyUnknown")}</p>
               );
-            }
-            return <p className={styles.note}>{t("settings.apiKeyUnknown")}</p>;
-          })()}
-        </section>
-      )}
+            })()}
+          </div>
+        )}
+      </section>
 
       <h2 className={styles.sectionHeading}>{t("settings.sectionOptional")}</h2>
 

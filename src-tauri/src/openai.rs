@@ -40,8 +40,10 @@ pub async fn chat_complete(
     // Free / Paid both route through the chappie.kkweb.io proxy. The
     // renderer doesn't pass an api_key here; we load the device id from
     // disk for quota tracking and forward the subscription token (when
-    // signed in) so the proxy can bypass quota for Paid users.
-    if mode.as_deref() == Some("free") {
+    // signed in) so the proxy can bypass quota for Paid users. The
+    // renderer is responsible for only emitting `paid` when the user has
+    // an active subscription — see `resolveMode` in settings.ts.
+    if matches!(mode.as_deref(), Some("free") | Some("paid")) {
         let device_id = crate::device_id::get_or_init()?;
         // Model is fixed server-side (gemini-2.5-flash) but we still need
         // something for the request body's model name slot; the proxy

@@ -39,9 +39,12 @@ type Messages = {
     sectionOptional: string;
     modeLabel: string;
     modeFree: string;
+    modePaid: string;
     modeByok: string;
     modeFreeNote: string;
+    modePaidNote: string;
     modeByokNote: string;
+    modePaidDisabledHint: string;
     subscriptionLabel: string;
     subscriptionSignedOut: string;
     subscriptionEmailPlaceholder: string;
@@ -188,11 +191,15 @@ const ja: Messages = {
     sectionOptional: "任意",
     modeLabel: "モード",
     modeFree: "無料",
+    modePaid: "Pro",
     modeByok: "API キーを使う",
     modeFreeNote:
       "API キー不要で使えます。1 日 5 回まで、日本時間 9 時にリセットされます。",
+    modePaidNote:
+      "回数制限なし＋プレミアム VOICEVOX キャラが使えます。下のサブスクリプション欄から申し込めます。",
     modeByokNote:
-      "OpenAI / Anthropic / Gemini のキーで回数制限なく使えます。料金はキーの発行元から請求されます。",
+      "OpenAI / Anthropic / Gemini のキーで回数制限なく使えます。料金はキーの発行元から請求されます。プレミアムキャラを使うには Pro に切り替えてください。",
+    modePaidDisabledHint: "（Pro 加入で選択できます）",
     subscriptionLabel: "アカウントとサブスクリプション",
     subscriptionSignedOut:
       "メールでログインすると、Pro へのアップグレードや別の端末への引き継ぎができます。",
@@ -357,10 +364,14 @@ const en: Messages = {
     sectionOptional: "Optional",
     modeLabel: "Mode",
     modeFree: "Free",
+    modePaid: "Pro",
     modeByok: "Use my API key",
     modeFreeNote: "No API key needed. 5 messages a day, resets at 9:00 JST.",
+    modePaidNote:
+      "No daily limit and premium VOICEVOX characters unlocked. Subscribe in the section below.",
     modeByokNote:
-      "Use your own OpenAI, Anthropic, or Gemini key — no daily limit. You'll be billed by the provider.",
+      "Use your own OpenAI, Anthropic, or Gemini key — no daily limit. You'll be billed by the provider. Switch to Pro to use premium characters.",
+    modePaidDisabledHint: "(subscribe to Pro to enable)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
       "Sign in with email to upgrade to Pro or restore your subscription on another device.",
@@ -525,11 +536,15 @@ const es: Messages = {
     sectionOptional: "Opcional",
     modeLabel: "Modo",
     modeFree: "Gratis",
+    modePaid: "Pro",
     modeByok: "Usar mi clave de API",
     modeFreeNote:
       "Sin clave de API. 5 mensajes al día, se reinicia a las 9:00 JST.",
+    modePaidNote:
+      "Sin límite diario y personajes VOICEVOX premium desbloqueados. Suscríbete en la sección de abajo.",
     modeByokNote:
-      "Usa tu propia clave de OpenAI, Anthropic o Gemini — sin límite diario. El proveedor te facturará directamente.",
+      "Usa tu propia clave de OpenAI, Anthropic o Gemini — sin límite diario. El proveedor te facturará directamente. Cambia a Pro para usar personajes premium.",
+    modePaidDisabledHint: "(suscríbete a Pro para activar)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
       "Sign in with email to upgrade to Pro or restore your subscription on another device.",
@@ -694,11 +709,15 @@ const fr: Messages = {
     sectionOptional: "Facultatif",
     modeLabel: "Mode",
     modeFree: "Gratuit",
+    modePaid: "Pro",
     modeByok: "Utiliser ma clé API",
     modeFreeNote:
       "Aucune clé API nécessaire. 5 messages par jour, réinitialisation à 9 h JST.",
+    modePaidNote:
+      "Pas de limite quotidienne et personnages VOICEVOX premium débloqués. Abonnez-vous dans la section ci-dessous.",
     modeByokNote:
-      "Utilisez votre propre clé OpenAI, Anthropic ou Gemini — sans limite quotidienne. Le fournisseur vous facturera directement.",
+      "Utilisez votre propre clé OpenAI, Anthropic ou Gemini — sans limite quotidienne. Le fournisseur vous facturera directement. Passez à Pro pour utiliser les personnages premium.",
+    modePaidDisabledHint: "(abonnez-vous à Pro pour activer)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
       "Sign in with email to upgrade to Pro or restore your subscription on another device.",
@@ -863,11 +882,15 @@ const de: Messages = {
     sectionOptional: "Optional",
     modeLabel: "Modus",
     modeFree: "Kostenlos",
+    modePaid: "Pro",
     modeByok: "Eigenen API-Schlüssel nutzen",
     modeFreeNote:
       "Kein API-Schlüssel nötig. 5 Nachrichten pro Tag, Reset um 9:00 JST.",
+    modePaidNote:
+      "Kein Tageslimit und Premium-VOICEVOX-Charaktere freigeschaltet. Abonniere unten im Bereich.",
     modeByokNote:
-      "Nutze deinen eigenen OpenAI-, Anthropic- oder Gemini-Schlüssel — ohne Tageslimit. Die Abrechnung erfolgt direkt beim Anbieter.",
+      "Nutze deinen eigenen OpenAI-, Anthropic- oder Gemini-Schlüssel — ohne Tageslimit. Die Abrechnung erfolgt direkt beim Anbieter. Für Premium-Charaktere wechsle zu Pro.",
+    modePaidDisabledHint: "(Pro abonnieren zum Aktivieren)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
       "Sign in with email to upgrade to Pro or restore your subscription on another device.",
@@ -1029,10 +1052,13 @@ const zh: Messages = {
     sectionOptional: "可选",
     modeLabel: "模式",
     modeFree: "免费",
+    modePaid: "Pro",
     modeByok: "使用我的 API 密钥",
     modeFreeNote: "无需 API 密钥。每天 5 条，日本时间 9:00 重置。",
+    modePaidNote: "无每日限制，并解锁高级 VOICEVOX 角色。请在下方订阅。",
     modeByokNote:
-      "使用您自己的 OpenAI、Anthropic 或 Gemini 密钥 — 无每日限制。费用由您直接支付给服务方。",
+      "使用您自己的 OpenAI、Anthropic 或 Gemini 密钥 — 无每日限制。费用由您直接支付给服务方。如需使用高级角色，请切换到 Pro。",
+    modePaidDisabledHint: "（订阅 Pro 后可选）",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
       "Sign in with email to upgrade to Pro or restore your subscription on another device.",
@@ -1195,11 +1221,15 @@ const pt: Messages = {
     sectionOptional: "Opcional",
     modeLabel: "Modo",
     modeFree: "Grátis",
+    modePaid: "Pro",
     modeByok: "Usar minha chave de API",
     modeFreeNote:
       "Sem chave de API. 5 mensagens por dia, reinicia às 9:00 JST.",
+    modePaidNote:
+      "Sem limite diário e personagens VOICEVOX premium desbloqueados. Assine na seção abaixo.",
     modeByokNote:
-      "Use sua própria chave OpenAI, Anthropic ou Gemini — sem limite diário. O provedor cobrará você diretamente.",
+      "Use sua própria chave OpenAI, Anthropic ou Gemini — sem limite diário. O provedor cobrará você diretamente. Mude para Pro para usar personagens premium.",
+    modePaidDisabledHint: "(assine Pro para ativar)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
       "Sign in with email to upgrade to Pro or restore your subscription on another device.",
@@ -1364,10 +1394,14 @@ const ko: Messages = {
     sectionOptional: "선택",
     modeLabel: "모드",
     modeFree: "무료",
+    modePaid: "Pro",
     modeByok: "내 API 키 사용",
     modeFreeNote: "API 키 불필요. 하루 5회, 일본 시간 9시에 리셋됩니다.",
+    modePaidNote:
+      "일일 제한 없음과 프리미엄 VOICEVOX 캐릭터 잠금 해제. 아래 섹션에서 구독하세요.",
     modeByokNote:
-      "OpenAI, Anthropic, Gemini 키를 직접 사용해 제한 없이 쓸 수 있습니다. 요금은 제공사에 직접 지불합니다.",
+      "OpenAI, Anthropic, Gemini 키를 직접 사용해 제한 없이 쓸 수 있습니다. 요금은 제공사에 직접 지불합니다. 프리미엄 캐릭터를 사용하려면 Pro로 전환하세요.",
+    modePaidDisabledHint: "(Pro 구독 시 선택 가능)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
       "Sign in with email to upgrade to Pro or restore your subscription on another device.",
@@ -1532,11 +1566,15 @@ const it: Messages = {
     sectionOptional: "Opzionale",
     modeLabel: "Modalità",
     modeFree: "Gratuita",
+    modePaid: "Pro",
     modeByok: "Usa la mia chiave API",
     modeFreeNote:
       "Nessuna chiave API necessaria. 5 messaggi al giorno, reset alle 9:00 JST.",
+    modePaidNote:
+      "Nessun limite giornaliero e personaggi VOICEVOX premium sbloccati. Iscriviti nella sezione qui sotto.",
     modeByokNote:
-      "Usa la tua chiave OpenAI, Anthropic o Gemini — senza limite giornaliero. Il provider ti fatturerà direttamente.",
+      "Usa la tua chiave OpenAI, Anthropic o Gemini — senza limite giornaliero. Il provider ti fatturerà direttamente. Passa a Pro per usare i personaggi premium.",
+    modePaidDisabledHint: "(iscriviti a Pro per attivare)",
     subscriptionLabel: "Account & subscription",
     subscriptionSignedOut:
       "Sign in with email to upgrade to Pro or restore your subscription on another device.",

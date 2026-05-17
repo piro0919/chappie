@@ -13,15 +13,48 @@ export type Language =
   | "it";
 
 /**
- * - "free": call the proxy at chappie.kkweb.io (no API key needed; daily quota).
+ * - "free": call the proxy at chappie.kkweb.io (no API key, 5 req/day quota).
+ * - "paid": call the proxy with a Bearer token so the backend bypasses
+ *           quota and unlocks premium features (VOICEVOX paid speakers).
+ *           Only valid while `subscriptionStatus in {"active","trialing"}` —
+ *           `loadSettings` auto-demotes to "free" if the subscription has
+ *           lapsed so a stale settings.json can't trick the UI.
  * - "byok": call OpenAI / Anthropic / Gemini directly with the user's key.
+ *           Mutually exclusive with paid features — BYOK users who want
+ *           premium voices must switch to "paid".
  *
  * Fresh installs default to "free". Existing users with a saved key
  * migrate to "byok" so behavior stays identical (see migration in
  * `loadSettings`). The renderer holds this as the source of truth; the
  * Rust `chat_complete` Tauri command branches on it.
  */
-export type Mode = "free" | "byok";
+export type Mode = "free" | "paid" | "byok";
+
+/**
+ * Pure helper so the paid-demote rule is unit-testable without touching
+ * the Tauri store. `mode === "paid"` requires an active subscription;
+ * if status has lapsed we drop back to "free" so the UI and chat path
+ * agree.
+ */
+export function resolveMode(
+  storedMode: Mode | undefined,
+  apiKey: string,
+  subscriptionStatus: SubscriptionStatus,
+): Mode {
+  // First-time migration: a pre-Free-mode user with a saved API key was
+  // a BYOK user — preserve that behavior. No key + no `mode` is a fresh
+  // (or wiped) install → Free.
+  const initial: Mode = storedMode ?? (apiKey.trim() ? "byok" : "free");
+  // Demote paid → free when the subscription is no longer entitled.
+  if (
+    initial === "paid" &&
+    subscriptionStatus !== "active" &&
+    subscriptionStatus !== "trialing"
+  ) {
+    return "free";
+  }
+  return initial;
+}
 
 export type SubscriptionStatus =
   | "active"
@@ -91,11 +124,17 @@ export async function loadSettings(): Promise<Settings> {
   const language = (await store.get<Language>("language")) ?? DEFAULTS.language;
   const autostart =
     (await store.get<boolean>("autostart")) ?? DEFAULTS.autostart;
-  // Migration: a pre-Free-mode user whose store has no `mode` entry but
-  // does have a saved API key was a BYOK user — preserve that behavior.
-  // No key + no `mode` is a fresh (or wiped) install → Free.
   const storedMode = await store.get<Mode>("mode");
-  const mode: Mode = storedMode ?? (apiKey.trim() ? "byok" : DEFAULTS.mode);
+  const subscriptionStatus =
+    (await store.get<SubscriptionStatus>("subscriptionStatus")) ??
+    DEFAULTS.subscriptionStatus;
+  const mode = resolveMode(storedMode, apiKey, subscriptionStatus);
+  // Persist a paid → free demote so subsequent loads agree without
+  // re-running the resolve, and so other windows see the change.
+  if (storedMode === "paid" && mode === "free") {
+    await store.set("mode", "free");
+    await store.save();
+  }
   return {
     mode,
     openaiApiKey: apiKey,
@@ -110,9 +149,7 @@ export async function loadSettings(): Promise<Settings> {
     subscriptionEmail:
       (await store.get<string>("subscriptionEmail")) ??
       DEFAULTS.subscriptionEmail,
-    subscriptionStatus:
-      (await store.get<SubscriptionStatus>("subscriptionStatus")) ??
-      DEFAULTS.subscriptionStatus,
+    subscriptionStatus,
     subscriptionPeriodEnd:
       (await store.get<string>("subscriptionPeriodEnd")) ??
       DEFAULTS.subscriptionPeriodEnd,
