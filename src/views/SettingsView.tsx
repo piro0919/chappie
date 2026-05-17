@@ -621,6 +621,18 @@ export function SettingsView() {
                 onChange={() => setMode("byok")}
               />{" "}
               {t("settings.modeByok")}
+              {subscriptionEntitled && (
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: "0.85em",
+                    color: "#2a7a2a",
+                    fontWeight: 600,
+                  }}
+                >
+                  ✓ {t("settings.subscriptionProActive")}
+                </span>
+              )}
             </label>
           </div>
         </div>
@@ -633,8 +645,13 @@ export function SettingsView() {
               : t("settings.modeByokNote")}
         </p>
 
-        {/* Pro panel: email sign-in when signed out, status + manage when in. */}
-        {mode === "paid" && (
+        {/* Pro panel: visible when the user is on the Paid radio OR
+            already signed in. The Paid radio is the entry point for
+            new sign-ins; once signed in the manage UI follows the
+            user across modes so a BYOK + Pro subscriber can still
+            see status and manage the subscription without bouncing
+            back to the Paid radio. */}
+        {(mode === "paid" || !!subscriptionEmail) && (
           <div
             style={{
               display: "flex",

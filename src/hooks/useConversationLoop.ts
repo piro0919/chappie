@@ -392,24 +392,25 @@ export function useConversationLoop(): { state: State; error: string | null } {
   //   chappie / チャッピー   → Web Speech (Chappie's own voice)
   //   ずんだもん / めたん etc → VOICEVOX with that speaker
   // The next wake overwrites whatever the previous turn set.
-  function applyVoiceForWake(speakerId: number | undefined): void {
-    // Paid VOICEVOX characters fall back to chappie's default voice when the
-    // user isn't on Pro. We still let the LLM turn run, just without the
-    // character persona/voice — and surface the lock via HUD so the user
-    // knows why ずんだもん answered instead of the character they called.
+  // Returns true if the wake should be ignored entirely (paid speaker
+  // invoked without entitlement). Caller surfaces the HUD nudge and
+  // skips the turn so chappie doesn't answer in the character's place.
+  function isWakeBlocked(speakerId: number | undefined): boolean {
     if (
       speakerId !== undefined &&
       isPaidSpeaker(speakerId) &&
       !subscriptionEntitledRef.current
     ) {
-      console.info(
-        `[loop] applyVoiceForWake paid-locked speaker=${speakerId} → chappie default`,
-      );
+      console.info(`[loop] wake blocked: paid speaker=${speakerId}`);
       void showOnHud(
         tRaw(langRef.current, "settings.voicevoxPaidLockHud"),
       ).catch(() => {});
-      speakerId = undefined;
+      return true;
     }
+    return false;
+  }
+
+  function applyVoiceForWake(speakerId: number | undefined): void {
     voicevoxSpeakerIdRef.current = speakerId;
     const { engineOpts, trayCharacter } = resolveVoiceForWake(speakerId);
     console.info(
@@ -514,6 +515,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
       const cw = detectWake(body);
       let promptText = body;
       if (cw.matched) {
+        if (isWakeBlocked(cw.speakerId)) {
+          dispatch({ type: "speechTimeout" });
+          return;
+        }
         applyVoiceForWake(cw.speakerId);
         if (cw.body) promptText = cw.body;
       }
@@ -527,6 +532,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
       `[loop] wake match: matched=${m.matched} body="${m.matched ? m.body : ""}"${m.matched && m.speakerId !== undefined ? ` speakerId=${m.speakerId}` : ""}`,
     );
     if (!m.matched) return;
+
+    // Paid speaker invoked without entitlement: HUD nudge, no response.
+    if (isWakeBlocked(m.speakerId)) return;
 
     // Each wake-word picks the voice for this turn. Plain chappie wake
     // routes to Web Speech, a character-name wake routes to that
@@ -800,9 +808,16 @@ export function useConversationLoop(): { state: State; error: string | null } {
     const s = await loadSettings();
     const wasBlocked = modeRef.current === "byok" && !apiKeyRef.current;
     const langChanged = langRef.current !== s.language;
+    const prevMode = modeRef.current;
     apiKeyRef.current = s.openaiApiKey;
     subscriptionTokenRef.current = s.subscriptionAccessToken;
     modeRef.current = s.mode;
+    // Switching off Paid (→ Free or BYOK) snaps the tray icon + voice
+    // back to chappie's default so the user sees a clean reset instead
+    // of staying on the previous character until the next wake-word.
+    if (prevMode !== s.mode && (s.mode === "free" || s.mode === "byok")) {
+      applyVoiceForWake(undefined);
+    }
     subscriptionEntitledRef.current =
       s.subscriptionStatus === "active" || s.subscriptionStatus === "trialing";
     langRef.current = s.language;
