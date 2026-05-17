@@ -115,6 +115,22 @@ export default async function Page({
         </div>
       </section>
 
+      {/* Why */}
+      <section className="px-6 py-20">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-(--color-cocoa-500) mb-3 text-center text-xs font-bold tracking-[0.25em]">
+            {t("why.eyebrow")}
+          </h2>
+          <p className="text-(--color-cocoa-700) mx-auto mb-10 max-w-2xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
+            {t("why.heading")}
+          </p>
+          <div className="text-(--color-cocoa-600) mx-auto max-w-2xl space-y-5 text-base leading-relaxed sm:text-lg">
+            <p>{t("why.paragraph1")}</p>
+            <p>{t("why.paragraph2")}</p>
+          </div>
+        </div>
+      </section>
+
       {/* Capabilities */}
       <section className="bg-(--color-cream-100) px-6 py-24">
         <div className="mx-auto max-w-5xl">

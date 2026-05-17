@@ -15,6 +15,12 @@
     "githubButton": "GitHub",
     "footnote": "Mac (Apple Silicon) · No API key required · Windows version coming soon · Open source"
   },
+  "why": {
+    "eyebrow": "WHY CHAPPIE",
+    "heading": "A voice assistant that's actually yours.",
+    "paragraph1": "The Alexa in the living room is shared with the family — not great for \"remind me to email my manager at 4\" or \"what's on my calendar tomorrow\". Asking it from your desk means the reply blares out of the kitchen speaker, three rooms away. macOS's Siri exists, but you know how that goes.",
+    "paragraph2": "Chappie lives on your Mac and only listens to you. Keyboard stays where it is, the reply comes out of your laptop, and the things you'd normally ask Alexa — timers, reminders, the weather, \"open my Downloads\", \"what song is this\" — just work, one wake word away."
+  },
   "capabilities": {
     "eyebrow": "WHAT IT CAN DO",
     "heading": "Things you can say.",

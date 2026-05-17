@@ -17,6 +17,19 @@
   <img src="lp/public/menubar.png" alt="Chappie in the macOS menu bar" width="640" />
 </div>
 
+## Why Chappie?
+
+The Alexa in the living room is shared with the family — not great for "remind
+me to email my manager at 4" or "what's on my calendar tomorrow". Asking it
+from your desk means the reply blares out of the kitchen speaker, three rooms
+away. macOS's Siri exists, but you know how that goes.
+
+Chappie is a hands-free voice assistant that lives on your Mac and only
+listens to you. Keyboard stays where it is, the reply comes out of your
+laptop, and the things you'd normally ask Alexa — timers, reminders, the
+weather, "open my Downloads", "what song is this" — just work, one wake word
+away.
+
 ## Highlights
 
 - 🎙 **No hotkeys, no clicks** — just say the wake word; Chappie remembers the flow of the conversation
