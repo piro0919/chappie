@@ -263,3 +263,77 @@ pub fn parse_local_at(input: &str) -> Result<i64, String> {
         "couldn't parse '{input}'; expected YYYY-MM-DD HH:MM (local time)"
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Local, TimeZone};
+
+    fn local_ms(y: i32, m: u32, d: u32, hh: u32, mm: u32) -> i64 {
+        Local
+            .with_ymd_and_hms(y, m, d, hh, mm, 0)
+            .single()
+            .expect("ambiguous or invalid local time")
+            .timestamp_millis()
+    }
+
+    fn ymd_hm(ms: i64) -> (i32, u32, u32, u32, u32) {
+        let dt = Local
+            .timestamp_millis_opt(ms)
+            .single()
+            .expect("invalid ms");
+        use chrono::{Datelike, Timelike};
+        (dt.year(), dt.month(), dt.day(), dt.hour(), dt.minute())
+    }
+
+    #[test]
+    fn once_does_not_advance() {
+        let start = local_ms(2026, 5, 17, 9, 30);
+        let next = compute_next_fire(start, Recurrence::Once);
+        assert_eq!(next, start);
+    }
+
+    #[test]
+    fn daily_advances_one_day() {
+        let start = local_ms(2026, 5, 17, 7, 0);
+        let next = compute_next_fire(start, Recurrence::Daily);
+        assert_eq!(ymd_hm(next), (2026, 5, 18, 7, 0));
+    }
+
+    #[test]
+    fn weekly_advances_seven_days() {
+        let start = local_ms(2026, 5, 17, 10, 0);
+        let next = compute_next_fire(start, Recurrence::Weekly);
+        assert_eq!(ymd_hm(next), (2026, 5, 24, 10, 0));
+    }
+
+    #[test]
+    fn monthly_rolls_back_jan_31_to_feb_28() {
+        // 2026 is not a leap year — Jan 31 should land on Feb 28.
+        let start = local_ms(2026, 1, 31, 8, 0);
+        let next = compute_next_fire(start, Recurrence::Monthly);
+        assert_eq!(ymd_hm(next), (2026, 2, 28, 8, 0));
+    }
+
+    #[test]
+    fn monthly_rolls_back_jan_31_to_feb_29_in_leap_year() {
+        // 2028 is a leap year — Jan 31 should land on Feb 29.
+        let start = local_ms(2028, 1, 31, 8, 0);
+        let next = compute_next_fire(start, Recurrence::Monthly);
+        assert_eq!(ymd_hm(next), (2028, 2, 29, 8, 0));
+    }
+
+    #[test]
+    fn monthly_advances_normally_in_mid_month() {
+        let start = local_ms(2026, 3, 15, 9, 0);
+        let next = compute_next_fire(start, Recurrence::Monthly);
+        assert_eq!(ymd_hm(next), (2026, 4, 15, 9, 0));
+    }
+
+    #[test]
+    fn monthly_year_rollover() {
+        let start = local_ms(2026, 12, 20, 9, 0);
+        let next = compute_next_fire(start, Recurrence::Monthly);
+        assert_eq!(ymd_hm(next), (2027, 1, 20, 9, 0));
+    }
+}

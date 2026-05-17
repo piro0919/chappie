@@ -273,3 +273,76 @@ pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     }
     dot / denom
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cosine_identical_normalized() {
+        // The enrolled centroid is stored L2-normalized; same embedding
+        // back in should score 1.0.
+        let v = [0.6f32, 0.8, 0.0];
+        let s = cosine_similarity(&v, &v);
+        assert!((s - 1.0).abs() < 1e-6, "got {s}");
+    }
+
+    #[test]
+    fn cosine_identical_unnormalized() {
+        // Function does its own L2 divide, so unnormalized identical
+        // vectors must also score 1.0 — guards against an upstream
+        // change that stops pre-normalizing embeddings.
+        let a = [3.0f32, 4.0, 0.0];
+        let b = [3.0f32, 4.0, 0.0];
+        let s = cosine_similarity(&a, &b);
+        assert!((s - 1.0).abs() < 1e-6, "got {s}");
+    }
+
+    #[test]
+    fn cosine_scale_invariant() {
+        // Scaling one side by a positive factor must not change cosine.
+        // If this regresses, the speaker gate would start rejecting the
+        // enrolled user whenever their mic gain drifts.
+        let a = [1.0f32, 2.0, 3.0];
+        let b = [10.0f32, 20.0, 30.0];
+        let s = cosine_similarity(&a, &b);
+        assert!((s - 1.0).abs() < 1e-6, "got {s}");
+    }
+
+    #[test]
+    fn cosine_orthogonal_is_zero() {
+        let a = [1.0f32, 0.0, 0.0];
+        let b = [0.0f32, 1.0, 0.0];
+        let s = cosine_similarity(&a, &b);
+        assert!(s.abs() < 1e-6, "got {s}");
+    }
+
+    #[test]
+    fn cosine_opposite_is_minus_one() {
+        let a = [1.0f32, 0.0];
+        let b = [-1.0f32, 0.0];
+        let s = cosine_similarity(&a, &b);
+        assert!((s + 1.0).abs() < 1e-6, "got {s}");
+    }
+
+    #[test]
+    fn cosine_zero_vector_is_zero_not_nan() {
+        // Degenerate case — without the guard this would be 0/0 = NaN
+        // and the speaker gate's `>= ENROLL_THRESHOLD` check would
+        // silently fail-closed on every segment.
+        let a = [0.0f32, 0.0, 0.0];
+        let b = [1.0f32, 2.0, 3.0];
+        let s = cosine_similarity(&a, &b);
+        assert!(s.abs() < 1e-6, "got {s}");
+        assert!(!s.is_nan());
+    }
+
+    #[test]
+    fn enroll_threshold_is_lenient_by_design() {
+        // The threshold lives as `pub const` because audio.rs reads it
+        // directly. Lock it in — bumping it silently above ~0.5 would
+        // make the gate reject legitimate user speech once mic /
+        // distance conditions drift from enrollment.
+        assert!(ENROLL_THRESHOLD >= 0.30 && ENROLL_THRESHOLD <= 0.50);
+    }
+}

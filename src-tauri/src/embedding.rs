@@ -236,3 +236,43 @@ pub fn cosine_normalized(a: &[f32], b: &[f32]) -> f32 {
     }
     dot
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cosine_identical_vectors() {
+        let v = [0.6f32, 0.8, 0.0];
+        // |v| = 1, so cos(v, v) = 1.
+        let s = cosine_normalized(&v, &v);
+        assert!((s - 1.0).abs() < 1e-6, "got {s}");
+    }
+
+    #[test]
+    fn cosine_orthogonal_vectors() {
+        let a = [1.0f32, 0.0, 0.0];
+        let b = [0.0f32, 1.0, 0.0];
+        let s = cosine_normalized(&a, &b);
+        assert!(s.abs() < 1e-6, "got {s}");
+    }
+
+    #[test]
+    fn cosine_opposite_vectors() {
+        let a = [1.0f32, 0.0];
+        let b = [-1.0f32, 0.0];
+        let s = cosine_normalized(&a, &b);
+        assert!((s + 1.0).abs() < 1e-6, "got {s}");
+    }
+
+    #[test]
+    fn cosine_handles_length_mismatch_by_truncating() {
+        // Length mismatch shouldn't panic — it should silently use the
+        // common prefix. The RAG path always feeds same-dim vectors but
+        // this is a sharp edge worth pinning down.
+        let a = [1.0f32, 0.0, 99.0];
+        let b = [1.0f32, 0.0];
+        let s = cosine_normalized(&a, &b);
+        assert!((s - 1.0).abs() < 1e-6, "got {s}");
+    }
+}
