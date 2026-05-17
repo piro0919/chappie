@@ -37,6 +37,7 @@ mod screenshot;
 pub mod session_log;
 pub mod summarizer;
 mod timer;
+pub mod tool_usage;
 pub mod tools;
 pub mod topics;
 mod tray;
@@ -401,6 +402,7 @@ pub fn run() {
             voicevox::voicevox_install_status,
             voicevox::voicevox_install,
             voicevox::voicevox_uninstall,
+            tool_usage::list_tool_usage,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

@@ -686,6 +686,7 @@ pub(crate) async fn execute_tool(
     args: &Value,
     end_conversation: &mut bool,
 ) -> String {
+    crate::tool_usage::record(name);
     if let Some(result) = crate::mcp::try_execute(name, args).await {
         return result;
     }
