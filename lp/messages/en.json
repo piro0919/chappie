@@ -200,6 +200,20 @@
         "example2": "\"How did the Dodgers do?\"",
         "example3": "\"When are the Cubs playing?\"",
         "body": "Pulls today's and yesterday's MLB scores and start times straight from the official feed. Knows which team each Japanese star plays for, so casual references like \"Ohtani\" or \"Darvish\" just work."
+      },
+      "stocks": {
+        "title": "Stocks and indices on the spot",
+        "example1": "\"What's Apple at?\"",
+        "example2": "\"How's the S&P doing?\"",
+        "example3": "\"Bitcoin price?\"",
+        "body": "Latest quotes for US and Japanese equities, the major indices, and crypto pairs via Stooq. No app to open, no account to log into. US equities are ~15 minutes delayed and the values are for reference, not trading."
+      },
+      "units": {
+        "title": "Unit conversion on the spot",
+        "example1": "\"70°F in Celsius?\"",
+        "example2": "\"5 miles in km?\"",
+        "example3": "\"100 pounds in kg?\"",
+        "body": "Voice-only conversion across temperature, length, weight, volume, speed, and area. Handy when you're following a recipe written in the other measurement system, or just need a number fast."
       }
     }
   },

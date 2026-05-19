@@ -59,6 +59,8 @@ away.
 | 📝 | Voice notes | "Note this down: parking B3", "Find the Wi-Fi note" (persisted) |
 | 🧠 | Long-term memory | Picks up details about you (name, family, preferences) and carries them across sessions. "What do you know about me?", "Forget that" |
 | ⚾ | MLB scores | Today's and yesterday's MLB games from the official feed. Knows which team each Japanese star plays for. "Any Ohtani game today?", "How did the Dodgers do?" |
+| 📈 | Stocks & indices | Latest quotes for US / JP equities, major indices, and crypto via Stooq. "What's Apple at?", "How's the S&P doing?" (US equities ~15 min delayed) |
+| 📐 | Unit conversion | Temperature / length / weight / volume / speed / area. "70°F in Celsius?", "5 miles in km?", "100 pounds in kg?" |
 | 🗂 | Conversation memory *(experimental, opt-in)* | Remembers the flow of your conversations over weeks: drops natural references like "the meeting you mentioned last week" or "the ramen place you said you wanted to try". Daily summaries + semantic recall via a local embedding model (~470 MB, downloaded on first opt-in). Enable / disable / wipe from Settings. |
 | 🔋 | Battery status | "What's my battery at?", "How much charge is left?" |
 | 🔒 | Lock / sleep / stay-awake | "Lock the screen", "Put the Mac to sleep", "Stay awake for 30 minutes" |
