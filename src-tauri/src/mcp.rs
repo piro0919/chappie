@@ -24,6 +24,7 @@ mod fx;
 mod mlb;
 mod news;
 mod quake;
+mod units;
 mod wiki;
 
 /// OpenAI-shape tool definitions contributed by all registered MCP
@@ -38,6 +39,7 @@ pub fn tools_openai_schema() -> Vec<Value> {
     out.extend(astro::tools());
     out.extend(fetch::tools());
     out.extend(mlb::tools());
+    out.extend(units::tools());
     out
 }
 
@@ -65,6 +67,9 @@ pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
     }
     if let Some(rest) = name.strip_prefix("mcp_mlb_") {
         return Some(mlb::execute(rest, args).await);
+    }
+    if let Some(rest) = name.strip_prefix("mcp_units_") {
+        return Some(units::execute(rest, args).await);
     }
     None
 }

@@ -60,6 +60,10 @@ fn capabilities_pt() -> String {
             &["1 dólar em iene?, e o euro?", "Quanto são 100 dólares em ienes? (amount converte na hora)"],
         ),
         (
+            "Conversão de unidades",
+            &["70°F em Celsius?, 5 milhas em km?, 100 libras em kg?", "Temperatura / comprimento / peso / volume / velocidade / área"],
+        ),
+        (
             "Sol / lua",
             &["Que horas o sol se põe hoje?, e o nascer?", "Hoje é lua cheia? (idade da lua + rótulo)"],
         ),
@@ -170,6 +174,10 @@ fn capabilities_ko() -> String {
             &["1달러 얼마야?, 유로는?", "100달러는 얼마야? (amount 지정 시 즉시 환산)"],
         ),
         (
+            "단위 환산",
+            &["화씨 70도는 몇 도?, 5마일은 몇 km?, 100파운드는 몇 kg?", "온도 / 길이 / 무게 / 부피 / 속도 / 면적"],
+        ),
+        (
             "일출 / 일몰 / 달",
             &["오늘 일몰 몇 시?, 일출은?", "오늘 밤 보름달이야? (월령 + 라벨)"],
         ),
@@ -275,6 +283,10 @@ fn capabilities_it() -> String {
         (
             "Cambio",
             &["1 dollaro in yen?, e l'euro?", "Quanti yen sono 100 dollari? (amount converte al volo)"],
+        ),
+        (
+            "Conversione unità",
+            &["70°F in Celsius?, 5 miglia in km?, 100 libbre in kg?", "Temperatura / lunghezza / peso / volume / velocità / area"],
         ),
         (
             "Sole / luna",
@@ -390,6 +402,10 @@ fn capabilities_es() -> String {
             &["¿1 dólar en yenes?, ¿y el euro?", "¿Cuántos yenes son 100 dólares? (amount convierte al vuelo)"],
         ),
         (
+            "Conversión de unidades",
+            &["¿70°F en Celsius?, ¿5 millas en km?, ¿100 libras en kg?", "Temperatura / longitud / peso / volumen / velocidad / área"],
+        ),
+        (
             "Sol / luna",
             &["¿A qué hora se pone el sol hoy?, ¿y el amanecer?", "¿Esta noche hay luna llena? (edad lunar + etiqueta)"],
         ),
@@ -501,6 +517,10 @@ fn capabilities_fr() -> String {
         (
             "Taux de change",
             &["1 dollar en yens ?, et l'euro ?", "Combien font 100 dollars en yens ? (amount convertit à la volée)"],
+        ),
+        (
+            "Conversion d'unités",
+            &["70°F en Celsius ?, 5 miles en km ?, 100 livres en kg ?", "Température / longueur / poids / volume / vitesse / surface"],
         ),
         (
             "Soleil / lune",
@@ -616,6 +636,10 @@ fn capabilities_de() -> String {
             &["1 Dollar in Yen?, und der Euro?", "Wieviel sind 100 Dollar in Yen? (amount rechnet direkt um)"],
         ),
         (
+            "Einheiten umrechnen",
+            &["70°F in Celsius?, 5 Meilen in km?, 100 Pfund in kg?", "Temperatur / Länge / Gewicht / Volumen / Geschwindigkeit / Fläche"],
+        ),
+        (
             "Sonne / Mond",
             &["Wann geht die Sonne heute unter?, und auf?", "Ist heute Vollmond? (Mondalter + Label)"],
         ),
@@ -727,6 +751,10 @@ fn capabilities_zh() -> String {
         (
             "汇率",
             &["1 美元多少日元？, 欧元呢？", "100 美元换多少日元？(amount 指定即时换算)"],
+        ),
+        (
+            "单位换算",
+            &["华氏 70 度是几度？, 5 英里是几公里？, 100 磅是几公斤？", "温度 / 长度 / 重量 / 体积 / 速度 / 面积"],
         ),
         (
             "日出 / 日落 / 月相",
@@ -850,6 +878,13 @@ fn capabilities_ja() -> String {
             &[
                 "ドル円教えて、ユーロは？",
                 "100 ドルは何円？（amount 指定で換算）",
+            ],
+        ),
+        (
+            "単位換算",
+            &[
+                "華氏 70 度って何度？、5 マイルって何キロ？、100 ポンドは何キロ？",
+                "温度・長さ・重さ・体積・速度・面積に対応（ローカル計算、為替は別）",
             ],
         ),
         (
@@ -994,6 +1029,13 @@ fn capabilities_en() -> String {
             &[
                 "USD to JPY, what's the euro at?",
                 "How much is 100 dollars in yen? (amount converts inline)",
+            ],
+        ),
+        (
+            "Unit conversion",
+            &[
+                "70°F in Celsius?, 5 miles in km?, 100 pounds in kg?",
+                "Temperature / length / weight / volume / speed / area (local math, currency is separate)",
             ],
         ),
         (
