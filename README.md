@@ -37,7 +37,7 @@ away.
 - 🔒 **Your voice stays on your Mac** — speech is transcribed locally with Whisper; the raw audio never leaves the device
 - 📍 **Locally-grounded replies** — weather and "nearby" questions pull from your actual area via macOS CoreLocation (with IP-based fallback if you decline the permission)
 - 🍎 **Menu bar resident, no Dock clutter** — shows up only when you need it
-- 🌍 **9 languages** — Japanese / English plus Spanish / French / German / Italian / Portuguese / Korean / Simplified Chinese (Beta). Picks a matching macOS voice automatically.
+- 🌍 **9 languages** — Japanese / English plus Spanish / French / German / Italian / Portuguese / Korean / Simplified Chinese (Beta). Picks a matching macOS voice automatically. (The landing page itself currently ships in English and Japanese only.)
 - 🆓 **No API key required** — Free mode works out of the box (5 chats/day via our hosted proxy). Bring your own OpenAI / Anthropic / Gemini key any time for unlimited use.
 - ♻ **Auto-update** — checks at launch and every 6 hours; tray badge for new versions; manual check from the menu
 
@@ -58,6 +58,7 @@ away.
 | 📋 | Clipboard | "Read what I just copied", "Copy that for me" |
 | 📝 | Voice notes | "Note this down: parking B3", "Find the Wi-Fi note" (persisted) |
 | 🧠 | Long-term memory | Picks up details about you (name, family, preferences) and carries them across sessions. "What do you know about me?", "Forget that" |
+| ⚾ | MLB scores | Today's and yesterday's MLB games from the official feed. Knows which team each Japanese star plays for. "Any Ohtani game today?", "How did the Dodgers do?" |
 | 🗂 | Conversation memory *(experimental, opt-in)* | Remembers the flow of your conversations over weeks: drops natural references like "the meeting you mentioned last week" or "the ramen place you said you wanted to try". Daily summaries + semantic recall via a local embedding model (~470 MB, downloaded on first opt-in). Enable / disable / wipe from Settings. |
 | 🔋 | Battery status | "What's my battery at?", "How much charge is left?" |
 | 🔒 | Lock / sleep / stay-awake | "Lock the screen", "Put the Mac to sleep", "Stay awake for 30 minutes" |
@@ -109,7 +110,7 @@ More tools coming over time.
 
 **macOS** — primary target. Apple Silicon (`aarch64-apple-darwin`), tested on macOS 14+. All features below are available.
 
-**Windows** — incremental port in progress. The Tauri / Rust / WebView layer is cross-platform, but each macOS-specific integration (osascript, pmset, `screencapture`, EventKit, ScreenCaptureKit, AVFoundation) needs a Windows equivalent (`windows-rs` SMTC, `GetSystemPowerStatus`, `SetThreadExecutionState`, etc.). Core loop first, then features ported by usage frequency.
+**Windows** — coming soon (incremental port underway). The Tauri / Rust / WebView layer is cross-platform, but each macOS-specific integration (osascript, pmset, `screencapture`, EventKit, ScreenCaptureKit, AVFoundation) needs a Windows equivalent (`windows-rs` SMTC, `GetSystemPowerStatus`, `SetThreadExecutionState`, etc.). Core loop first, then features ported by usage frequency.
 
 ### Feature availability
 
@@ -135,7 +136,7 @@ More tools coming over time.
 
 ### Requirements
 
-- macOS 14+ on Apple Silicon (M1 or later) — Windows support is in progress; see the table above for current feature parity
+- macOS 14+ on Apple Silicon (M1 or later) — Windows version coming soon; see the table above for current feature parity
 - [pnpm](https://pnpm.io/)
 - [Rust](https://rustup.rs/) (stable toolchain)
 

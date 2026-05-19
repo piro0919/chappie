@@ -23,6 +23,7 @@ export const CAPABILITY_IDS = [
   "battery",
   "lock",
   "goodbye",
+  "mlb",
 ] as const;
 
 export type CapabilityId = (typeof CAPABILITY_IDS)[number];
@@ -48,6 +49,7 @@ export const HERO_POOL: readonly CapabilityId[] = [
   "timer",
   "reminder",
   "clipboard",
+  "mlb",
 ];
 
 /**
@@ -109,6 +111,7 @@ export const CAPABILITY_ICONS: Record<CapabilityId, string> = {
   battery: "🔋",
   lock: "💤",
   goodbye: "👋",
+  mlb: "⚾",
 };
 
 export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
@@ -136,4 +139,5 @@ export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
   battery: ["example1", "example2", "example3"],
   lock: ["example1", "example2", "example3"],
   goodbye: ["example1", "example2", "example3"],
+  mlb: ["example1", "example2", "example3"],
 };

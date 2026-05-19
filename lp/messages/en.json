@@ -193,6 +193,13 @@
         "example2": "\"Goodbye\"",
         "example3": "\"Bye\"",
         "body": "Chappie picks up on goodbyes by itself and quietly returns to standby. Just say \"chappie\" again when you need it."
+      },
+      "mlb": {
+        "title": "MLB scores on the spot",
+        "example1": "\"Any Ohtani game today?\"",
+        "example2": "\"How did the Dodgers do?\"",
+        "example3": "\"When are the Cubs playing?\"",
+        "body": "Pulls today's and yesterday's MLB scores and start times straight from the official feed. Knows which team each Japanese star plays for, so casual references like \"Ohtani\" or \"Darvish\" just work."
       }
     }
   },
