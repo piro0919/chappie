@@ -115,6 +115,18 @@ type Messages = {
     speakerStrictnessLow: string;
     speakerStrictnessHigh: string;
     speakerStrictnessHint: string;
+    vadLabel: string;
+    vadDescription: string;
+    vadSensitivityLabel: string;
+    vadSensitivityHigh: string;
+    vadSensitivityLow: string;
+    vadSensitivityHint: string;
+    vadSilenceLabel: string;
+    vadSilenceMs: string;
+    vadSilenceShort: string;
+    vadSilenceLong: string;
+    vadSilenceHint: string;
+    vadReset: string;
     ltmLabel: string;
     ltmDescription: string;
     ltmStatusEnabled: string;
@@ -311,6 +323,21 @@ const ja: Messages = {
     speakerStrictnessHigh: "きびしい",
     speakerStrictnessHint:
       "高くするとテレビや他人の声をより確実にブロックしますが、風邪声や離れた位置から呼んだときに反応しなくなることがあります。",
+    vadLabel: "音声検出の調整（上級）",
+    vadDescription:
+      "ふだんは触らなくて大丈夫です。声が小さくて拾われない・周囲ノイズで誤検知する・話し終わりの判定が早すぎる/遅すぎると感じる場合だけ調整してください。",
+    vadSensitivityLabel: "発話検出の感度",
+    vadSensitivityHigh: "敏感",
+    vadSensitivityLow: "鈍感",
+    vadSensitivityHint:
+      "敏感側にするとつぶやきや小声を拾いやすくなりますが、ノイズで誤起動しやすくなります。",
+    vadSilenceLabel: "話し終わりの待ち時間",
+    vadSilenceMs: "{ms} ms",
+    vadSilenceShort: "短い",
+    vadSilenceLong: "長い",
+    vadSilenceHint:
+      "短いとレスポンスが早くなりますが、文の途中で切れやすくなります。ゆっくり話す方は長めに。",
+    vadReset: "既定値に戻す",
     ltmLabel: "長期記憶（実験的）",
     ltmDescription:
       "過去の会話を覚えて、自然な流れで「前話してた件」みたいに触れられるようになります。約 470MB のモデルを 1 度ダウンロードします。送信先はあなたの API キーの先のサービスだけで、ダウンロード後はインターネット接続なしで動きます。",
@@ -523,6 +550,21 @@ const en: Messages = {
     speakerStrictnessHigh: "Strict",
     speakerStrictnessHint:
       "Higher values reject TV / other voices more reliably, but may also reject your own voice when you're farther from the mic or have a cold.",
+    vadLabel: "Voice detection tuning (advanced)",
+    vadDescription:
+      "You usually don't need to touch this. Adjust only if your voice gets missed, background noise triggers false starts, or end-of-speech is cut too early / too late.",
+    vadSensitivityLabel: "Speech detection sensitivity",
+    vadSensitivityHigh: "Sensitive",
+    vadSensitivityLow: "Reserved",
+    vadSensitivityHint:
+      "More sensitive picks up whispers and quiet speech but fires on background noise more often.",
+    vadSilenceLabel: "End-of-speech wait",
+    vadSilenceMs: "{ms} ms",
+    vadSilenceShort: "Short",
+    vadSilenceLong: "Long",
+    vadSilenceHint:
+      "Shorter feels snappier but may cut you off mid-sentence. Slow talkers should lean longer.",
+    vadReset: "Reset to defaults",
     ltmLabel: "Long-term memory (experimental)",
     ltmDescription:
       "Lets Chappie remember past conversations and naturally bring up things you mentioned days or weeks ago. Downloads a ~470 MB model once. Your conversations only ever go to your own API provider; everything else stays on this Mac.",
@@ -736,6 +778,21 @@ const es: Messages = {
     speakerStrictnessHigh: "Estricto",
     speakerStrictnessHint:
       "Valores más altos bloquean mejor la TV u otras voces, pero pueden no reconocer la tuya cuando estás lejos del micrófono o resfriado.",
+    vadLabel: "Ajuste de detección de voz (avanzado)",
+    vadDescription:
+      "Normalmente no necesitas tocar esto. Ajústalo solo si tu voz no se detecta, el ruido de fondo causa falsos inicios o el final del habla se corta demasiado pronto / tarde.",
+    vadSensitivityLabel: "Sensibilidad de detección",
+    vadSensitivityHigh: "Sensible",
+    vadSensitivityLow: "Reservada",
+    vadSensitivityHint:
+      "Más sensible capta susurros y voz baja, pero se dispara con el ruido de fondo más a menudo.",
+    vadSilenceLabel: "Espera de fin de habla",
+    vadSilenceMs: "{ms} ms",
+    vadSilenceShort: "Corta",
+    vadSilenceLong: "Larga",
+    vadSilenceHint:
+      "Más corta se siente más ágil pero puede cortarte a mitad de frase. Los que hablan despacio prefieren más larga.",
+    vadReset: "Restablecer valores",
     ltmLabel: "Memoria a largo plazo (experimental)",
     ltmDescription:
       "Permite a Chappie recordar conversaciones pasadas y mencionar de forma natural cosas que dijiste hace días o semanas. Descarga un modelo de ~470 MB una sola vez. Tus conversaciones solo se envían a tu propio proveedor de API; todo lo demás se queda en este Mac.",
@@ -949,6 +1006,21 @@ const fr: Messages = {
     speakerStrictnessHigh: "Stricte",
     speakerStrictnessHint:
       "Une valeur plus élevée bloque mieux la TV et les autres voix, mais peut rejeter la vôtre quand vous êtes loin du micro ou enrhumé.",
+    vadLabel: "Réglage de détection vocale (avancé)",
+    vadDescription:
+      "Vous n'avez normalement pas besoin d'y toucher. À ajuster seulement si votre voix n'est pas captée, si le bruit de fond déclenche des faux départs, ou si la fin de phrase est coupée trop tôt / trop tard.",
+    vadSensitivityLabel: "Sensibilité de détection",
+    vadSensitivityHigh: "Sensible",
+    vadSensitivityLow: "Réservée",
+    vadSensitivityHint:
+      "Plus sensible capte les chuchotements et la voix basse mais se déclenche plus souvent sur le bruit.",
+    vadSilenceLabel: "Attente de fin de phrase",
+    vadSilenceMs: "{ms} ms",
+    vadSilenceShort: "Courte",
+    vadSilenceLong: "Longue",
+    vadSilenceHint:
+      "Plus courte = plus réactif mais risque de couper en milieu de phrase. Si vous parlez lentement, allongez-la.",
+    vadReset: "Réinitialiser",
     ltmLabel: "Mémoire à long terme (expérimental)",
     ltmDescription:
       "Permet à Chappie de se souvenir des conversations passées et d'évoquer naturellement ce que tu as dit il y a plusieurs jours ou semaines. Télécharge un modèle de ~470 Mo une seule fois. Tes conversations ne vont qu'à ton propre fournisseur d'API ; tout le reste reste sur ce Mac.",
@@ -1162,6 +1234,21 @@ const de: Messages = {
     speakerStrictnessHigh: "Streng",
     speakerStrictnessHint:
       "Höhere Werte blockieren TV und fremde Stimmen zuverlässiger, können aber deine eigene ablehnen, wenn du weiter vom Mikro entfernt bist oder erkältet bist.",
+    vadLabel: "Spracherkennung feinjustieren (fortgeschritten)",
+    vadDescription:
+      "Musst du normalerweise nicht anfassen. Nur ändern, wenn deine Stimme nicht erkannt wird, Hintergrundgeräusche Fehlstarts auslösen oder das Satzende zu früh / zu spät erkannt wird.",
+    vadSensitivityLabel: "Erkennungsempfindlichkeit",
+    vadSensitivityHigh: "Empfindlich",
+    vadSensitivityLow: "Zurückhaltend",
+    vadSensitivityHint:
+      "Empfindlicher erkennt auch Flüstern und leise Stimmen, springt aber öfter auf Hintergrundgeräusche an.",
+    vadSilenceLabel: "Wartezeit nach Satzende",
+    vadSilenceMs: "{ms} ms",
+    vadSilenceShort: "Kurz",
+    vadSilenceLong: "Lang",
+    vadSilenceHint:
+      "Kürzer fühlt sich flotter an, kann dich aber mitten im Satz unterbrechen. Langsame Sprecher länger einstellen.",
+    vadReset: "Auf Standard zurücksetzen",
     ltmLabel: "Langzeitgedächtnis (experimentell)",
     ltmDescription:
       "Lässt Chappie vergangene Gespräche merken und ganz natürlich Dinge ansprechen, die du vor Tagen oder Wochen gesagt hast. Lädt einmalig ein ~470 MB großes Modell herunter. Deine Gespräche gehen nur zu deinem eigenen API-Anbieter; alles andere bleibt auf diesem Mac.",
@@ -1370,6 +1457,20 @@ const zh: Messages = {
     speakerStrictnessHigh: "严格",
     speakerStrictnessHint:
       "更高的值能更可靠地屏蔽电视和他人声音，但当你离麦克风较远或感冒时，可能也无法识别你自己的声音。",
+    vadLabel: "语音检测调整（高级）",
+    vadDescription:
+      "通常无需调整。仅当你的声音未被识别、背景噪声引起误触发、或者语句结尾被切得过早 / 过晚时再调整。",
+    vadSensitivityLabel: "语音检测灵敏度",
+    vadSensitivityHigh: "灵敏",
+    vadSensitivityLow: "保守",
+    vadSensitivityHint: "更灵敏能拾取低语和轻声，但更容易被背景噪声触发。",
+    vadSilenceLabel: "结束等待时间",
+    vadSilenceMs: "{ms} 毫秒",
+    vadSilenceShort: "短",
+    vadSilenceLong: "长",
+    vadSilenceHint:
+      "更短反应更快，但可能在句子中间被切断。说话较慢的用户建议设长一些。",
+    vadReset: "恢复默认值",
     ltmLabel: "长期记忆（实验性）",
     ltmDescription:
       "让 Chappie 记住过去的对话，自然地提起你几天或几周前说过的事。一次性下载约 470 MB 的模型。对话只会发送到你自己的 API 服务，其他一切都留在这台 Mac 上。",
@@ -1579,6 +1680,21 @@ const pt: Messages = {
     speakerStrictnessHigh: "Rigoroso",
     speakerStrictnessHint:
       "Valores mais altos bloqueiam melhor a TV e outras vozes, mas podem rejeitar a sua quando você está longe do microfone ou resfriado.",
+    vadLabel: "Ajuste de detecção de voz (avançado)",
+    vadDescription:
+      "Normalmente você não precisa mexer. Ajuste só se sua voz não for captada, ruído de fundo causar disparos falsos ou o fim da fala for cortado cedo demais / tarde demais.",
+    vadSensitivityLabel: "Sensibilidade de detecção",
+    vadSensitivityHigh: "Sensível",
+    vadSensitivityLow: "Reservada",
+    vadSensitivityHint:
+      "Mais sensível capta sussurros e voz baixa, mas dispara mais com ruído de fundo.",
+    vadSilenceLabel: "Espera de fim de fala",
+    vadSilenceMs: "{ms} ms",
+    vadSilenceShort: "Curta",
+    vadSilenceLong: "Longa",
+    vadSilenceHint:
+      "Mais curta parece mais ágil mas pode cortar no meio da frase. Quem fala devagar prefere mais longa.",
+    vadReset: "Restaurar padrões",
     ltmLabel: "Memória de longo prazo (experimental)",
     ltmDescription:
       "Permite ao Chappie lembrar de conversas passadas e mencionar naturalmente coisas que você disse dias ou semanas atrás. Baixa um modelo de ~470 MB uma vez. Suas conversas só vão para o seu próprio provedor de API; todo o resto fica neste Mac.",
@@ -1790,6 +1906,21 @@ const ko: Messages = {
     speakerStrictnessHigh: "엄격함",
     speakerStrictnessHint:
       "값이 높을수록 TV나 다른 사람의 목소리를 더 확실히 차단하지만, 마이크에서 멀리 떨어지거나 감기에 걸렸을 때 본인 목소리도 거부될 수 있습니다.",
+    vadLabel: "음성 감지 조정 (고급)",
+    vadDescription:
+      "보통은 건드릴 필요 없습니다. 목소리가 잘 잡히지 않거나, 주변 소음으로 잘못 시작되거나, 발화 끝이 너무 빨리/늦게 잘릴 때만 조정하세요.",
+    vadSensitivityLabel: "음성 감지 민감도",
+    vadSensitivityHigh: "민감",
+    vadSensitivityLow: "둔감",
+    vadSensitivityHint:
+      "민감하게 하면 작은 소리도 잡지만 주변 소음에 더 자주 반응합니다.",
+    vadSilenceLabel: "발화 종료 대기 시간",
+    vadSilenceMs: "{ms} ms",
+    vadSilenceShort: "짧게",
+    vadSilenceLong: "길게",
+    vadSilenceHint:
+      "짧으면 반응이 빠르지만 문장 도중에 끊길 수 있어요. 천천히 말하는 분은 길게 두세요.",
+    vadReset: "기본값으로 되돌리기",
     ltmLabel: "장기 기억 (실험적)",
     ltmDescription:
       "Chappie가 과거의 대화를 기억하고, 며칠 또는 몇 주 전에 했던 이야기를 자연스럽게 꺼낼 수 있게 합니다. 약 470 MB의 모델을 한 번 다운로드합니다. 대화는 본인의 API 제공자로만 전송되며, 그 외 모든 것은 이 Mac에 남습니다.",
@@ -2003,6 +2134,21 @@ const it: Messages = {
     speakerStrictnessHigh: "Rigoroso",
     speakerStrictnessHint:
       "Valori più alti bloccano meglio TV e altre voci, ma potrebbero rifiutare la tua quando sei lontano dal microfono o raffreddato.",
+    vadLabel: "Regolazione rilevamento voce (avanzato)",
+    vadDescription:
+      "Di solito non serve toccarlo. Regola solo se la tua voce non viene rilevata, il rumore di fondo causa falsi avvii o la fine della frase viene tagliata troppo presto / tardi.",
+    vadSensitivityLabel: "Sensibilità di rilevamento",
+    vadSensitivityHigh: "Sensibile",
+    vadSensitivityLow: "Riservata",
+    vadSensitivityHint:
+      "Più sensibile capta sussurri e voce bassa ma reagisce più spesso al rumore di fondo.",
+    vadSilenceLabel: "Attesa fine frase",
+    vadSilenceMs: "{ms} ms",
+    vadSilenceShort: "Corta",
+    vadSilenceLong: "Lunga",
+    vadSilenceHint:
+      "Più corta sembra più reattiva ma può tagliarti a metà frase. Chi parla lentamente preferisce più lunga.",
+    vadReset: "Ripristina predefiniti",
     ltmLabel: "Memoria a lungo termine (sperimentale)",
     ltmDescription:
       "Permette a Chappie di ricordare conversazioni passate e tirare fuori naturalmente cose che hai detto giorni o settimane fa. Scarica un modello da ~470 MB una sola volta. Le tue conversazioni vanno solo al tuo provider API; tutto il resto resta su questo Mac.",
@@ -2080,7 +2226,7 @@ const it: Messages = {
   },
   systemPrompt: {
     persona:
-      'Sei Chappie, un assistente vocale a mani libere. Le tue risposte vengono lette ad alta voce, quindi rispondi in italiano in modo breve, naturale e colloquiale.\n\n**Evita di dire "non posso" il più possibile.** L\'elenco degli strumenti è una lista di utility, non l\'elenco completo di ciò che sai fare. Cartomanzia, barzellette, scrivere storie, consigli, traduzioni, riassunti, testi di canzoni, dare nomi, curiosità, parole di conforto — tutto ciò che non richiede uno strumento lo gestisci generando una risposta. Non rifiutare freddamente con "non posso" o "non ho questa funzione". Di default: buttati su tutto ciò che non è fisicamente impossibile su un Mac. **Non rifiutare mai la cartomanzia.** Parti subito con qualcosa tipo "Vediamo un po\'…" o "Oggi sembra che…" e scegli liberamente il sistema (tarocchi, oroscopo, chiromanzia, omikuji). Dire "non faccio cartomanzia" è severamente vietato.\n\nQuando l\'utente condivide qualcosa su di sé che potrebbe servire in conversazioni future (nome, famiglia, lavoro, luogo, preferenze, antipatie, promesse, eventi passati), chiama `save_memory` proattivamente per ricordarlo, anche senza richiesta esplicita. Non salvare chiacchiere banali o emozioni momentanee. Salva in silenzio — non annunciare "me ne ricorderò" ogni volta (è fastidioso). Quando l\'utente chiede "cosa sai di me?", chiama `list_memories`; per riferimenti a temi passati ("quella cosa", "di cui parlavamo"), chiama `recall_memory`.\n\n**Tratta le domande ambigue come rivolte a te.** Domande corte senza soggetto esplicito — "Come va?", "Tutto bene?", "Come stai?" — sono per default rivolte a te (l\'assistente). Anche se nel turno precedente hai chiamato uno strumento come `get_weather`, NON richiamarlo, a meno che l\'utente faccia un riferimento esplicito ("e quello…?", "e il…?"). Rispondi in modo conversazionale.\n\n**Regola di selezione dello strumento: guarda SOLO la frase attuale dell\'utente.** Ignora completamente quale strumento hai usato nel turno precedente. Anche se il risultato di un altro strumento è nella cronologia, non farti influenzare se la nuova frase non c\'entra. Abbina letteralmente verbo / sostantivo / numero della frase allo strumento corrispondente. Esempi: "timer di N minuti", "ricordamelo tra N secondi" → `set_timer`; "che ora è", "che giorno è" → `get_current_time`; "batteria", "ricarica", "presa" → `get_battery_status`; "meteo", "temperatura", "pioggia", "sole" → `get_weather`; "volume" → `set_volume` / `get_volume`. Scegliere un altro strumento quando la richiesta contiene chiaramente queste parole chiave è severamente vietato.\n\n**Non chiudere con "non lo so" o "non l\'ho trovato."** Per informazioni in tempo reale (risultati sportivi / punteggi in diretta, prezzi delle azioni, notizie dell\'ultim\'ora, eventi locali, se un negozio specifico è aperto, ecc.) — se non c\'è uno strumento adatto, il risultato dello strumento è vuoto, oppure viene restituito un fallback_url, chiama sempre `web_search` con la frase dell\'utente così com\'è per aprire Google nel browser predefinito, e rispondi solo "L\'ho aperto nel tuo browser." Non rigirare la domanda all\'utente. Chiudere con "non ho quell\'informazione" o "non l\'ho trovato" è vietato.',
+      'Sei Chappie, un assistente vocale a mani libere. Le tue risposte vengono lette ad alta voce, quindi rispondi in italiano in modo breve, naturale e colloquiale.\n\n**Evita di dire "non posso" il più possibile.** L\'elenco degli strumenti è una lista di utility, non l\'elenco completo di ciò che sai fare. Cartomanzia, barzellette, scrivere storie, consigli, traduzioni, riassunti, testi di canzoni, dare nomi, curiosità, parole di conforto — tutto ciò che non richiede uno strumento lo gestisci generando una risposta. Non rifiutare freddamente con "non posso" o "non ho questa funzione". Di default: buttati su tutto ciò che non è fisicamente impossibile su un Mac. **Non rifiutare mai la cartomanzia.** Parti subito con qualcosa tipo "Vediamo un po\'…" o "Oggi sembra che…" e scegli liberamente il sistema (tarocchi, oroscopo, chiromanzia, omikuji). Dire "non faccio cartomanzia" è severamente vietato.\n\nQuando l\'utente condivide qualcosa su di sé che potrebbe servire in conversazioni future (nome, famiglia, lavoro, luogo, preferenze, antipatie, promesse, eventi passati), chiama `save_memory` proattivamente per ricordarlo, anche senza richiesta esplicita. Non salvare chiacchiere banali o emozioni momentanee. Salva in silenzio — non annunciare "me ne ricorderò" ogni volta (è fastidioso). Quando l\'utente chiede "cosa sai di me?", chiama `list_memories`; per riferimenti a temi passati ("quella cosa", "di cui parlavamo"), chiama `recall_memory`.\n\n**Tratta le domande ambigue come rivolte a te.** Domande corte senza soggetto esplicito — "Come va?", "Tutto bene?", "Come stai?" — sono per default rivolte a te (l\'assistente). Anche se nel turno precedente hai chiamato uno strumento come `get_weather`, NON richiamarlo, a meno che l\'utente faccia un riferimento esplicito ("e quello…?", "e il…?"). Rispondi in modo conversazionale.\n\n**Regola di selezione dello strumento: guarda SOLO la frase attuale dell\'utente.** Ignora completamente quale strumento hai usato nel turno precedente. Anche se il risultato di un altro strumento è nella cronologia, non farti influenzare se la nuova frase non c\'entra. Abbina letteralmente verbo / sostantivo / numero della frase allo strumento corrispondente. Esempi: "timer di N minuti", "ricordamelo tra N secondi" → `set_timer`; "che ora è", "che giorno è" → `get_current_time`; "batteria", "ricarica", "presa" → `get_battery_status`; "meteo", "temperatura", "pioggia", "sole" → `get_weather`; "volume" → `set_volume` / `get_volume`. Scegliere un altro strumento quando la richiesta contiene chiaramente queste parole chiave è severamente vietato.\n\n**Non chiudere con "non lo so" o "non l\'ho trovato."** Per informazioni in tempo reale (risultati sportivi / punteggi in diretta, prezzi delle azioni, notizie dell\'ultim\'ora, eventi locali, se un negozio specifico è aperto, ecc.), se (a) non c\'è uno strumento adatto, (b) il risultato dello strumento è vuoto o viene restituito un fallback_url, oppure (c) **lo strumento restituisce items ma nessuno corrisponde al riferimento temporale dell\'utente (es. chiede "di oggi" / "ultimi" / "in diretta" e tornano solo voci vecchie)**, chiama sempre `web_search` con la frase dell\'utente così com\'è per aprire Google nel browser predefinito, e rispondi solo "L\'ho aperto nel tuo browser." Non rigirare la domanda all\'utente. Chiudere con "non ho quell\'informazione", "non l\'ho trovato" o "non sono uscite info recenti" è vietato. Leggere vecchi articoli come surrogato ("per oggi non c\'è nulla, ma…") è anch\'esso vietato.',
     formatTts:
       "Scrivi i numeri in modo che suonino naturali a voce alta. Evita la punteggiatura che si legge male — di' gli orari come 'le due e mezza' invece di '14:30', le date come 'otto maggio' invece di '5/8'.",
     formatHud:

@@ -124,6 +124,20 @@ export type Settings = {
    * normalises that to the actual default at read time.
    */
   speakerThreshold: number;
+  /**
+   * Silero VAD probability threshold. Lower = more sensitive to quiet
+   * speech but more false positives. Range / default sourced from Rust
+   * (`vad_config_range`) so the slider stays aligned with what audio.rs
+   * actually uses.
+   */
+  vadThreshold: number;
+  /**
+   * Consecutive non-speech frames before the segmenter cuts the
+   * utterance and ships it to Whisper. Stored as frame count (not ms)
+   * so the value is meaningful without the renderer needing to know
+   * the audio frame size — Settings UI converts to ms for display.
+   */
+  vadSilenceFrames: number;
 };
 
 const DEFAULTS: Settings = {
@@ -146,6 +160,8 @@ const DEFAULTS: Settings = {
   proactiveQuietHoursStart: "07:00",
   proactiveQuietHoursEnd: "22:00",
   speakerThreshold: 0.4,
+  vadThreshold: 0.25,
+  vadSilenceFrames: 22,
 };
 const FILE = "settings.json";
 
@@ -240,6 +256,11 @@ export async function loadSettings(): Promise<Settings> {
     speakerThreshold:
       (await store.get<number>("speakerThreshold")) ??
       DEFAULTS.speakerThreshold,
+    vadThreshold:
+      (await store.get<number>("vadThreshold")) ?? DEFAULTS.vadThreshold,
+    vadSilenceFrames:
+      (await store.get<number>("vadSilenceFrames")) ??
+      DEFAULTS.vadSilenceFrames,
   };
 }
 
@@ -325,6 +346,12 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.speakerThreshold !== undefined) {
     await store.set("speakerThreshold", patch.speakerThreshold);
+  }
+  if (patch.vadThreshold !== undefined) {
+    await store.set("vadThreshold", patch.vadThreshold);
+  }
+  if (patch.vadSilenceFrames !== undefined) {
+    await store.set("vadSilenceFrames", patch.vadSilenceFrames);
   }
   await store.save();
 }

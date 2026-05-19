@@ -51,6 +51,11 @@ describe("settings", () => {
     speakerThreshold: 0.4,
   } as const;
 
+  const VAD_DEFAULTS = {
+    vadThreshold: 0.25,
+    vadSilenceFrames: 22,
+  } as const;
+
   it("returns defaults when store is empty", async () => {
     expect(await loadSettings()).toEqual({
       mode: "free",
@@ -60,6 +65,7 @@ describe("settings", () => {
       ...SUBSCRIPTION_DEFAULTS,
       ...PROACTIVE_DEFAULTS,
       ...SPEAKER_DEFAULTS,
+      ...VAD_DEFAULTS,
     });
   });
 
@@ -75,6 +81,7 @@ describe("settings", () => {
       ...SUBSCRIPTION_DEFAULTS,
       ...PROACTIVE_DEFAULTS,
       ...SPEAKER_DEFAULTS,
+      ...VAD_DEFAULTS,
     });
   });
 
@@ -91,6 +98,7 @@ describe("settings", () => {
       ...SUBSCRIPTION_DEFAULTS,
       ...PROACTIVE_DEFAULTS,
       ...SPEAKER_DEFAULTS,
+      ...VAD_DEFAULTS,
     });
   });
 

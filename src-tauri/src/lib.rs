@@ -305,6 +305,36 @@ fn speaker_threshold_range() -> (f32, f32, f32) {
     )
 }
 
+#[tauri::command]
+fn set_vad_threshold(value: f32) {
+    audio::set_vad_threshold_value(value);
+}
+
+#[tauri::command]
+fn set_vad_silence_frames(frames: usize) {
+    audio::set_silence_frames_to_end_value(frames);
+}
+
+/// (min, max, default, frame_ms) for both VAD sliders. `frame_ms` lets
+/// the renderer convert the frame-count silence range into milliseconds
+/// for display without hardcoding the audio frame size.
+#[tauri::command]
+fn vad_config_range() -> serde_json::Value {
+    serde_json::json!({
+        "threshold": {
+            "min": audio::MIN_VAD_THRESHOLD,
+            "max": audio::MAX_VAD_THRESHOLD,
+            "default": audio::DEFAULT_VAD_THRESHOLD,
+        },
+        "silenceFrames": {
+            "min": audio::MIN_SILENCE_FRAMES_TO_END,
+            "max": audio::MAX_SILENCE_FRAMES_TO_END,
+            "default": audio::DEFAULT_SILENCE_FRAMES_TO_END,
+        },
+        "frameMs": audio::FRAME_MS,
+    })
+}
+
 /// Enroll the current user's voice from a 16 kHz mono PCM buffer.
 /// `samples` is expected to be ~5-10 s of clean speech (the renderer
 /// records and passes raw f32 PCM). We chunk it into ~3 s windows,
@@ -410,6 +440,9 @@ pub fn run() {
             get_speaker_threshold,
             set_speaker_threshold,
             speaker_threshold_range,
+            set_vad_threshold,
+            set_vad_silence_frames,
+            vad_config_range,
             set_whisper_language,
             set_app_language,
             mic_permission::check_microphone_permission,

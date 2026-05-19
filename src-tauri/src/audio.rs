@@ -23,19 +23,32 @@ use voice_activity_detector::VoiceActivityDetector;
 
 const TARGET_RATE: u32 = 16_000;
 // Silero VAD V5 requires exactly 512 samples per chunk at 16kHz (~32ms).
-const FRAME_SAMPLES: usize = 512;
+pub const FRAME_SAMPLES: usize = 512;
+// Frame duration in milliseconds — derived from FRAME_SAMPLES / 16 kHz.
+// Renderer-side UI converts user-facing milliseconds into frame counts
+// using this constant, so the silence-end slider stays meaningful even
+// if the frame size ever changes.
+pub const FRAME_MS: usize = 32;
 // Probability threshold above which a frame is considered speech. Silero V5
 // recommends 0.5 but real rooms with quieter speakers benefit from a much
-// lower bar — we drop weak segments via MIN_SPEECH_FRAMES instead.
-const VAD_THRESHOLD: f32 = 0.25;
+// lower bar — we drop weak segments via MIN_SPEECH_FRAMES instead. Now
+// runtime-adjustable via Settings; this is the default + lower bound of
+// the slider range.
+pub const DEFAULT_VAD_THRESHOLD: f32 = 0.25;
+pub const MIN_VAD_THRESHOLD: f32 = 0.15;
+pub const MAX_VAD_THRESHOLD: f32 = 0.50;
 // Higher VAD threshold used during barge-in mode (TTS playing; mic is
 // hot but we want to ignore speaker reverb of Chappie's own voice). The
 // gap to the normal threshold is what gives us the "echo rejection";
 // genuine user speech still clears 0.6 easily, while loopback usually
 // hovers around 0.3-0.5.
 const VAD_THRESHOLD_BARGE_IN: f32 = 0.6;
-// Consecutive non-speech frames to terminate an utterance (~700ms at 32ms/frame).
-const SILENCE_FRAMES_TO_END: usize = 22;
+// Consecutive non-speech frames to terminate an utterance. 22 ≈ 700ms
+// at 32ms/frame — fast enough to feel responsive but long enough to
+// survive natural mid-sentence pauses. Runtime-adjustable via Settings.
+pub const DEFAULT_SILENCE_FRAMES_TO_END: usize = 22;
+pub const MIN_SILENCE_FRAMES_TO_END: usize = 12; // ~380ms
+pub const MAX_SILENCE_FRAMES_TO_END: usize = 38; // ~1200ms
 // Minimum speech frames before accepting an utterance (~95ms) — filters
 // clicks but keeps short utterances ("はい", "うん") and quiet talkers.
 const MIN_SPEECH_FRAMES: usize = 3;
@@ -85,6 +98,43 @@ static BARGE_IN: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::O
 static ENROLLING: once_cell::sync::OnceCell<Arc<AtomicBool>> = once_cell::sync::OnceCell::new();
 static ENROLLMENT_BUF: Mutex<Vec<f32>> = Mutex::new(Vec::new());
 static STARTED: Mutex<bool> = Mutex::new(false);
+
+// Runtime-adjustable VAD parameters. Settings pushes values here via
+// `set_vad_threshold` / `set_vad_silence_frames`; the segmenter reads
+// `current_*` on each utterance start. f32 stored as u32 bits because
+// there's no AtomicF32. 0 sentinel = "not set" → use the default.
+static VAD_THRESHOLD_BITS: std::sync::atomic::AtomicU32 =
+    std::sync::atomic::AtomicU32::new(0);
+static VAD_SILENCE_FRAMES: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
+pub fn current_vad_threshold() -> f32 {
+    let bits = VAD_THRESHOLD_BITS.load(Ordering::Relaxed);
+    if bits == 0 {
+        DEFAULT_VAD_THRESHOLD
+    } else {
+        f32::from_bits(bits)
+    }
+}
+
+pub fn set_vad_threshold_value(value: f32) {
+    let clamped = value.clamp(MIN_VAD_THRESHOLD, MAX_VAD_THRESHOLD);
+    VAD_THRESHOLD_BITS.store(clamped.to_bits(), Ordering::Relaxed);
+}
+
+pub fn current_silence_frames_to_end() -> usize {
+    let v = VAD_SILENCE_FRAMES.load(Ordering::Relaxed);
+    if v == 0 {
+        DEFAULT_SILENCE_FRAMES_TO_END
+    } else {
+        v
+    }
+}
+
+pub fn set_silence_frames_to_end_value(frames: usize) {
+    let clamped = frames.clamp(MIN_SILENCE_FRAMES_TO_END, MAX_SILENCE_FRAMES_TO_END);
+    VAD_SILENCE_FRAMES.store(clamped, Ordering::Relaxed);
+}
 
 fn muted_flag() -> Arc<AtomicBool> {
     MUTED
@@ -500,8 +550,9 @@ fn run_segmenter(
         let vad_threshold = if barge_in_now {
             VAD_THRESHOLD_BARGE_IN
         } else {
-            VAD_THRESHOLD
+            current_vad_threshold()
         };
+        let silence_frames_to_end = current_silence_frames_to_end();
         let min_rms = if barge_in_now {
             MIN_RMS_ENERGY_BARGE_IN
         } else {
@@ -558,7 +609,7 @@ fn run_segmenter(
                 }
 
                 let too_long = speech_frames + silence_frames >= max_utterance_frames;
-                let ended = silence_frames >= SILENCE_FRAMES_TO_END;
+                let ended = silence_frames >= silence_frames_to_end;
                 if ended || too_long {
                     let buf = std::mem::take(&mut speech_buf);
                     let frame_count_ok = speech_frames >= MIN_SPEECH_FRAMES;

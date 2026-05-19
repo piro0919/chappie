@@ -58,18 +58,20 @@ export function ConversationWorker(): null {
     };
   }, []);
 
-  // Speaker recognition threshold: persisted in settings.json but read
-  // by audio.rs as a Rust-side runtime override. Push it on launch and
-  // whenever Settings emits `settings:updated` so the gate uses the
-  // user's chosen strictness without a process restart.
+  // Audio-pipeline runtime knobs (speaker recognition + VAD): persisted
+  // in settings.json but read by audio.rs as Rust-side runtime overrides.
+  // Push on launch and on every `settings:updated` so changes apply
+  // without a process restart.
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     const push = async () => {
       try {
         const s = await loadSettings();
         await invoke("set_speaker_threshold", { value: s.speakerThreshold });
+        await invoke("set_vad_threshold", { value: s.vadThreshold });
+        await invoke("set_vad_silence_frames", { frames: s.vadSilenceFrames });
       } catch (e) {
-        console.warn("[conversation-worker] push speaker threshold failed", e);
+        console.warn("[conversation-worker] push audio config failed", e);
       }
     };
     void push();
