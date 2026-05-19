@@ -18,7 +18,6 @@ type Messages = {
     micRequest: string;
     micRequesting: string;
     micOpenSystem: string;
-    micRecheck: string;
     micDeniedNote: string;
     screenAccess: string;
     screenGranted: string;
@@ -35,9 +34,6 @@ type Messages = {
     locationDenied: string;
     locationRequest: string;
     locationDeniedNote: string;
-    locationDescription: string;
-    sectionRequired: string;
-    sectionOptional: string;
     modeLabel: string;
     modeFree: string;
     modePaid: string;
@@ -65,7 +61,6 @@ type Messages = {
     apiKeyNote: string;
     apiKeyDetected: string;
     apiKeyUnknown: string;
-    autostartLabel: string;
     autostartCheckbox: string;
     languageLabel: string;
     languageAuto: string;
@@ -83,7 +78,6 @@ type Messages = {
     voicevoxStatusConnected: string;
     voicevoxStatusUnreachable: string;
     voicevoxStatusChecking: string;
-    voicevoxRecheck: string;
     voicevoxStatusManaged: string;
     voicevoxStatusBundledApp: string;
     voicevoxStatusMissing: string;
@@ -96,7 +90,6 @@ type Messages = {
     voicevoxCredits: string;
     voicevoxPaidLockHud: string;
     speakerLabel: string;
-    speakerDescription: string;
     speakerStatusEnrolled: string;
     speakerStatusNotEnrolled: string;
     speakerEnroll: string;
@@ -106,7 +99,6 @@ type Messages = {
     speakerEnrolling: string;
     speakerModelDownloading: string;
     speakerFailed: string;
-    speakerPrivacy: string;
     speakerPhrasePrompt: string;
     speakerPhrase1: string;
     speakerPhrase2: string;
@@ -116,7 +108,6 @@ type Messages = {
     speakerStrictnessHigh: string;
     speakerStrictnessHint: string;
     vadLabel: string;
-    vadDescription: string;
     vadSensitivityLabel: string;
     vadSensitivityHigh: string;
     vadSensitivityLow: string;
@@ -128,7 +119,6 @@ type Messages = {
     vadSilenceHint: string;
     vadReset: string;
     ltmLabel: string;
-    ltmDescription: string;
     ltmStatusEnabled: string;
     ltmStatusDisabled: string;
     ltmEnable: string;
@@ -140,24 +130,17 @@ type Messages = {
     ltmForgetConfirm: string;
     ltmForgetDone: string;
     proactiveLabel: string;
-    proactiveDescription: string;
     proactiveMasterToggle: string;
     proactiveMorningBriefToggle: string;
-    proactiveMorningBriefTimeLabel: string;
     proactiveCalendarToggle: string;
-    proactiveCalendarLeadLabel: string;
     proactiveCalendarLead5: string;
     proactiveCalendarLead10: string;
     proactiveCalendarLead15: string;
     proactiveCalendarLead30: string;
     proactiveWeatherToggle: string;
     proactiveIdleChatterToggle: string;
-    proactiveIdleChatterAfterLabel: string;
     proactiveIdleChatterAfterUnit: string;
     proactiveQuietHoursLabel: string;
-    proactiveQuietHoursDescription: string;
-    save: string;
-    saved: string;
   };
   conversation: {
     apiKeyMissingShort: string;
@@ -212,7 +195,6 @@ const ja: Messages = {
     micRequest: "マイクを許可する",
     micRequesting: "リクエスト中…",
     micOpenSystem: "システム設定を開く",
-    micRecheck: "再確認",
     micDeniedNote: "一度拒否すると、システム設定からのみ再有効化できます。",
     screenAccess: "画面収録",
     screenGranted: "許可済み",
@@ -232,10 +214,6 @@ const ja: Messages = {
     locationRequest: "位置情報へのアクセスを許可",
     locationDeniedNote:
       "macOS のシステム設定 → プライバシーとセキュリティ → 位置情報サービス で Chappie を有効化してください。許可しない場合は IP ベースの大まかな位置で代用します。",
-    locationDescription:
-      "天気や近所の話を聞いたときに、より正確な地域で返答するために使います。許可しない場合は IP ベースの推定（市区町村レベル）にフォールバックします。",
-    sectionRequired: "必須",
-    sectionOptional: "任意",
     modeLabel: "モード",
     modeFree: "無料",
     modePaid: "Pro",
@@ -268,7 +246,6 @@ const ja: Messages = {
     apiKeyNote: "OpenAI / Anthropic / Gemini に対応。",
     apiKeyDetected: "検出: {provider}",
     apiKeyUnknown: "形式を判別できませんでした",
-    autostartLabel: "起動",
     autostartCheckbox: "ログイン時に自動起動する",
     languageLabel: "言語",
     languageAuto: "自動",
@@ -287,7 +264,6 @@ const ja: Messages = {
     voicevoxStatusConnected: "接続中",
     voicevoxStatusUnreachable: "VOICEVOX が見つかりません",
     voicevoxStatusChecking: "確認中…",
-    voicevoxRecheck: "再確認",
     voicevoxStatusManaged: "Chappie 管理",
     voicevoxStatusBundledApp: "VOICEVOX 連携中",
     voicevoxStatusMissing: "未インストール",
@@ -301,8 +277,6 @@ const ja: Messages = {
       "VOICEVOX (https://voicevox.hiroshiba.jp/) を使用しています。各キャラクターの音声には個別の利用規約があります。動画・配信等で使用する場合は「VOICEVOX:キャラ名」の表記が必要です。",
     voicevoxPaidLockHud: "🔒 このキャラは Pro で解放できます",
     speakerLabel: "話者認識",
-    speakerDescription:
-      "あなたの声を覚えさせると、テレビ・YouTube・他の人の声に反応しなくなります。",
     speakerStatusEnrolled: "登録済み",
     speakerStatusNotEnrolled: "未登録",
     speakerEnroll: "声を登録する",
@@ -312,8 +286,6 @@ const ja: Messages = {
     speakerEnrolling: "登録中…",
     speakerModelDownloading: "モデルをダウンロード中 {pct}%",
     speakerFailed: "登録に失敗しました: {err}",
-    speakerPrivacy:
-      "声紋データはこのMac内にのみ保存され、外部に送信されません。いつでも削除できます。",
     speakerPhrasePrompt: "次のフレーズを読み上げてください（{cur}/{total}）",
     speakerPhrase1: "チャッピー、おはよう",
     speakerPhrase2: "今日の天気を教えて",
@@ -324,8 +296,6 @@ const ja: Messages = {
     speakerStrictnessHint:
       "高くするとテレビや他人の声をより確実にブロックしますが、風邪声や離れた位置から呼んだときに反応しなくなることがあります。",
     vadLabel: "音声検出の調整（上級）",
-    vadDescription:
-      "ふだんは触らなくて大丈夫です。声が小さくて拾われない・周囲ノイズで誤検知する・話し終わりの判定が早すぎる/遅すぎると感じる場合だけ調整してください。",
     vadSensitivityLabel: "発話検出の感度",
     vadSensitivityHigh: "敏感",
     vadSensitivityLow: "鈍感",
@@ -339,8 +309,6 @@ const ja: Messages = {
       "短いとレスポンスが早くなりますが、文の途中で切れやすくなります。ゆっくり話す方は長めに。",
     vadReset: "既定値に戻す",
     ltmLabel: "長期記憶（実験的）",
-    ltmDescription:
-      "過去の会話を覚えて、自然な流れで「前話してた件」みたいに触れられるようになります。約 470MB のモデルを 1 度ダウンロードします。送信先はあなたの API キーの先のサービスだけで、ダウンロード後はインターネット接続なしで動きます。",
     ltmStatusEnabled: "有効",
     ltmStatusDisabled: "無効",
     ltmEnable: "有効にする（モデルをダウンロード）",
@@ -354,26 +322,17 @@ const ja: Messages = {
       "本当に会話ログ・日次サマリ・トピックを全部削除しますか？モデルファイルと「私について」の記憶（save_memory のもの）は残ります。",
     ltmForgetDone: "削除しました",
     proactiveLabel: "プロアクティブ通知",
-    proactiveDescription:
-      "Chappie の方から話しかけます。朝のブリーフィングや、カレンダー予定の事前通知など。",
     proactiveMasterToggle: "有効にする",
     proactiveMorningBriefToggle: "朝のブリーフィング",
-    proactiveMorningBriefTimeLabel: "時刻",
     proactiveCalendarToggle: "カレンダー予定の事前通知",
-    proactiveCalendarLeadLabel: "何分前に通知するか",
     proactiveCalendarLead5: "5 分前",
     proactiveCalendarLead10: "10 分前",
     proactiveCalendarLead15: "15 分前",
     proactiveCalendarLead30: "30 分前",
     proactiveWeatherToggle: "天候アラート",
     proactiveIdleChatterToggle: "アイドル時の雑談",
-    proactiveIdleChatterAfterLabel: "話しかけ始める間隔",
     proactiveIdleChatterAfterUnit: "分",
     proactiveQuietHoursLabel: "通知する時間帯",
-    proactiveQuietHoursDescription:
-      "この時間帯のみプロアクティブ通知が発火します。範囲外は無音。",
-    save: "保存",
-    saved: "保存しました",
   },
   conversation: {
     apiKeyMissingShort:
@@ -439,7 +398,6 @@ const en: Messages = {
     micRequest: "Request microphone access",
     micRequesting: "Requesting…",
     micOpenSystem: "Open System Settings",
-    micRecheck: "Recheck",
     micDeniedNote:
       "Once denied, microphone access can only be re-enabled from System Settings.",
     screenAccess: "Screen recording",
@@ -460,10 +418,6 @@ const en: Messages = {
     locationRequest: "Grant location access",
     locationDeniedNote:
       "Open System Settings → Privacy & Security → Location Services and enable Chappie. Without it, Chappie falls back to a rough IP-based estimate.",
-    locationDescription:
-      'Used to ground weather and "nearby" replies in your actual area. If you decline, Chappie falls back to a rough IP-based estimate at the city level.',
-    sectionRequired: "Required",
-    sectionOptional: "Optional",
     modeLabel: "Mode",
     modeFree: "Free",
     modePaid: "Pro",
@@ -495,7 +449,6 @@ const en: Messages = {
     apiKeyNote: "Supports OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Detected: {provider}",
     apiKeyUnknown: "Unrecognized key format",
-    autostartLabel: "Startup",
     autostartCheckbox: "Launch at login",
     languageLabel: "Language",
     languageAuto: "Auto",
@@ -514,7 +467,6 @@ const en: Messages = {
     voicevoxStatusConnected: "Connected",
     voicevoxStatusUnreachable: "VOICEVOX not reachable",
     voicevoxStatusChecking: "Checking…",
-    voicevoxRecheck: "Recheck",
     voicevoxStatusManaged: "Managed by Chappie",
     voicevoxStatusBundledApp: "Linked with VOICEVOX",
     voicevoxStatusMissing: "Not installed",
@@ -528,8 +480,6 @@ const en: Messages = {
       'Uses VOICEVOX (https://voicevox.hiroshiba.jp/). Each character voice has its own terms of use; videos and streams must credit the character ("VOICEVOX:character name").',
     voicevoxPaidLockHud: "🔒 Unlock this character with Pro",
     speakerLabel: "Voice recognition",
-    speakerDescription:
-      "Enroll your voice so Chappie ignores TV, YouTube, and other people.",
     speakerStatusEnrolled: "Enrolled",
     speakerStatusNotEnrolled: "Not enrolled",
     speakerEnroll: "Enroll my voice",
@@ -539,8 +489,6 @@ const en: Messages = {
     speakerEnrolling: "Enrolling…",
     speakerModelDownloading: "Downloading model {pct}%",
     speakerFailed: "Enrollment failed: {err}",
-    speakerPrivacy:
-      "Your voice data stays on this Mac and is never sent anywhere. You can delete it any time.",
     speakerPhrasePrompt: "Read this phrase aloud ({cur}/{total})",
     speakerPhrase1: "Chappie, good morning",
     speakerPhrase2: "Tell me today's weather",
@@ -551,8 +499,6 @@ const en: Messages = {
     speakerStrictnessHint:
       "Higher values reject TV / other voices more reliably, but may also reject your own voice when you're farther from the mic or have a cold.",
     vadLabel: "Voice detection tuning (advanced)",
-    vadDescription:
-      "You usually don't need to touch this. Adjust only if your voice gets missed, background noise triggers false starts, or end-of-speech is cut too early / too late.",
     vadSensitivityLabel: "Speech detection sensitivity",
     vadSensitivityHigh: "Sensitive",
     vadSensitivityLow: "Reserved",
@@ -566,8 +512,6 @@ const en: Messages = {
       "Shorter feels snappier but may cut you off mid-sentence. Slow talkers should lean longer.",
     vadReset: "Reset to defaults",
     ltmLabel: "Long-term memory (experimental)",
-    ltmDescription:
-      "Lets Chappie remember past conversations and naturally bring up things you mentioned days or weeks ago. Downloads a ~470 MB model once. Your conversations only ever go to your own API provider; everything else stays on this Mac.",
     ltmStatusEnabled: "Enabled",
     ltmStatusDisabled: "Off",
     ltmEnable: "Enable (download model)",
@@ -581,26 +525,17 @@ const en: Messages = {
       'Really delete all conversation logs, daily summaries, and topic snapshots? The model file and your saved "about me" facts (from save_memory) will stay.',
     ltmForgetDone: "Deleted",
     proactiveLabel: "Proactive notifications",
-    proactiveDescription:
-      "Chappie speaks up on its own — morning briefings and calendar pre-warnings.",
     proactiveMasterToggle: "Enable",
     proactiveMorningBriefToggle: "Morning briefing",
-    proactiveMorningBriefTimeLabel: "Time",
     proactiveCalendarToggle: "Calendar pre-warning",
-    proactiveCalendarLeadLabel: "Lead time",
     proactiveCalendarLead5: "5 min before",
     proactiveCalendarLead10: "10 min before",
     proactiveCalendarLead15: "15 min before",
     proactiveCalendarLead30: "30 min before",
     proactiveWeatherToggle: "Weather alerts",
     proactiveIdleChatterToggle: "Idle chatter",
-    proactiveIdleChatterAfterLabel: "Start chatter after",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Active hours",
-    proactiveQuietHoursDescription:
-      "Proactive notifications fire only during this window; silent outside it.",
-    save: "Save",
-    saved: "Saved",
   },
   conversation: {
     apiKeyMissingShort:
@@ -666,7 +601,6 @@ const es: Messages = {
     micRequest: "Solicitar acceso al micrófono",
     micRequesting: "Solicitando…",
     micOpenSystem: "Abrir Configuración del Sistema",
-    micRecheck: "Volver a comprobar",
     micDeniedNote:
       "Una vez denegado, el acceso al micrófono solo se puede reactivar desde Configuración del Sistema.",
     screenAccess: "Grabación de pantalla",
@@ -687,10 +621,6 @@ const es: Messages = {
     locationRequest: "Permitir acceso a la ubicación",
     locationDeniedNote:
       "Abre Configuración → Privacidad y seguridad → Servicios de localización y habilita Chappie. Sin permiso, se usa una estimación aproximada basada en IP.",
-    locationDescription:
-      "Se usa para que las respuestas del clima o sobre lugares cercanos se basen en tu zona real. Si lo rechazas, Chappie usa una estimación por IP a nivel de ciudad.",
-    sectionRequired: "Obligatorio",
-    sectionOptional: "Opcional",
     modeLabel: "Modo",
     modeFree: "Gratis",
     modePaid: "Pro",
@@ -723,7 +653,6 @@ const es: Messages = {
     apiKeyNote: "Compatible con OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Detectado: {provider}",
     apiKeyUnknown: "Formato de clave no reconocido",
-    autostartLabel: "Inicio",
     autostartCheckbox: "Iniciar al iniciar sesión",
     languageLabel: "Idioma",
     languageAuto: "Automático",
@@ -742,7 +671,6 @@ const es: Messages = {
     voicevoxStatusConnected: "Conectado",
     voicevoxStatusUnreachable: "VOICEVOX no disponible",
     voicevoxStatusChecking: "Comprobando…",
-    voicevoxRecheck: "Recomprobar",
     voicevoxStatusManaged: "Gestionado por Chappie",
     voicevoxStatusBundledApp: "Conectado con VOICEVOX",
     voicevoxStatusMissing: "No instalado",
@@ -756,8 +684,6 @@ const es: Messages = {
       'Usa VOICEVOX (https://voicevox.hiroshiba.jp/). Cada voz tiene sus propios términos de uso; vídeos y streams deben acreditar al personaje ("VOICEVOX:nombre del personaje").',
     voicevoxPaidLockHud: "🔒 Desbloquea este personaje con Pro",
     speakerLabel: "Reconocimiento de voz",
-    speakerDescription:
-      "Al registrar tu voz, Chappie deja de responder a la TV, YouTube u otras personas.",
     speakerStatusEnrolled: "Registrada",
     speakerStatusNotEnrolled: "No registrada",
     speakerEnroll: "Registrar mi voz",
@@ -767,8 +693,6 @@ const es: Messages = {
     speakerEnrolling: "Registrando…",
     speakerModelDownloading: "Descargando modelo {pct}%",
     speakerFailed: "Error al registrar: {err}",
-    speakerPrivacy:
-      "Tus datos de voz se quedan en este Mac y nunca se envían a ningún servidor. Puedes borrarlos cuando quieras.",
     speakerPhrasePrompt: "Lee esta frase en voz alta ({cur}/{total})",
     speakerPhrase1: "Chappie, buenos días",
     speakerPhrase2: "Dime el tiempo de hoy",
@@ -779,8 +703,6 @@ const es: Messages = {
     speakerStrictnessHint:
       "Valores más altos bloquean mejor la TV u otras voces, pero pueden no reconocer la tuya cuando estás lejos del micrófono o resfriado.",
     vadLabel: "Ajuste de detección de voz (avanzado)",
-    vadDescription:
-      "Normalmente no necesitas tocar esto. Ajústalo solo si tu voz no se detecta, el ruido de fondo causa falsos inicios o el final del habla se corta demasiado pronto / tarde.",
     vadSensitivityLabel: "Sensibilidad de detección",
     vadSensitivityHigh: "Sensible",
     vadSensitivityLow: "Reservada",
@@ -794,8 +716,6 @@ const es: Messages = {
       "Más corta se siente más ágil pero puede cortarte a mitad de frase. Los que hablan despacio prefieren más larga.",
     vadReset: "Restablecer valores",
     ltmLabel: "Memoria a largo plazo (experimental)",
-    ltmDescription:
-      "Permite a Chappie recordar conversaciones pasadas y mencionar de forma natural cosas que dijiste hace días o semanas. Descarga un modelo de ~470 MB una sola vez. Tus conversaciones solo se envían a tu propio proveedor de API; todo lo demás se queda en este Mac.",
     ltmStatusEnabled: "Activada",
     ltmStatusDisabled: "Desactivada",
     ltmEnable: "Activar (descargar modelo)",
@@ -809,26 +729,17 @@ const es: Messages = {
       '¿Eliminar todos los registros de conversación, resúmenes diarios y temas? El archivo del modelo y los datos guardados de "sobre mí" (con save_memory) se mantienen.',
     ltmForgetDone: "Borrado",
     proactiveLabel: "Notificaciones proactivas",
-    proactiveDescription:
-      "Chappie habla por iniciativa propia: resumen matutino y avisos previos del calendario.",
     proactiveMasterToggle: "Activar",
     proactiveMorningBriefToggle: "Resumen matutino",
-    proactiveMorningBriefTimeLabel: "Hora",
     proactiveCalendarToggle: "Aviso previo del calendario",
-    proactiveCalendarLeadLabel: "Antelación",
     proactiveCalendarLead5: "5 min antes",
     proactiveCalendarLead10: "10 min antes",
     proactiveCalendarLead15: "15 min antes",
     proactiveCalendarLead30: "30 min antes",
     proactiveWeatherToggle: "Alertas meteorológicas",
     proactiveIdleChatterToggle: "Charla en inactivo",
-    proactiveIdleChatterAfterLabel: "Iniciar charla tras",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Horas activas",
-    proactiveQuietHoursDescription:
-      "Las notificaciones proactivas solo se activan en este intervalo.",
-    save: "Guardar",
-    saved: "Guardado",
   },
   conversation: {
     apiKeyMissingShort:
@@ -894,7 +805,6 @@ const fr: Messages = {
     micRequest: "Demander l'accès au microphone",
     micRequesting: "Demande en cours…",
     micOpenSystem: "Ouvrir les Réglages Système",
-    micRecheck: "Revérifier",
     micDeniedNote:
       "Une fois refusé, l'accès au microphone ne peut être réactivé que depuis les Réglages Système.",
     screenAccess: "Enregistrement d'écran",
@@ -915,10 +825,6 @@ const fr: Messages = {
     locationRequest: "Autoriser l'accès à la localisation",
     locationDeniedNote:
       "Ouvre Réglages → Confidentialité et sécurité → Service de localisation et active Chappie. Sinon, on utilise une estimation IP approximative.",
-    locationDescription:
-      "Permet d'ancrer les réponses météo et locales sur ta vraie zone. Si tu refuses, Chappie retombe sur une estimation par IP au niveau de la ville.",
-    sectionRequired: "Requis",
-    sectionOptional: "Facultatif",
     modeLabel: "Mode",
     modeFree: "Gratuit",
     modePaid: "Pro",
@@ -951,7 +857,6 @@ const fr: Messages = {
     apiKeyNote: "Compatible OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Détecté : {provider}",
     apiKeyUnknown: "Format de clé non reconnu",
-    autostartLabel: "Démarrage",
     autostartCheckbox: "Lancer à l'ouverture de session",
     languageLabel: "Langue",
     languageAuto: "Automatique",
@@ -970,7 +875,6 @@ const fr: Messages = {
     voicevoxStatusConnected: "Connecté",
     voicevoxStatusUnreachable: "VOICEVOX introuvable",
     voicevoxStatusChecking: "Vérification…",
-    voicevoxRecheck: "Revérifier",
     voicevoxStatusManaged: "Géré par Chappie",
     voicevoxStatusBundledApp: "Connecté à VOICEVOX",
     voicevoxStatusMissing: "Non installé",
@@ -984,8 +888,6 @@ const fr: Messages = {
       "Utilise VOICEVOX (https://voicevox.hiroshiba.jp/). Chaque voix a ses propres conditions ; les vidéos et streams doivent créditer le personnage (« VOICEVOX:nom du personnage »).",
     voicevoxPaidLockHud: "🔒 Débloquez ce personnage avec Pro",
     speakerLabel: "Reconnaissance vocale",
-    speakerDescription:
-      "Une fois ta voix enregistrée, Chappie ignore la TV, YouTube et les autres voix.",
     speakerStatusEnrolled: "Enregistrée",
     speakerStatusNotEnrolled: "Non enregistrée",
     speakerEnroll: "Enregistrer ma voix",
@@ -995,8 +897,6 @@ const fr: Messages = {
     speakerEnrolling: "Enregistrement…",
     speakerModelDownloading: "Téléchargement du modèle {pct}%",
     speakerFailed: "Échec : {err}",
-    speakerPrivacy:
-      "Vos données vocales restent sur ce Mac et ne sont jamais envoyées ailleurs. Vous pouvez les supprimer à tout moment.",
     speakerPhrasePrompt: "Lis cette phrase à voix haute ({cur}/{total})",
     speakerPhrase1: "Chappie, bonjour",
     speakerPhrase2: "Donne-moi la météo du jour",
@@ -1007,8 +907,6 @@ const fr: Messages = {
     speakerStrictnessHint:
       "Une valeur plus élevée bloque mieux la TV et les autres voix, mais peut rejeter la vôtre quand vous êtes loin du micro ou enrhumé.",
     vadLabel: "Réglage de détection vocale (avancé)",
-    vadDescription:
-      "Vous n'avez normalement pas besoin d'y toucher. À ajuster seulement si votre voix n'est pas captée, si le bruit de fond déclenche des faux départs, ou si la fin de phrase est coupée trop tôt / trop tard.",
     vadSensitivityLabel: "Sensibilité de détection",
     vadSensitivityHigh: "Sensible",
     vadSensitivityLow: "Réservée",
@@ -1022,8 +920,6 @@ const fr: Messages = {
       "Plus courte = plus réactif mais risque de couper en milieu de phrase. Si vous parlez lentement, allongez-la.",
     vadReset: "Réinitialiser",
     ltmLabel: "Mémoire à long terme (expérimental)",
-    ltmDescription:
-      "Permet à Chappie de se souvenir des conversations passées et d'évoquer naturellement ce que tu as dit il y a plusieurs jours ou semaines. Télécharge un modèle de ~470 Mo une seule fois. Tes conversations ne vont qu'à ton propre fournisseur d'API ; tout le reste reste sur ce Mac.",
     ltmStatusEnabled: "Activée",
     ltmStatusDisabled: "Désactivée",
     ltmEnable: "Activer (télécharger le modèle)",
@@ -1037,26 +933,17 @@ const fr: Messages = {
       "Vraiment supprimer tous les journaux de conversation, résumés quotidiens et sujets ? Le fichier du modèle et les faits enregistrés « à mon sujet » (via save_memory) restent.",
     ltmForgetDone: "Supprimé",
     proactiveLabel: "Notifications proactives",
-    proactiveDescription:
-      "Chappie prend la parole de lui-même : briefing matinal et avertissements du calendrier.",
     proactiveMasterToggle: "Activer",
     proactiveMorningBriefToggle: "Briefing matinal",
-    proactiveMorningBriefTimeLabel: "Heure",
     proactiveCalendarToggle: "Pré-avertissement calendrier",
-    proactiveCalendarLeadLabel: "Délai",
     proactiveCalendarLead5: "5 min avant",
     proactiveCalendarLead10: "10 min avant",
     proactiveCalendarLead15: "15 min avant",
     proactiveCalendarLead30: "30 min avant",
     proactiveWeatherToggle: "Alertes météo",
     proactiveIdleChatterToggle: "Bavardage en idle",
-    proactiveIdleChatterAfterLabel: "Démarrer après",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Heures actives",
-    proactiveQuietHoursDescription:
-      "Les notifications proactives ne se déclenchent que pendant cette plage.",
-    save: "Enregistrer",
-    saved: "Enregistré",
   },
   conversation: {
     apiKeyMissingShort:
@@ -1122,7 +1009,6 @@ const de: Messages = {
     micRequest: "Mikrofonzugriff anfordern",
     micRequesting: "Anfrage läuft…",
     micOpenSystem: "Systemeinstellungen öffnen",
-    micRecheck: "Erneut prüfen",
     micDeniedNote:
       "Einmal abgelehnt, lässt sich der Mikrofonzugriff nur noch über die Systemeinstellungen wieder aktivieren.",
     screenAccess: "Bildschirmaufnahme",
@@ -1143,10 +1029,6 @@ const de: Messages = {
     locationRequest: "Standortzugriff erlauben",
     locationDeniedNote:
       "Öffne Systemeinstellungen → Datenschutz & Sicherheit → Ortungsdienste und aktiviere Chappie. Ohne Erlaubnis wird auf eine grobe IP-Schätzung zurückgegriffen.",
-    locationDescription:
-      "Verankert Wetter- und Lokalantworten in deiner tatsächlichen Gegend. Wenn du ablehnst, fällt Chappie auf eine ungefähre IP-Schätzung auf Stadtebene zurück.",
-    sectionRequired: "Erforderlich",
-    sectionOptional: "Optional",
     modeLabel: "Modus",
     modeFree: "Kostenlos",
     modePaid: "Pro",
@@ -1179,7 +1061,6 @@ const de: Messages = {
     apiKeyNote: "Unterstützt OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Erkannt: {provider}",
     apiKeyUnknown: "Schlüsselformat nicht erkannt",
-    autostartLabel: "Start",
     autostartCheckbox: "Beim Anmelden automatisch starten",
     languageLabel: "Sprache",
     languageAuto: "Automatisch",
@@ -1198,7 +1079,6 @@ const de: Messages = {
     voicevoxStatusConnected: "Verbunden",
     voicevoxStatusUnreachable: "VOICEVOX nicht erreichbar",
     voicevoxStatusChecking: "Prüfe…",
-    voicevoxRecheck: "Erneut prüfen",
     voicevoxStatusManaged: "Von Chappie verwaltet",
     voicevoxStatusBundledApp: "Mit VOICEVOX verbunden",
     voicevoxStatusMissing: "Nicht installiert",
@@ -1212,8 +1092,6 @@ const de: Messages = {
       'Verwendet VOICEVOX (https://voicevox.hiroshiba.jp/). Jede Stimme hat eigene Nutzungsbedingungen; Videos und Streams müssen den Charakter nennen („VOICEVOX:Charaktername").',
     voicevoxPaidLockHud: "🔒 Schalte diesen Charakter mit Pro frei",
     speakerLabel: "Sprechererkennung",
-    speakerDescription:
-      "Wenn deine Stimme registriert ist, reagiert Chappie nicht mehr auf TV, YouTube oder andere.",
     speakerStatusEnrolled: "Registriert",
     speakerStatusNotEnrolled: "Nicht registriert",
     speakerEnroll: "Stimme registrieren",
@@ -1223,8 +1101,6 @@ const de: Messages = {
     speakerEnrolling: "Registriere…",
     speakerModelDownloading: "Modell wird heruntergeladen {pct}%",
     speakerFailed: "Registrierung fehlgeschlagen: {err}",
-    speakerPrivacy:
-      "Deine Sprachdaten bleiben auf diesem Mac und werden nirgendwo hingesendet. Du kannst sie jederzeit löschen.",
     speakerPhrasePrompt: "Lies diesen Satz laut vor ({cur}/{total})",
     speakerPhrase1: "Chappie, guten Morgen",
     speakerPhrase2: "Sag mir das heutige Wetter",
@@ -1235,8 +1111,6 @@ const de: Messages = {
     speakerStrictnessHint:
       "Höhere Werte blockieren TV und fremde Stimmen zuverlässiger, können aber deine eigene ablehnen, wenn du weiter vom Mikro entfernt bist oder erkältet bist.",
     vadLabel: "Spracherkennung feinjustieren (fortgeschritten)",
-    vadDescription:
-      "Musst du normalerweise nicht anfassen. Nur ändern, wenn deine Stimme nicht erkannt wird, Hintergrundgeräusche Fehlstarts auslösen oder das Satzende zu früh / zu spät erkannt wird.",
     vadSensitivityLabel: "Erkennungsempfindlichkeit",
     vadSensitivityHigh: "Empfindlich",
     vadSensitivityLow: "Zurückhaltend",
@@ -1250,8 +1124,6 @@ const de: Messages = {
       "Kürzer fühlt sich flotter an, kann dich aber mitten im Satz unterbrechen. Langsame Sprecher länger einstellen.",
     vadReset: "Auf Standard zurücksetzen",
     ltmLabel: "Langzeitgedächtnis (experimentell)",
-    ltmDescription:
-      "Lässt Chappie vergangene Gespräche merken und ganz natürlich Dinge ansprechen, die du vor Tagen oder Wochen gesagt hast. Lädt einmalig ein ~470 MB großes Modell herunter. Deine Gespräche gehen nur zu deinem eigenen API-Anbieter; alles andere bleibt auf diesem Mac.",
     ltmStatusEnabled: "Aktiv",
     ltmStatusDisabled: "Aus",
     ltmEnable: "Aktivieren (Modell herunterladen)",
@@ -1265,26 +1137,17 @@ const de: Messages = {
       "Wirklich alle Gesprächsprotokolle, Tageszusammenfassungen und Themen löschen? Die Modelldatei und die gespeicherten Profil-Fakten (via save_memory) bleiben erhalten.",
     ltmForgetDone: "Gelöscht",
     proactiveLabel: "Proaktive Benachrichtigungen",
-    proactiveDescription:
-      "Chappie meldet sich von selbst — Morgenbriefing und Kalender-Vorwarnungen.",
     proactiveMasterToggle: "Aktivieren",
     proactiveMorningBriefToggle: "Morgenbriefing",
-    proactiveMorningBriefTimeLabel: "Uhrzeit",
     proactiveCalendarToggle: "Kalender-Vorwarnung",
-    proactiveCalendarLeadLabel: "Vorlaufzeit",
     proactiveCalendarLead5: "5 Min. vorher",
     proactiveCalendarLead10: "10 Min. vorher",
     proactiveCalendarLead15: "15 Min. vorher",
     proactiveCalendarLead30: "30 Min. vorher",
     proactiveWeatherToggle: "Wetterwarnungen",
     proactiveIdleChatterToggle: "Smalltalk im Leerlauf",
-    proactiveIdleChatterAfterLabel: "Beginnt nach",
     proactiveIdleChatterAfterUnit: "Min",
     proactiveQuietHoursLabel: "Aktive Zeiten",
-    proactiveQuietHoursDescription:
-      "Proaktive Benachrichtigungen werden nur in diesem Zeitraum ausgelöst.",
-    save: "Speichern",
-    saved: "Gespeichert",
   },
   conversation: {
     apiKeyMissingShort:
@@ -1350,7 +1213,6 @@ const zh: Messages = {
     micRequest: "请求麦克风权限",
     micRequesting: "请求中…",
     micOpenSystem: "打开系统设置",
-    micRecheck: "重新检查",
     micDeniedNote: "一旦拒绝,只能在系统设置中重新启用麦克风权限。",
     screenAccess: "屏幕录制",
     screenGranted: "已授权",
@@ -1368,10 +1230,6 @@ const zh: Messages = {
     locationRequest: "授权访问位置",
     locationDeniedNote:
       "打开系统设置 → 隐私与安全性 → 定位服务，启用 Chappie。未授权时会回退到基于 IP 的粗略估计。",
-    locationDescription:
-      '用于让天气和"附近"等回复贴合你的实际位置。如果不授权，会回退到基于 IP 的城市级估计。',
-    sectionRequired: "必需",
-    sectionOptional: "可选",
     modeLabel: "模式",
     modeFree: "免费",
     modePaid: "Pro",
@@ -1402,7 +1260,6 @@ const zh: Messages = {
     apiKeyNote: "支持 OpenAI / Anthropic / Gemini。",
     apiKeyDetected: "已识别:{provider}",
     apiKeyUnknown: "无法识别密钥格式",
-    autostartLabel: "启动",
     autostartCheckbox: "登录时自动启动",
     languageLabel: "语言",
     languageAuto: "自动",
@@ -1421,7 +1278,6 @@ const zh: Messages = {
     voicevoxStatusConnected: "已连接",
     voicevoxStatusUnreachable: "无法连接到 VOICEVOX",
     voicevoxStatusChecking: "检查中…",
-    voicevoxRecheck: "重新检查",
     voicevoxStatusManaged: "由 Chappie 管理",
     voicevoxStatusBundledApp: "已连接 VOICEVOX",
     voicevoxStatusMissing: "未安装",
@@ -1435,8 +1291,6 @@ const zh: Messages = {
       "使用了 VOICEVOX (https://voicevox.hiroshiba.jp/)。各角色语音有各自的使用条款；视频和直播须标注「VOICEVOX:角色名」。",
     voicevoxPaidLockHud: "🔒 使用 Pro 解锁该角色",
     speakerLabel: "说话人识别",
-    speakerDescription:
-      "登记你的声音后，Chappie 不会再被电视、YouTube 或其他人的声音激活。",
     speakerStatusEnrolled: "已登记",
     speakerStatusNotEnrolled: "未登记",
     speakerEnroll: "登记我的声音",
@@ -1446,8 +1300,6 @@ const zh: Messages = {
     speakerEnrolling: "登记中…",
     speakerModelDownloading: "正在下载模型 {pct}%",
     speakerFailed: "登记失败: {err}",
-    speakerPrivacy:
-      "你的声纹数据仅保存在这台Mac上，不会发送到任何服务器。可以随时删除。",
     speakerPhrasePrompt: "请朗读下面这句话（{cur}/{total}）",
     speakerPhrase1: "Chappie，早上好",
     speakerPhrase2: "告诉我今天的天气",
@@ -1458,8 +1310,6 @@ const zh: Messages = {
     speakerStrictnessHint:
       "更高的值能更可靠地屏蔽电视和他人声音，但当你离麦克风较远或感冒时，可能也无法识别你自己的声音。",
     vadLabel: "语音检测调整（高级）",
-    vadDescription:
-      "通常无需调整。仅当你的声音未被识别、背景噪声引起误触发、或者语句结尾被切得过早 / 过晚时再调整。",
     vadSensitivityLabel: "语音检测灵敏度",
     vadSensitivityHigh: "灵敏",
     vadSensitivityLow: "保守",
@@ -1472,8 +1322,6 @@ const zh: Messages = {
       "更短反应更快，但可能在句子中间被切断。说话较慢的用户建议设长一些。",
     vadReset: "恢复默认值",
     ltmLabel: "长期记忆（实验性）",
-    ltmDescription:
-      "让 Chappie 记住过去的对话，自然地提起你几天或几周前说过的事。一次性下载约 470 MB 的模型。对话只会发送到你自己的 API 服务，其他一切都留在这台 Mac 上。",
     ltmStatusEnabled: "已开启",
     ltmStatusDisabled: "未开启",
     ltmEnable: "开启（下载模型）",
@@ -1487,25 +1335,17 @@ const zh: Messages = {
       "确定要删除所有对话日志、每日总结和话题快照吗？模型文件和保存的「关于我」的资料（通过 save_memory）会保留。",
     ltmForgetDone: "已删除",
     proactiveLabel: "主动通知",
-    proactiveDescription: "Chappie 会主动发起对话 —— 早间简报和日历提前提醒。",
     proactiveMasterToggle: "启用",
     proactiveMorningBriefToggle: "早间简报",
-    proactiveMorningBriefTimeLabel: "时间",
     proactiveCalendarToggle: "日历提前提醒",
-    proactiveCalendarLeadLabel: "提前时间",
     proactiveCalendarLead5: "5 分钟前",
     proactiveCalendarLead10: "10 分钟前",
     proactiveCalendarLead15: "15 分钟前",
     proactiveCalendarLead30: "30 分钟前",
     proactiveWeatherToggle: "天气警报",
     proactiveIdleChatterToggle: "空闲时闲聊",
-    proactiveIdleChatterAfterLabel: "开始闲聊间隔",
     proactiveIdleChatterAfterUnit: "分钟",
     proactiveQuietHoursLabel: "通知时段",
-    proactiveQuietHoursDescription:
-      "仅在此时段内发出主动通知，时段外保持静默。",
-    save: "保存",
-    saved: "已保存",
   },
   conversation: {
     apiKeyMissingShort: "尚未设置 OpenAI API 密钥。请在设置中添加。",
@@ -1568,7 +1408,6 @@ const pt: Messages = {
     micRequest: "Solicitar acesso ao microfone",
     micRequesting: "Solicitando…",
     micOpenSystem: "Abrir Ajustes do Sistema",
-    micRecheck: "Verificar de novo",
     micDeniedNote:
       "Uma vez negado, o acesso ao microfone só pode ser reativado nos Ajustes do Sistema.",
     screenAccess: "Gravação de tela",
@@ -1589,10 +1428,6 @@ const pt: Messages = {
     locationRequest: "Permitir acesso à localização",
     locationDeniedNote:
       "Abra Ajustes → Privacidade e Segurança → Serviços de Localização e ative Chappie. Sem permissão, é usada uma estimativa aproximada por IP.",
-    locationDescription:
-      'Usado para ancorar respostas de clima e "por perto" na sua área real. Se você recusar, Chappie usa uma estimativa por IP a nível de cidade.',
-    sectionRequired: "Obrigatório",
-    sectionOptional: "Opcional",
     modeLabel: "Modo",
     modeFree: "Grátis",
     modePaid: "Pro",
@@ -1625,7 +1460,6 @@ const pt: Messages = {
     apiKeyNote: "Compatível com OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Detectado: {provider}",
     apiKeyUnknown: "Formato de chave não reconhecido",
-    autostartLabel: "Início",
     autostartCheckbox: "Iniciar ao fazer login",
     languageLabel: "Idioma",
     languageAuto: "Automático",
@@ -1644,7 +1478,6 @@ const pt: Messages = {
     voicevoxStatusConnected: "Conectado",
     voicevoxStatusUnreachable: "VOICEVOX não encontrado",
     voicevoxStatusChecking: "Verificando…",
-    voicevoxRecheck: "Verificar de novo",
     voicevoxStatusManaged: "Gerenciado pelo Chappie",
     voicevoxStatusBundledApp: "Conectado ao VOICEVOX",
     voicevoxStatusMissing: "Não instalado",
@@ -1658,8 +1491,6 @@ const pt: Messages = {
       'Usa o VOICEVOX (https://voicevox.hiroshiba.jp/). Cada voz tem seus próprios termos de uso; vídeos e streams devem creditar o personagem ("VOICEVOX:nome do personagem").',
     voicevoxPaidLockHud: "🔒 Desbloqueie este personagem com Pro",
     speakerLabel: "Reconhecimento de voz",
-    speakerDescription:
-      "Depois de registrar sua voz, o Chappie deixa de responder à TV, YouTube ou outras pessoas.",
     speakerStatusEnrolled: "Registrada",
     speakerStatusNotEnrolled: "Não registrada",
     speakerEnroll: "Registrar minha voz",
@@ -1669,8 +1500,6 @@ const pt: Messages = {
     speakerEnrolling: "Registrando…",
     speakerModelDownloading: "Baixando modelo {pct}%",
     speakerFailed: "Falha no registro: {err}",
-    speakerPrivacy:
-      "Os seus dados de voz ficam apenas neste Mac e nunca são enviados para nenhum servidor. Pode apagá-los a qualquer momento.",
     speakerPhrasePrompt: "Leia esta frase em voz alta ({cur}/{total})",
     speakerPhrase1: "Chappie, bom dia",
     speakerPhrase2: "Diga-me o clima de hoje",
@@ -1681,8 +1510,6 @@ const pt: Messages = {
     speakerStrictnessHint:
       "Valores mais altos bloqueiam melhor a TV e outras vozes, mas podem rejeitar a sua quando você está longe do microfone ou resfriado.",
     vadLabel: "Ajuste de detecção de voz (avançado)",
-    vadDescription:
-      "Normalmente você não precisa mexer. Ajuste só se sua voz não for captada, ruído de fundo causar disparos falsos ou o fim da fala for cortado cedo demais / tarde demais.",
     vadSensitivityLabel: "Sensibilidade de detecção",
     vadSensitivityHigh: "Sensível",
     vadSensitivityLow: "Reservada",
@@ -1696,8 +1523,6 @@ const pt: Messages = {
       "Mais curta parece mais ágil mas pode cortar no meio da frase. Quem fala devagar prefere mais longa.",
     vadReset: "Restaurar padrões",
     ltmLabel: "Memória de longo prazo (experimental)",
-    ltmDescription:
-      "Permite ao Chappie lembrar de conversas passadas e mencionar naturalmente coisas que você disse dias ou semanas atrás. Baixa um modelo de ~470 MB uma vez. Suas conversas só vão para o seu próprio provedor de API; todo o resto fica neste Mac.",
     ltmStatusEnabled: "Ativada",
     ltmStatusDisabled: "Desativada",
     ltmEnable: "Ativar (baixar modelo)",
@@ -1711,26 +1536,17 @@ const pt: Messages = {
       "Excluir todos os registros de conversa, resumos diários e tópicos? O arquivo do modelo e os dados salvos sobre você (via save_memory) permanecem.",
     ltmForgetDone: "Apagado",
     proactiveLabel: "Notificações proativas",
-    proactiveDescription:
-      "O Chappie fala por iniciativa própria — resumo matinal e avisos antecipados do calendário.",
     proactiveMasterToggle: "Ativar",
     proactiveMorningBriefToggle: "Resumo matinal",
-    proactiveMorningBriefTimeLabel: "Horário",
     proactiveCalendarToggle: "Aviso prévio do calendário",
-    proactiveCalendarLeadLabel: "Antecedência",
     proactiveCalendarLead5: "5 min antes",
     proactiveCalendarLead10: "10 min antes",
     proactiveCalendarLead15: "15 min antes",
     proactiveCalendarLead30: "30 min antes",
     proactiveWeatherToggle: "Alertas meteorológicos",
     proactiveIdleChatterToggle: "Conversa em ocioso",
-    proactiveIdleChatterAfterLabel: "Iniciar após",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Horas ativas",
-    proactiveQuietHoursDescription:
-      "Notificações proativas só disparam neste intervalo.",
-    save: "Salvar",
-    saved: "Salvo",
   },
   conversation: {
     apiKeyMissingShort:
@@ -1795,7 +1611,6 @@ const ko: Messages = {
     micRequest: "마이크 권한 요청",
     micRequesting: "요청 중…",
     micOpenSystem: "시스템 설정 열기",
-    micRecheck: "다시 확인",
     micDeniedNote:
       "한 번 거부하면 시스템 설정에서만 다시 활성화할 수 있습니다.",
     screenAccess: "화면 기록",
@@ -1816,10 +1631,6 @@ const ko: Messages = {
     locationRequest: "위치 정보 접근 허용",
     locationDeniedNote:
       "시스템 설정 → 개인정보 보호 및 보안 → 위치 서비스에서 Chappie를 활성화하세요. 허용하지 않으면 IP 기반의 대략적인 추정으로 대체합니다.",
-    locationDescription:
-      '날씨와 "근처" 답변을 실제 지역에 맞추기 위해 사용합니다. 거부하면 도시 단위의 IP 기반 추정으로 대체합니다.',
-    sectionRequired: "필수",
-    sectionOptional: "선택",
     modeLabel: "모드",
     modeFree: "무료",
     modePaid: "Pro",
@@ -1851,7 +1662,6 @@ const ko: Messages = {
     apiKeyNote: "OpenAI / Anthropic / Gemini 지원.",
     apiKeyDetected: "감지됨: {provider}",
     apiKeyUnknown: "키 형식을 확인할 수 없습니다",
-    autostartLabel: "시작",
     autostartCheckbox: "로그인할 때 자동 실행",
     languageLabel: "언어",
     languageAuto: "자동",
@@ -1870,7 +1680,6 @@ const ko: Messages = {
     voicevoxStatusConnected: "연결됨",
     voicevoxStatusUnreachable: "VOICEVOX를 찾을 수 없음",
     voicevoxStatusChecking: "확인 중…",
-    voicevoxRecheck: "다시 확인",
     voicevoxStatusManaged: "Chappie 관리",
     voicevoxStatusBundledApp: "VOICEVOX 연동 중",
     voicevoxStatusMissing: "설치되지 않음",
@@ -1884,8 +1693,6 @@ const ko: Messages = {
       'VOICEVOX (https://voicevox.hiroshiba.jp/) 를 사용합니다. 캐릭터별 음성에는 각각의 이용 약관이 있습니다. 동영상·방송 등에서 사용 시 "VOICEVOX:캐릭터 이름" 표기가 필요합니다.',
     voicevoxPaidLockHud: "🔒 Pro로 이 캐릭터를 해제하세요",
     speakerLabel: "화자 인식",
-    speakerDescription:
-      "내 목소리를 등록하면 TV, YouTube, 다른 사람의 목소리에는 반응하지 않습니다.",
     speakerStatusEnrolled: "등록됨",
     speakerStatusNotEnrolled: "등록되지 않음",
     speakerEnroll: "내 목소리 등록",
@@ -1895,8 +1702,6 @@ const ko: Messages = {
     speakerEnrolling: "등록 중…",
     speakerModelDownloading: "모델 다운로드 중 {pct}%",
     speakerFailed: "등록 실패: {err}",
-    speakerPrivacy:
-      "음성 데이터는 이 Mac 안에만 저장되며 외부로 전송되지 않습니다. 언제든지 삭제할 수 있습니다.",
     speakerPhrasePrompt: "다음 문장을 소리내어 읽어주세요 ({cur}/{total})",
     speakerPhrase1: "채피, 좋은 아침",
     speakerPhrase2: "오늘 날씨 알려줘",
@@ -1907,8 +1712,6 @@ const ko: Messages = {
     speakerStrictnessHint:
       "값이 높을수록 TV나 다른 사람의 목소리를 더 확실히 차단하지만, 마이크에서 멀리 떨어지거나 감기에 걸렸을 때 본인 목소리도 거부될 수 있습니다.",
     vadLabel: "음성 감지 조정 (고급)",
-    vadDescription:
-      "보통은 건드릴 필요 없습니다. 목소리가 잘 잡히지 않거나, 주변 소음으로 잘못 시작되거나, 발화 끝이 너무 빨리/늦게 잘릴 때만 조정하세요.",
     vadSensitivityLabel: "음성 감지 민감도",
     vadSensitivityHigh: "민감",
     vadSensitivityLow: "둔감",
@@ -1922,8 +1725,6 @@ const ko: Messages = {
       "짧으면 반응이 빠르지만 문장 도중에 끊길 수 있어요. 천천히 말하는 분은 길게 두세요.",
     vadReset: "기본값으로 되돌리기",
     ltmLabel: "장기 기억 (실험적)",
-    ltmDescription:
-      "Chappie가 과거의 대화를 기억하고, 며칠 또는 몇 주 전에 했던 이야기를 자연스럽게 꺼낼 수 있게 합니다. 약 470 MB의 모델을 한 번 다운로드합니다. 대화는 본인의 API 제공자로만 전송되며, 그 외 모든 것은 이 Mac에 남습니다.",
     ltmStatusEnabled: "사용 중",
     ltmStatusDisabled: "꺼짐",
     ltmEnable: "사용 시작 (모델 다운로드)",
@@ -1937,26 +1738,17 @@ const ko: Messages = {
       '정말로 모든 대화 로그, 일일 요약, 화제 스냅샷을 삭제할까요? 모델 파일과 저장된 "나에 대해" 정보(save_memory로 저장한 것)는 남습니다.',
     ltmForgetDone: "삭제됨",
     proactiveLabel: "능동적 알림",
-    proactiveDescription:
-      "Chappie가 먼저 말을 겁니다 — 아침 브리핑과 일정 사전 알림.",
     proactiveMasterToggle: "사용",
     proactiveMorningBriefToggle: "아침 브리핑",
-    proactiveMorningBriefTimeLabel: "시간",
     proactiveCalendarToggle: "일정 사전 알림",
-    proactiveCalendarLeadLabel: "사전 시간",
     proactiveCalendarLead5: "5분 전",
     proactiveCalendarLead10: "10분 전",
     proactiveCalendarLead15: "15분 전",
     proactiveCalendarLead30: "30분 전",
     proactiveWeatherToggle: "날씨 알림",
     proactiveIdleChatterToggle: "유휴 시 잡담",
-    proactiveIdleChatterAfterLabel: "잡담 시작 간격",
     proactiveIdleChatterAfterUnit: "분",
     proactiveQuietHoursLabel: "알림 시간대",
-    proactiveQuietHoursDescription:
-      "이 시간대에만 능동적 알림이 발생합니다. 범위 밖에서는 무음.",
-    save: "저장",
-    saved: "저장되었습니다",
   },
   conversation: {
     apiKeyMissingShort:
@@ -2022,7 +1814,6 @@ const it: Messages = {
     micRequest: "Richiedi accesso al microfono",
     micRequesting: "Richiesta in corso…",
     micOpenSystem: "Apri Impostazioni di Sistema",
-    micRecheck: "Ricontrolla",
     micDeniedNote:
       "Una volta negato, l'accesso al microfono può essere riattivato solo dalle Impostazioni di Sistema.",
     screenAccess: "Registrazione schermo",
@@ -2043,10 +1834,6 @@ const it: Messages = {
     locationRequest: "Consenti accesso alla posizione",
     locationDeniedNote:
       "Apri Impostazioni → Privacy e sicurezza → Servizi di localizzazione e abilita Chappie. Senza permesso, viene usata una stima approssimativa basata su IP.",
-    locationDescription:
-      "Usato per ancorare risposte su meteo e zone vicine alla tua posizione reale. Se rifiuti, Chappie usa una stima basata su IP a livello di città.",
-    sectionRequired: "Obbligatorio",
-    sectionOptional: "Opzionale",
     modeLabel: "Modalità",
     modeFree: "Gratuita",
     modePaid: "Pro",
@@ -2079,7 +1866,6 @@ const it: Messages = {
     apiKeyNote: "Compatibile con OpenAI / Anthropic / Gemini.",
     apiKeyDetected: "Rilevato: {provider}",
     apiKeyUnknown: "Formato chiave non riconosciuto",
-    autostartLabel: "Avvio",
     autostartCheckbox: "Avvia all'accesso",
     languageLabel: "Lingua",
     languageAuto: "Automatico",
@@ -2098,7 +1884,6 @@ const it: Messages = {
     voicevoxStatusConnected: "Connesso",
     voicevoxStatusUnreachable: "VOICEVOX non raggiungibile",
     voicevoxStatusChecking: "Verifica…",
-    voicevoxRecheck: "Riverifica",
     voicevoxStatusManaged: "Gestito da Chappie",
     voicevoxStatusBundledApp: "Connesso a VOICEVOX",
     voicevoxStatusMissing: "Non installato",
@@ -2112,8 +1897,6 @@ const it: Messages = {
       'Usa VOICEVOX (https://voicevox.hiroshiba.jp/). Ogni voce ha i propri termini d\'uso; video e stream devono accreditare il personaggio ("VOICEVOX:nome personaggio").',
     voicevoxPaidLockHud: "🔒 Sblocca questo personaggio con Pro",
     speakerLabel: "Riconoscimento vocale",
-    speakerDescription:
-      "Registrando la tua voce, Chappie smette di rispondere alla TV, YouTube o ad altre persone.",
     speakerStatusEnrolled: "Registrata",
     speakerStatusNotEnrolled: "Non registrata",
     speakerEnroll: "Registra la mia voce",
@@ -2123,8 +1906,6 @@ const it: Messages = {
     speakerEnrolling: "Registrazione…",
     speakerModelDownloading: "Download modello {pct}%",
     speakerFailed: "Registrazione fallita: {err}",
-    speakerPrivacy:
-      "I tuoi dati vocali restano su questo Mac e non vengono mai inviati altrove. Puoi eliminarli in qualsiasi momento.",
     speakerPhrasePrompt: "Leggi questa frase ad alta voce ({cur}/{total})",
     speakerPhrase1: "Chappie, buongiorno",
     speakerPhrase2: "Dimmi il meteo di oggi",
@@ -2135,8 +1916,6 @@ const it: Messages = {
     speakerStrictnessHint:
       "Valori più alti bloccano meglio TV e altre voci, ma potrebbero rifiutare la tua quando sei lontano dal microfono o raffreddato.",
     vadLabel: "Regolazione rilevamento voce (avanzato)",
-    vadDescription:
-      "Di solito non serve toccarlo. Regola solo se la tua voce non viene rilevata, il rumore di fondo causa falsi avvii o la fine della frase viene tagliata troppo presto / tardi.",
     vadSensitivityLabel: "Sensibilità di rilevamento",
     vadSensitivityHigh: "Sensibile",
     vadSensitivityLow: "Riservata",
@@ -2150,8 +1929,6 @@ const it: Messages = {
       "Più corta sembra più reattiva ma può tagliarti a metà frase. Chi parla lentamente preferisce più lunga.",
     vadReset: "Ripristina predefiniti",
     ltmLabel: "Memoria a lungo termine (sperimentale)",
-    ltmDescription:
-      "Permette a Chappie di ricordare conversazioni passate e tirare fuori naturalmente cose che hai detto giorni o settimane fa. Scarica un modello da ~470 MB una sola volta. Le tue conversazioni vanno solo al tuo provider API; tutto il resto resta su questo Mac.",
     ltmStatusEnabled: "Attiva",
     ltmStatusDisabled: "Spenta",
     ltmEnable: "Attiva (scarica modello)",
@@ -2165,26 +1942,17 @@ const it: Messages = {
       "Davvero eliminare tutti i log delle conversazioni, i riassunti quotidiani e gli argomenti? Il file del modello e i fatti salvati su di te (tramite save_memory) restano.",
     ltmForgetDone: "Eliminato",
     proactiveLabel: "Notifiche proattive",
-    proactiveDescription:
-      "Chappie parla di sua iniziativa: briefing mattutino e avvisi anticipati del calendario.",
     proactiveMasterToggle: "Attiva",
     proactiveMorningBriefToggle: "Briefing mattutino",
-    proactiveMorningBriefTimeLabel: "Orario",
     proactiveCalendarToggle: "Avviso anticipato del calendario",
-    proactiveCalendarLeadLabel: "Anticipo",
     proactiveCalendarLead5: "5 min prima",
     proactiveCalendarLead10: "10 min prima",
     proactiveCalendarLead15: "15 min prima",
     proactiveCalendarLead30: "30 min prima",
     proactiveWeatherToggle: "Allerte meteo",
     proactiveIdleChatterToggle: "Chiacchiere in idle",
-    proactiveIdleChatterAfterLabel: "Inizia dopo",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Orari attivi",
-    proactiveQuietHoursDescription:
-      "Le notifiche proattive si attivano solo in questo intervallo.",
-    save: "Salva",
-    saved: "Salvato",
   },
   conversation: {
     apiKeyMissingShort:

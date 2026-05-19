@@ -1,7 +1,6 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   disable as disableAutostart,
   enable as enableAutostart,
@@ -100,7 +99,6 @@ export function SettingsView() {
     string | null
   >(null);
   const [voicevoxBusy, setVoicevoxBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [version, setVersion] = useState("");
   const mic = usePermissionStatus<MicStatus>({
@@ -550,48 +548,67 @@ export function SettingsView() {
     }
   }
 
-  const onSave = async () => {
-    await saveSettings({
-      mode,
-      openaiApiKey: apiKey,
-      language,
-      autostart,
-      proactiveMorningBriefEnabled,
-      proactiveMorningBriefTime,
-      proactiveCalendarEnabled,
-      proactiveCalendarLeadMin,
-      proactiveWeatherEnabled,
-      proactiveIdleChatterEnabled,
-      proactiveIdleChatterAfterMin,
-      proactiveQuietHoursStart,
-      proactiveQuietHoursEnd,
-      speakerThreshold,
-      vadThreshold,
-      vadSilenceFrames,
-    });
-    try {
-      await invoke("set_speaker_threshold", { value: speakerThreshold });
-      await invoke("set_vad_threshold", { value: vadThreshold });
-      await invoke("set_vad_silence_frames", { frames: vadSilenceFrames });
-    } catch (e) {
-      console.warn("[settings] push audio config failed", e);
-    }
-    try {
-      if (autostart) await enableAutostart();
-      else await disableAutostart();
-    } catch (e) {
-      console.warn("[settings] autostart toggle failed", e);
-    }
-    await emit("settings:updated");
-    setSaved(true);
-    setTimeout(() => {
-      const w = getCurrentWindow();
-      console.info("[settings] closing window", w.label);
-      w.close()
-        .then(() => console.info("[settings] close resolved"))
-        .catch((e) => console.error("[settings] close failed", e));
-    }, 400);
-  };
+  // Auto-save: persist every form-state change after a 300ms debounce.
+  // Replaces the explicit save button — matches the macOS System
+  // Settings idiom where toggling a control immediately commits, no
+  // confirmation step. The debounce keeps text inputs (apiKey, time
+  // fields, slider drags) from hammering the tauri-plugin-store on
+  // every keystroke / pixel. `loaded` gates the effect so initial
+  // hydration doesn't re-save what we just read.
+  useEffect(() => {
+    if (!loaded) return;
+    const handle = setTimeout(() => {
+      void (async () => {
+        try {
+          await saveSettings({
+            mode,
+            openaiApiKey: apiKey,
+            language,
+            autostart,
+            proactiveMorningBriefEnabled,
+            proactiveMorningBriefTime,
+            proactiveCalendarEnabled,
+            proactiveCalendarLeadMin,
+            proactiveWeatherEnabled,
+            proactiveIdleChatterEnabled,
+            proactiveIdleChatterAfterMin,
+            proactiveQuietHoursStart,
+            proactiveQuietHoursEnd,
+            speakerThreshold,
+            vadThreshold,
+            vadSilenceFrames,
+          });
+          await invoke("set_speaker_threshold", { value: speakerThreshold });
+          await invoke("set_vad_threshold", { value: vadThreshold });
+          await invoke("set_vad_silence_frames", { frames: vadSilenceFrames });
+          if (autostart) await enableAutostart();
+          else await disableAutostart();
+          await emit("settings:updated");
+        } catch (e) {
+          console.warn("[settings] auto-save failed", e);
+        }
+      })();
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [
+    loaded,
+    mode,
+    apiKey,
+    language,
+    autostart,
+    proactiveMorningBriefEnabled,
+    proactiveMorningBriefTime,
+    proactiveCalendarEnabled,
+    proactiveCalendarLeadMin,
+    proactiveWeatherEnabled,
+    proactiveIdleChatterEnabled,
+    proactiveIdleChatterAfterMin,
+    proactiveQuietHoursStart,
+    proactiveQuietHoursEnd,
+    speakerThreshold,
+    vadThreshold,
+    vadSilenceFrames,
+  ]);
 
   if (!loaded) {
     return <main className={styles.loading}>{t("common.loading")}</main>;
@@ -601,71 +618,33 @@ export function SettingsView() {
 
   return (
     <main className={styles.root}>
-      <h2 className={styles.sectionHeading}>{t("settings.sectionRequired")}</h2>
-      {/* Microphone access */}
-      <section className={styles.card}>
-        <div className={styles.statusRow}>
-          <span className={styles.statusLabel}>{t("settings.micAccess")}</span>
-          <span className={`${styles.badge} ${badge.className}`}>
-            <span className={styles.badgeDot} />
-            {badge.label}
-          </span>
-        </div>
-        {mic.status !== "granted" && (
-          <div className={styles.actions}>
-            {mic.status === "not_determined" && (
-              <button
-                type="button"
-                className={styles.button}
-                onClick={mic.request}
-                disabled={mic.requesting}
-              >
-                {mic.requesting
-                  ? t("settings.micRequesting")
-                  : t("settings.micRequest")}
-              </button>
-            )}
-            {(mic.status === "denied" || mic.status === "restricted") && (
-              <button
-                type="button"
-                className={styles.button}
-                onClick={() => {
-                  void openUrl(MIC_PRIVACY_URL).catch(() => {});
-                }}
-              >
-                {t("settings.micOpenSystem")}
-              </button>
-            )}
-            <button
-              type="button"
-              className={styles.button}
-              onClick={mic.refresh}
-            >
-              {t("settings.micRecheck")}
-            </button>
-          </div>
-        )}
-        {mic.status === "denied" && (
-          <p className={styles.note}>{t("settings.micDeniedNote")}</p>
-        )}
-      </section>
-
       {/* Mode (Free / Pro / BYOK). The selected mode reveals its own
           config below the radio — Pro shows magic-link sign-in /
           subscription status, BYOK shows the API key input, Free has
           nothing else to configure. */}
-      <section className={styles.card}>
-        <div className={styles.row}>
-          <span className={styles.rowLabel}>{t("settings.modeLabel")}</span>
-          <div>
-            {/* Free is disabled while the user has an entitled
-                subscription — paying and falling back to the 5/day
-                quota would be a UX foot-gun. Sign out (in the Pro
-                panel below) to revert to Free. */}
+      <div className={styles.group}>
+        {/* Horizontal radios — 3 mutually-exclusive options fit
+            comfortably on one row and visually weigh less than the
+            stacked layout. The "Pro 有効" entitlement marker that
+            used to sit next to the BYOK label is dropped here; it
+            was duplicated by the Pro panel below and its position
+            next to BYOK was misleading (looked like a BYOK badge).
+            Free is disabled while the user has an entitled
+            subscription — paying and falling back to the 5/day
+            quota would be a UX foot-gun. */}
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
+            {t("settings.modeLabel")}
+          </span>
+          <div
+            className={styles.groupRowActions}
+            style={{ gap: 16, flexWrap: "wrap" }}
+          >
             <label
               style={{
-                display: "block",
-                marginBottom: 4,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
                 opacity: subscriptionEntitled ? 0.5 : 1,
               }}
             >
@@ -676,243 +655,326 @@ export function SettingsView() {
                 checked={mode === "free"}
                 disabled={subscriptionEntitled}
                 onChange={() => setMode("free")}
-              />{" "}
+              />
               {t("settings.modeFree")}
             </label>
-            <label style={{ display: "block", marginBottom: 4 }}>
+            <label
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
               <input
                 type="radio"
                 name="mode"
                 value="paid"
                 checked={mode === "paid"}
                 onChange={() => setMode("paid")}
-              />{" "}
+              />
               {t("settings.modePaid")}
             </label>
-            <label style={{ display: "block" }}>
+            <label
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
               <input
                 type="radio"
                 name="mode"
                 value="byok"
                 checked={mode === "byok"}
                 onChange={() => setMode("byok")}
-              />{" "}
+              />
               {t("settings.modeByok")}
-              {subscriptionEntitled && (
-                <span
-                  style={{
-                    marginLeft: 8,
-                    fontSize: "0.85em",
-                    color: "#2a7a2a",
-                    fontWeight: 600,
-                  }}
-                >
-                  ✓ {t("settings.subscriptionProActive")}
-                </span>
-              )}
             </label>
           </div>
         </div>
+        <div className={styles.groupBlock}>
+          <p className={styles.note} style={{ marginTop: 0 }}>
+            {mode === "free"
+              ? t("settings.modeFreeNote")
+              : mode === "paid"
+                ? t("settings.modePaidNote")
+                : t("settings.modeByokNote")}
+          </p>
+        </div>
+      </div>
 
-        <p className={styles.note}>
-          {mode === "free"
-            ? t("settings.modeFreeNote")
-            : mode === "paid"
-              ? t("settings.modePaidNote")
-              : t("settings.modeByokNote")}
-        </p>
-
-        {/* Pro panel: visible when the user is on the Paid radio OR
-            already signed in. The Paid radio is the entry point for
-            new sign-ins; once signed in the manage UI follows the
-            user across modes so a BYOK + Pro subscriber can still
-            see status and manage the subscription without bouncing
-            back to the Paid radio. */}
-        {(mode === "paid" || !!subscriptionEmail) && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              marginTop: 12,
-            }}
-          >
-            {!subscriptionEmail ? (
-              <>
-                <p className={styles.note} style={{ marginTop: 0 }}>
-                  {t("settings.subscriptionSignedOut")}
-                </p>
-                <input
-                  type="email"
-                  className={styles.input}
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder={t("settings.subscriptionEmailPlaceholder")}
-                  autoComplete="email"
-                  spellCheck={false}
-                />
-                <button
-                  type="button"
-                  onClick={handleSendMagicLink}
-                  disabled={
-                    subscriptionBusy === "sending" || !emailInput.includes("@")
-                  }
-                  style={{ alignSelf: "flex-end" }}
-                >
-                  {t("settings.subscriptionSendMagicLink")}
-                </button>
-                {subscriptionNotice === "sent" && (
+      {/* Account group — separated from the Mode group so the mode
+          selector row looks like every other 1-row group. Holds
+          everything tied to the user's identity: Pro sign-in / status
+          (visible when on the Paid radio OR already signed in), plus
+          the BYOK API key input. Both panels can coexist for a Pro
+          subscriber who prefers BYOK for chat. */}
+      {(mode === "paid" || mode === "byok" || !!subscriptionEmail) && (
+        <div className={styles.group}>
+          {(mode === "paid" || !!subscriptionEmail) && (
+            <div
+              className={styles.groupBlock}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              {!subscriptionEmail ? (
+                <>
                   <p className={styles.note} style={{ marginTop: 0 }}>
-                    {t("settings.subscriptionMagicLinkSent")}
+                    {t("settings.subscriptionSignedOut")}
                   </p>
-                )}
-                {subscriptionNotice === "send_error" && (
-                  <p className={styles.note} style={{ marginTop: 0 }}>
-                    {t("settings.subscriptionSendError")}
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <p className={styles.note} style={{ marginTop: 0 }}>
-                  {t("settings.subscriptionSignedInAs", {
-                    email: subscriptionEmail,
-                  })}
-                </p>
-                {subscriptionStatus === "active" ||
-                subscriptionStatus === "trialing" ? (
-                  <>
-                    <p style={{ margin: 0, fontWeight: 600 }}>
-                      ✓ {t("settings.subscriptionProActive")}
-                    </p>
-                    {subscriptionPeriodEnd && (
-                      <p className={styles.note} style={{ marginTop: 0 }}>
-                        {t("settings.subscriptionPeriodEnd", {
-                          date: subscriptionPeriodEnd.slice(0, 10),
-                        })}
-                      </p>
-                    )}
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        gap: 8,
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={handleManage}
-                        disabled={subscriptionBusy === "portal"}
-                      >
-                        {t("settings.subscriptionManage")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSignOut}
-                        disabled={subscriptionBusy !== "idle"}
-                      >
-                        {t("settings.subscriptionSignOut")}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
+                  <input
+                    type="email"
+                    className={styles.input}
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder={t("settings.subscriptionEmailPlaceholder")}
+                    autoComplete="email"
+                    spellCheck={false}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendMagicLink}
+                    disabled={
+                      subscriptionBusy === "sending" ||
+                      !emailInput.includes("@")
+                    }
+                    style={{ alignSelf: "flex-end" }}
+                  >
+                    {t("settings.subscriptionSendMagicLink")}
+                  </button>
+                  {subscriptionNotice === "sent" && (
                     <p className={styles.note} style={{ marginTop: 0 }}>
-                      {t("settings.subscriptionStatusFreeNote")}
+                      {t("settings.subscriptionMagicLinkSent")}
                     </p>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        gap: 8,
-                      }}
+                  )}
+                  {subscriptionNotice === "send_error" && (
+                    <p className={styles.note} style={{ marginTop: 0 }}>
+                      {t("settings.subscriptionSendError")}
+                    </p>
+                  )}
+                </>
+              ) : subscriptionStatus === "active" ||
+                subscriptionStatus === "trialing" ? (
+                /* Active subscriber: collapse status + buttons into
+                     a single row. Email on the left (signals who is
+                     signed in), Pro badge + renewal date next to it,
+                     manage / sign-out buttons right-aligned. Replaces
+                     the previous 4-line stack which felt scattered. */
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontSize: 13 }}>{subscriptionEmail}</span>
+                    <span
+                      className={styles.note}
+                      style={{ marginTop: 2, color: "#2a7a2a" }}
                     >
-                      <button
-                        type="button"
-                        onClick={handleUpgrade}
-                        disabled={subscriptionBusy === "checkout"}
-                      >
-                        {subscriptionBusy === "checkout"
-                          ? t("settings.subscriptionUpgrading")
-                          : t("settings.subscriptionUpgrade")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSignOut}
-                        disabled={subscriptionBusy !== "idle"}
-                      >
-                        {t("settings.subscriptionSignOut")}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* BYOK panel: API key input + provider detection hint. */}
-        {mode === "byok" && (
-          <div style={{ marginTop: 12 }}>
-            <input
-              id="api-key"
-              type="password"
-              className={styles.input}
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={t("settings.apiKeyPlaceholder")}
-            />
-            {(() => {
-              const trimmed = apiKey.trim();
-              if (!trimmed) {
-                return (
-                  <p className={styles.note}>{t("settings.apiKeyNote")}</p>
-                );
-              }
-              const provider = detectProvider(trimmed);
-              if (provider) {
-                return (
-                  <p className={styles.note}>
-                    {t("settings.apiKeyDetected", {
-                      provider: providerLabel(provider),
-                    })}
+                      ✓ {t("settings.subscriptionProActive")}
+                      {subscriptionPeriodEnd &&
+                        ` · ${t("settings.subscriptionPeriodEnd", {
+                          date: subscriptionPeriodEnd.slice(0, 10),
+                        })}`}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={handleManage}
+                      disabled={subscriptionBusy === "portal"}
+                    >
+                      {t("settings.subscriptionManage")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      disabled={subscriptionBusy !== "idle"}
+                    >
+                      {t("settings.subscriptionSignOut")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className={styles.note} style={{ marginTop: 0 }}>
+                    {t("settings.subscriptionStatusFreeNote")}
                   </p>
-                );
-              }
-              return (
-                <p className={styles.note}>{t("settings.apiKeyUnknown")}</p>
-              );
-            })()}
-          </div>
-        )}
-      </section>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: 8,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleUpgrade}
+                      disabled={subscriptionBusy === "checkout"}
+                    >
+                      {subscriptionBusy === "checkout"
+                        ? t("settings.subscriptionUpgrading")
+                        : t("settings.subscriptionUpgrade")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      disabled={subscriptionBusy !== "idle"}
+                    >
+                      {t("settings.subscriptionSignOut")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
-      <h2 className={styles.sectionHeading}>{t("settings.sectionOptional")}</h2>
+          {/* BYOK panel: API key input + provider detection hint. */}
+          {mode === "byok" && (
+            <div className={styles.groupBlock}>
+              <input
+                id="api-key"
+                type="password"
+                className={styles.input}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder={t("settings.apiKeyPlaceholder")}
+              />
+              {(() => {
+                const trimmed = apiKey.trim();
+                if (!trimmed) {
+                  return (
+                    <p className={styles.note}>{t("settings.apiKeyNote")}</p>
+                  );
+                }
+                const provider = detectProvider(trimmed);
+                if (provider) {
+                  return (
+                    <p className={styles.note}>
+                      {t("settings.apiKeyDetected", {
+                        provider: providerLabel(provider),
+                      })}
+                    </p>
+                  );
+                }
+                return (
+                  <p className={styles.note}>{t("settings.apiKeyUnknown")}</p>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Speaker recognition — paired with the microphone above:
-          "can Chappie hear?" → "whose voice is it?". */}
-      <section className={styles.card}>
-        <div className={styles.statusRow}>
-          <span className={styles.statusLabel}>
+          "can Chappie hear?" → "whose voice is it?". Top row mirrors
+          the permission group rows; description / slider / enroll
+          flow live in groupBlock children separated by thin lines. */}
+      <div className={styles.group}>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
             {t("settings.speakerLabel")}
           </span>
-          <span
-            className={`${styles.badge} ${
-              speakerEnrolled ? styles.badgeGranted : styles.badgeNeutral
-            }`}
-          >
-            <span className={styles.badgeDot} />
-            {speakerEnrolled
-              ? t("settings.speakerStatusEnrolled")
-              : t("settings.speakerStatusNotEnrolled")}
-          </span>
+          <div className={styles.groupRowActions}>
+            <span
+              className={`${styles.badge} ${
+                speakerEnrolled ? styles.badgeGranted : styles.badgeNeutral
+              }`}
+            >
+              <span className={styles.badgeDot} />
+              {speakerEnrolled
+                ? t("settings.speakerStatusEnrolled")
+                : t("settings.speakerStatusNotEnrolled")}
+            </span>
+            <button
+              type="button"
+              className={styles.iconButton}
+              disabled={speakerPhase.kind !== "idle"}
+              onClick={() => {
+                void onEnrollVoice();
+              }}
+            >
+              {speakerEnrolled
+                ? t("settings.speakerReenroll")
+                : t("settings.speakerEnroll")}
+            </button>
+            {speakerEnrolled && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                disabled={speakerPhase.kind !== "idle"}
+                onClick={() => {
+                  void onClearVoice();
+                }}
+              >
+                {t("settings.speakerClear")}
+              </button>
+            )}
+          </div>
         </div>
-        <p className={styles.note}>{t("settings.speakerDescription")}</p>
-        <p className={styles.note}>{t("settings.speakerPrivacy")}</p>
+        {(speakerPhase.kind !== "idle" || speakerError) && (
+          <div className={styles.groupBlock}>
+            {speakerPhase.kind === "downloading" && (
+              <p className={styles.note} style={{ marginTop: 0 }}>
+                {t("settings.speakerModelDownloading", {
+                  pct: String(speakerPhase.pct),
+                })}
+              </p>
+            )}
+            {speakerPhase.kind === "enrolling" && (
+              <p className={styles.note} style={{ marginTop: 0 }}>
+                {t("settings.speakerEnrolling")}
+              </p>
+            )}
+            {speakerError && (
+              <p className={styles.note} style={{ marginTop: 0 }}>
+                {t("settings.speakerFailed", { err: speakerError })}
+              </p>
+            )}
+            {speakerPhase.kind === "recording" &&
+              (() => {
+                const idx = speakerPhase.phraseIndex;
+                const phraseKey = (
+                  [
+                    "speakerPhrase1",
+                    "speakerPhrase2",
+                    "speakerPhrase3",
+                  ] as const
+                )[idx];
+                const meterPct = Math.min(100, Math.round(speakerLevel * 600));
+                return (
+                  <div className={styles.enrollBox}>
+                    <div className={styles.enrollStep}>
+                      {t("settings.speakerPhrasePrompt", {
+                        cur: String(idx + 1),
+                        total: String(ENROLL_PHRASE_COUNT),
+                      })}
+                    </div>
+                    <p className={styles.enrollPhrase}>
+                      「{t(`settings.${phraseKey}`)}」
+                    </p>
+                    <div className={styles.enrollMeter}>
+                      <div
+                        className={styles.enrollMeterBar}
+                        style={{ width: `${meterPct}%` }}
+                      />
+                    </div>
+                    <div className={styles.enrollMeterLabel}>
+                      <span>
+                        <span className={styles.enrollMeterDot} />
+                        {t("settings.speakerRecording", {
+                          seconds: String(speakerPhase.remaining),
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+          </div>
+        )}
         {speakerEnrolled && (
-          <div className={styles.thresholdBox}>
+          <div className={styles.groupBlock}>
             <div className={styles.thresholdLabel}>
               <span>{t("settings.speakerStrictnessLabel")}</span>
               <span className={styles.thresholdValue}>
@@ -935,93 +997,16 @@ export function SettingsView() {
             <p className={styles.note}>{t("settings.speakerStrictnessHint")}</p>
           </div>
         )}
-        {speakerPhase.kind === "downloading" && (
-          <p className={styles.note}>
-            {t("settings.speakerModelDownloading", {
-              pct: String(speakerPhase.pct),
-            })}
-          </p>
-        )}
-        {speakerPhase.kind === "recording" &&
-          (() => {
-            const idx = speakerPhase.phraseIndex;
-            const phraseKey = (
-              ["speakerPhrase1", "speakerPhrase2", "speakerPhrase3"] as const
-            )[idx];
-            const meterPct = Math.min(100, Math.round(speakerLevel * 600));
-            return (
-              <div className={styles.enrollBox}>
-                <div className={styles.enrollStep}>
-                  {t("settings.speakerPhrasePrompt", {
-                    cur: String(idx + 1),
-                    total: String(ENROLL_PHRASE_COUNT),
-                  })}
-                </div>
-                <p className={styles.enrollPhrase}>
-                  「{t(`settings.${phraseKey}`)}」
-                </p>
-                <div className={styles.enrollMeter}>
-                  <div
-                    className={styles.enrollMeterBar}
-                    style={{ width: `${meterPct}%` }}
-                  />
-                </div>
-                <div className={styles.enrollMeterLabel}>
-                  <span>
-                    <span className={styles.enrollMeterDot} />
-                    {t("settings.speakerRecording", {
-                      seconds: String(speakerPhase.remaining),
-                    })}
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
-        {speakerPhase.kind === "enrolling" && (
-          <p className={styles.note}>{t("settings.speakerEnrolling")}</p>
-        )}
-        {speakerError && (
-          <p className={styles.note}>
-            {t("settings.speakerFailed", { err: speakerError })}
-          </p>
-        )}
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.button}
-            disabled={speakerPhase.kind !== "idle"}
-            onClick={() => {
-              void onEnrollVoice();
-            }}
-          >
-            {speakerEnrolled
-              ? t("settings.speakerReenroll")
-              : t("settings.speakerEnroll")}
-          </button>
-          {speakerEnrolled && (
-            <button
-              type="button"
-              className={styles.button}
-              disabled={speakerPhase.kind !== "idle"}
-              onClick={() => {
-                void onClearVoice();
-              }}
-            >
-              {t("settings.speakerClear")}
-            </button>
-          )}
-        </div>
-      </section>
+      </div>
 
       {/* VAD tuning — deep audio-pipeline knobs for users whose room
           or voice doesn't match Silero V5 defaults. Hidden behind a
           disclosure so first-time users aren't intimidated. */}
-      <section className={styles.card}>
-        <details>
-          <summary className={styles.statusLabel}>
+      <div className={styles.group}>
+        <details className={styles.groupBlock}>
+          <summary className={styles.groupRowLabel}>
             {t("settings.vadLabel")}
           </summary>
-          <p className={styles.note}>{t("settings.vadDescription")}</p>
           <div className={styles.thresholdBox}>
             <div className={styles.thresholdLabel}>
               <span>{t("settings.vadSensitivityLabel")}</span>
@@ -1083,131 +1068,134 @@ export function SettingsView() {
             </button>
           </div>
         </details>
-      </section>
+      </div>
 
-      {/* Screen recording */}
-      <section className={styles.card}>
-        <div className={styles.statusRow}>
-          <span className={styles.statusLabel}>
+      {/* All 4 macOS permissions in one group with thin separators.
+          Mic is required; the other three are optional. Each row is
+          label + status badge + (when not granted) one contextual
+          button. usePermissionStatus auto-refreshes on window focus
+          so the manual "Recheck" button is gone. */}
+      <div className={styles.group}>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
+            {t("settings.micAccess")}
+          </span>
+          <div className={styles.groupRowActions}>
+            <span className={`${styles.badge} ${badge.className}`}>
+              <span className={styles.badgeDot} />
+              {badge.label}
+            </span>
+            {mic.status === "not_determined" && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={mic.request}
+                disabled={mic.requesting}
+              >
+                {mic.requesting
+                  ? t("settings.micRequesting")
+                  : t("settings.micRequest")}
+              </button>
+            )}
+            {(mic.status === "denied" || mic.status === "restricted") && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={() => {
+                  void openUrl(MIC_PRIVACY_URL).catch(() => {});
+                }}
+              >
+                {t("settings.micOpenSystem")}
+              </button>
+            )}
+          </div>
+        </div>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
             {t("settings.screenAccess")}
           </span>
-          <span
-            className={`${styles.badge} ${screen.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
-          >
-            <span className={styles.badgeDot} />
-            {screen.status === "granted"
-              ? t("settings.screenGranted")
-              : t("settings.screenDenied")}
-          </span>
-        </div>
-        {screen.status !== "granted" && (
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={screen.request}
-              disabled={screen.requesting}
+          <div className={styles.groupRowActions}>
+            <span
+              className={`${styles.badge} ${screen.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
             >
-              {t("settings.screenRequest")}
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={() => {
-                void invoke("open_screen_recording_settings").catch((e) =>
-                  console.error("[settings] open_screen_recording_settings", e),
-                );
-              }}
-            >
-              {t("settings.micOpenSystem")}
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={screen.refresh}
-            >
-              {t("settings.micRecheck")}
-            </button>
+              <span className={styles.badgeDot} />
+              {screen.status === "granted"
+                ? t("settings.screenGranted")
+                : t("settings.screenDenied")}
+            </span>
+            {screen.status !== "granted" && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={() => {
+                  void invoke("open_screen_recording_settings").catch((e) =>
+                    console.error(
+                      "[settings] open_screen_recording_settings",
+                      e,
+                    ),
+                  );
+                }}
+              >
+                {t("settings.micOpenSystem")}
+              </button>
+            )}
           </div>
-        )}
-        {screen.status === "denied" && (
-          <p className={styles.note}>{t("settings.screenDeniedNote")}</p>
-        )}
-      </section>
+        </div>
 
-      {/* Calendar access */}
-      <section className={styles.card}>
-        <div className={styles.statusRow}>
-          <span className={styles.statusLabel}>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
             {t("settings.calendarAccess")}
           </span>
-          <span
-            className={`${styles.badge} ${calendar.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
-          >
-            <span className={styles.badgeDot} />
-            {calendar.status === "granted"
-              ? t("settings.calendarGranted")
-              : t("settings.calendarDenied")}
-          </span>
-        </div>
-        {calendar.status !== "granted" && (
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={calendar.request}
-              disabled={calendar.requesting}
+          <div className={styles.groupRowActions}>
+            <span
+              className={`${styles.badge} ${calendar.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
             >
-              {t("settings.calendarRequest")}
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={calendar.refresh}
-            >
-              {t("settings.micRecheck")}
-            </button>
+              <span className={styles.badgeDot} />
+              {calendar.status === "granted"
+                ? t("settings.calendarGranted")
+                : t("settings.calendarDenied")}
+            </span>
+            {calendar.status !== "granted" && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={calendar.request}
+                disabled={calendar.requesting}
+              >
+                {t("settings.calendarRequest")}
+              </button>
+            )}
           </div>
-        )}
-        {calendar.status === "denied" && (
-          <p className={styles.note}>{t("settings.calendarDeniedNote")}</p>
-        )}
-      </section>
+        </div>
 
-      {/* Location access — accurate fix via CoreLocation when granted,
-          otherwise falls back to IP-based estimate (city-level). The
-          Japanese ISP routing problem is what makes this worth asking
-          for: IP lookups default everyone to Tokyo. */}
-      <section className={styles.card}>
-        <div className={styles.statusRow}>
-          <span className={styles.statusLabel}>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
             {t("settings.locationAccess")}
           </span>
-          <span
-            className={`${styles.badge} ${location.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
-          >
-            <span className={styles.badgeDot} />
-            {location.status === "granted"
-              ? t("settings.locationGranted")
-              : t("settings.locationDenied")}
-          </span>
-        </div>
-        <p className={styles.note}>{t("settings.locationDescription")}</p>
-        {location.status !== "granted" && (
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={location.request}
-              disabled={location.requesting}
+          <div className={styles.groupRowActions}>
+            <span
+              className={`${styles.badge} ${location.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
             >
-              {t("settings.locationRequest")}
-            </button>
+              <span className={styles.badgeDot} />
+              {location.status === "granted"
+                ? t("settings.locationGranted")
+                : t("settings.locationDenied")}
+            </span>
+            {location.status === "not_determined" && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={location.request}
+                disabled={location.requesting}
+              >
+                {t("settings.locationRequest")}
+              </button>
+            )}
             {(location.status === "denied" ||
               location.status === "restricted") && (
               <button
                 type="button"
-                className={styles.button}
+                className={styles.iconButton}
                 onClick={() => {
                   void openUrl(LOCATION_PRIVACY_URL).catch(() => {});
                 }}
@@ -1215,248 +1203,223 @@ export function SettingsView() {
                 {t("settings.micOpenSystem")}
               </button>
             )}
-            <button
-              type="button"
-              className={styles.button}
-              onClick={location.refresh}
-            >
-              {t("settings.micRecheck")}
-            </button>
           </div>
-        )}
-        {location.status === "denied" && (
-          <p className={styles.note}>{t("settings.locationDeniedNote")}</p>
-        )}
-      </section>
+        </div>
+      </div>
 
-      {/* Long-term memory (RAG) — opt-in download + privacy-safe wipe. */}
-      <section className={styles.card}>
-        <div className={styles.statusRow}>
-          <span className={styles.statusLabel}>{t("settings.ltmLabel")}</span>
-          <span
-            className={`${styles.badge} ${
-              ltmEnabled ? styles.badgeGranted : styles.badgeNeutral
-            }`}
-          >
-            <span className={styles.badgeDot} />
-            {ltmEnabled
-              ? t("settings.ltmStatusEnabled")
-              : t("settings.ltmStatusDisabled")}
-          </span>
-        </div>
-        <p className={styles.note}>{t("settings.ltmDescription")}</p>
-        {ltmPhase.kind === "downloading" && (
-          <p className={styles.note}>
-            {t("settings.ltmEnableDownloadProgress", {
-              pct: String(ltmPhase.pct),
-            })}
-          </p>
-        )}
-        {ltmError && <p className={styles.note}>{ltmError}</p>}
-        {ltmForgetDoneAt > 0 && Date.now() - ltmForgetDoneAt < 5000 && (
-          <p className={styles.note}>{t("settings.ltmForgetDone")}</p>
-        )}
-        <div className={styles.actions}>
-          {!ltmEnabled && (
-            <button
-              type="button"
-              className={styles.button}
-              onClick={onEnableLtm}
-              disabled={ltmPhase.kind !== "idle"}
+      {/* Long-term memory (RAG) — opt-in download + privacy-safe wipe.
+          Description retained because the 470MB download is a real
+          decision the user needs context on; everything else moves
+          into the standard group/row idiom. */}
+      <div className={styles.group}>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>{t("settings.ltmLabel")}</span>
+          <div className={styles.groupRowActions}>
+            <span
+              className={`${styles.badge} ${
+                ltmEnabled ? styles.badgeGranted : styles.badgeNeutral
+              }`}
             >
-              {ltmPhase.kind === "downloading"
-                ? t("settings.ltmEnabling")
-                : t("settings.ltmEnable")}
-            </button>
-          )}
-          {ltmEnabled && (
-            <button
-              type="button"
-              className={styles.button}
-              onClick={onDisableLtm}
-              disabled={ltmPhase.kind !== "idle"}
-            >
-              {t("settings.ltmDisable")}
-            </button>
-          )}
-          <button
-            type="button"
-            className={styles.button}
-            onClick={onForgetLtm}
-            disabled={ltmPhase.kind !== "idle"}
-          >
-            {t("settings.ltmForget")}
-          </button>
-        </div>
-      </section>
-
-      {/* Proactive notifications — Chappie speaks up on its own. */}
-      <section className={styles.card}>
-        <div className={styles.statusRow}>
-          <span className={styles.statusLabel}>
-            {t("settings.proactiveLabel")}
-          </span>
-        </div>
-        <p className={styles.note}>{t("settings.proactiveDescription")}</p>
-        <div
-          style={{
-            marginTop: 8,
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
-          <label className={styles.checkRow}>
-            <input
-              type="checkbox"
-              checked={proactiveMorningBriefEnabled}
-              onChange={(e) =>
-                setProactiveMorningBriefEnabled(e.target.checked)
-              }
-            />
-            {t("settings.proactiveMorningBriefToggle")}
-          </label>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              paddingLeft: 24,
-            }}
-          >
-            <label htmlFor="proactiveMorningBriefTime">
-              {t("settings.proactiveMorningBriefTimeLabel")}
-            </label>
-            <input
-              id="proactiveMorningBriefTime"
-              type="time"
-              value={proactiveMorningBriefTime}
-              onChange={(e) => setProactiveMorningBriefTime(e.target.value)}
-            />
-          </div>
-          <label className={styles.checkRow}>
-            <input
-              type="checkbox"
-              checked={proactiveCalendarEnabled}
-              onChange={(e) => setProactiveCalendarEnabled(e.target.checked)}
-            />
-            {t("settings.proactiveCalendarToggle")}
-          </label>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              paddingLeft: 24,
-            }}
-          >
-            <label htmlFor="proactiveCalendarLeadMin">
-              {t("settings.proactiveCalendarLeadLabel")}
-            </label>
-            <select
-              id="proactiveCalendarLeadMin"
-              className={styles.select}
-              style={{ width: "auto" }}
-              value={String(proactiveCalendarLeadMin)}
-              onChange={(e) =>
-                setProactiveCalendarLeadMin(Number(e.target.value))
-              }
-            >
-              <option value="5">{t("settings.proactiveCalendarLead5")}</option>
-              <option value="10">
-                {t("settings.proactiveCalendarLead10")}
-              </option>
-              <option value="15">
-                {t("settings.proactiveCalendarLead15")}
-              </option>
-              <option value="30">
-                {t("settings.proactiveCalendarLead30")}
-              </option>
-            </select>
-          </div>
-          <label className={styles.checkRow}>
-            <input
-              type="checkbox"
-              checked={proactiveWeatherEnabled}
-              onChange={(e) => setProactiveWeatherEnabled(e.target.checked)}
-            />
-            {t("settings.proactiveWeatherToggle")}
-          </label>
-          <label className={styles.checkRow}>
-            <input
-              type="checkbox"
-              checked={proactiveIdleChatterEnabled}
-              onChange={(e) => setProactiveIdleChatterEnabled(e.target.checked)}
-            />
-            {t("settings.proactiveIdleChatterToggle")}
-          </label>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              paddingLeft: 24,
-            }}
-          >
-            <label htmlFor="proactiveIdleChatterAfterMin">
-              {t("settings.proactiveIdleChatterAfterLabel")}
-            </label>
-            <input
-              id="proactiveIdleChatterAfterMin"
-              type="number"
-              min={5}
-              max={480}
-              step={5}
-              value={proactiveIdleChatterAfterMin}
-              onChange={(e) =>
-                setProactiveIdleChatterAfterMin(Number(e.target.value))
-              }
-              style={{ width: 80 }}
-            />
-            <span>{t("settings.proactiveIdleChatterAfterUnit")}</span>
-          </div>
-          <div style={{ marginTop: 4 }}>
-            <span className={styles.statusLabel}>
-              {t("settings.proactiveQuietHoursLabel")}
+              <span className={styles.badgeDot} />
+              {ltmEnabled
+                ? t("settings.ltmStatusEnabled")
+                : t("settings.ltmStatusDisabled")}
             </span>
-            <p className={styles.note} style={{ marginTop: 0 }}>
-              {t("settings.proactiveQuietHoursDescription")}
+            {!ltmEnabled ? (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={onEnableLtm}
+                disabled={ltmPhase.kind !== "idle"}
+              >
+                {ltmPhase.kind === "downloading"
+                  ? t("settings.ltmEnabling")
+                  : t("settings.ltmEnable")}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={onDisableLtm}
+                disabled={ltmPhase.kind !== "idle"}
+              >
+                {t("settings.ltmDisable")}
+              </button>
+            )}
+          </div>
+        </div>
+        <div className={styles.groupBlock}>
+          {ltmPhase.kind === "downloading" && (
+            <p className={styles.note}>
+              {t("settings.ltmEnableDownloadProgress", {
+                pct: String(ltmPhase.pct),
+              })}
             </p>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginTop: 4,
-              }}
+          )}
+          {ltmError && <p className={styles.note}>{ltmError}</p>}
+          {ltmForgetDoneAt > 0 && Date.now() - ltmForgetDoneAt < 5000 && (
+            <p className={styles.note}>{t("settings.ltmForgetDone")}</p>
+          )}
+          <div className={styles.actions} style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={onForgetLtm}
+              disabled={ltmPhase.kind !== "idle"}
             >
+              {t("settings.ltmForget")}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Proactive notifications — Chappie speaks up on its own.
+          Collapsed by default: this section is 5 toggles + 3 sub-controls
+          + quiet hours range, which dominates the Settings window if
+          shown flat. The summary line still indicates the feature
+          exists; the details open when the user actually wants to
+          configure something. */}
+      <div className={styles.group}>
+        <details className={styles.groupBlock}>
+          <summary className={styles.groupRowLabel}>
+            {t("settings.proactiveLabel")}
+          </summary>
+          <div
+            style={{
+              marginTop: 8,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {/* One row per toggle, with its sub-control right-aligned
+                so the column of inputs stacks visually. The sub-label
+                (時刻 / 何分前 / 話しかけ始める間隔) is dropped — the
+                control type makes its purpose obvious and the toggle
+                label already says what it's for. */}
+            <div className={styles.proactiveRow}>
+              <label className={styles.checkRow}>
+                <input
+                  type="checkbox"
+                  checked={proactiveMorningBriefEnabled}
+                  onChange={(e) =>
+                    setProactiveMorningBriefEnabled(e.target.checked)
+                  }
+                />
+                {t("settings.proactiveMorningBriefToggle")}
+              </label>
               <input
                 type="time"
-                value={proactiveQuietHoursStart}
-                onChange={(e) => setProactiveQuietHoursStart(e.target.value)}
-                aria-label="quiet hours start"
-              />
-              <span>—</span>
-              <input
-                type="time"
-                value={proactiveQuietHoursEnd}
-                onChange={(e) => setProactiveQuietHoursEnd(e.target.value)}
-                aria-label="quiet hours end"
+                value={proactiveMorningBriefTime}
+                onChange={(e) => setProactiveMorningBriefTime(e.target.value)}
+                disabled={!proactiveMorningBriefEnabled}
               />
             </div>
+            <div className={styles.proactiveRow}>
+              <label className={styles.checkRow}>
+                <input
+                  type="checkbox"
+                  checked={proactiveCalendarEnabled}
+                  onChange={(e) =>
+                    setProactiveCalendarEnabled(e.target.checked)
+                  }
+                />
+                {t("settings.proactiveCalendarToggle")}
+              </label>
+              <select
+                className={styles.select}
+                style={{ width: "auto" }}
+                value={String(proactiveCalendarLeadMin)}
+                onChange={(e) =>
+                  setProactiveCalendarLeadMin(Number(e.target.value))
+                }
+                disabled={!proactiveCalendarEnabled}
+              >
+                <option value="5">
+                  {t("settings.proactiveCalendarLead5")}
+                </option>
+                <option value="10">
+                  {t("settings.proactiveCalendarLead10")}
+                </option>
+                <option value="15">
+                  {t("settings.proactiveCalendarLead15")}
+                </option>
+                <option value="30">
+                  {t("settings.proactiveCalendarLead30")}
+                </option>
+              </select>
+            </div>
+            <div className={styles.proactiveRow}>
+              <label className={styles.checkRow}>
+                <input
+                  type="checkbox"
+                  checked={proactiveWeatherEnabled}
+                  onChange={(e) => setProactiveWeatherEnabled(e.target.checked)}
+                />
+                {t("settings.proactiveWeatherToggle")}
+              </label>
+            </div>
+            <div className={styles.proactiveRow}>
+              <label className={styles.checkRow}>
+                <input
+                  type="checkbox"
+                  checked={proactiveIdleChatterEnabled}
+                  onChange={(e) =>
+                    setProactiveIdleChatterEnabled(e.target.checked)
+                  }
+                />
+                {t("settings.proactiveIdleChatterToggle")}
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="number"
+                  min={5}
+                  max={480}
+                  step={5}
+                  value={proactiveIdleChatterAfterMin}
+                  onChange={(e) =>
+                    setProactiveIdleChatterAfterMin(Number(e.target.value))
+                  }
+                  disabled={!proactiveIdleChatterEnabled}
+                  style={{ width: 64 }}
+                />
+                <span>{t("settings.proactiveIdleChatterAfterUnit")}</span>
+              </div>
+            </div>
+            <div className={styles.proactiveRow}>
+              <span>{t("settings.proactiveQuietHoursLabel")}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="time"
+                  value={proactiveQuietHoursStart}
+                  onChange={(e) => setProactiveQuietHoursStart(e.target.value)}
+                  aria-label="quiet hours start"
+                />
+                <span>—</span>
+                <input
+                  type="time"
+                  value={proactiveQuietHoursEnd}
+                  onChange={(e) => setProactiveQuietHoursEnd(e.target.value)}
+                  aria-label="quiet hours end"
+                />
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </details>
+      </div>
 
-      {/* Language */}
-      <section className={styles.card}>
-        <div className={styles.row}>
-          <label className={styles.rowLabel} htmlFor="language">
+      {/* Language + Autostart — two simple single-row settings combined
+          into a grouped table. Both are "name + control" with no
+          ancillary state, the System Settings idiom fits perfectly. */}
+      <div className={styles.group}>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
             {t("settings.languageLabel")}
-          </label>
+          </span>
           <select
             id="language"
-            className={styles.select}
+            className={`${styles.select} ${styles.groupRowControl}`}
+            style={{ width: "auto" }}
             value={language}
             onChange={(e) => setLanguage(e.target.value as Language)}
           >
@@ -1472,134 +1435,112 @@ export function SettingsView() {
             <option value="ko">{t("settings.languageKo")}</option>
           </select>
         </div>
-      </section>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
+            {t("settings.autostartCheckbox")}
+          </span>
+          <input
+            type="checkbox"
+            className={styles.groupRowControl}
+            checked={autostart}
+            onChange={(e) => setAutostart(e.target.checked)}
+          />
+        </div>
+      </div>
 
       {/* VOICEVOX — Japanese only. Hide entirely when the active UI
           language is anything else, since the engine doesn't speak it.
           Uses the same resolution as the conversation loop so "auto"
           falls back to navigator.language. */}
       {resolveLanguage(language).startsWith("ja") && (
-        <section className={styles.card}>
-          <div className={styles.statusRow}>
-            <span className={styles.statusLabel}>
+        <div className={styles.group}>
+          <div className={styles.groupRow}>
+            <span className={styles.groupRowLabel}>
               {t("settings.voicevoxLabel")}
             </span>
-            <span
-              className={`${styles.badge} ${
-                voicevoxInstallKind === "managed" ||
-                voicevoxInstallKind === "bundled_app"
-                  ? styles.badgeGranted
-                  : voicevoxInstallKind === "missing"
-                    ? styles.badgeNeutral
+            <div className={styles.groupRowActions}>
+              <span
+                className={`${styles.badge} ${
+                  voicevoxInstallKind === "managed" ||
+                  voicevoxInstallKind === "bundled_app"
+                    ? styles.badgeGranted
                     : styles.badgeNeutral
-              }`}
-            >
-              <span className={styles.badgeDot} />
-              {voicevoxInstallKind === "managed"
-                ? t("settings.voicevoxStatusManaged")
-                : voicevoxInstallKind === "bundled_app"
-                  ? t("settings.voicevoxStatusBundledApp")
-                  : voicevoxInstallKind === "missing"
-                    ? t("settings.voicevoxStatusMissing")
-                    : t("settings.voicevoxStatusChecking")}
-            </span>
-          </div>
-          {voicevoxInstallProgress && (
-            <p className={styles.note}>
-              {voicevoxInstallProgress.phase === "download"
-                ? t("settings.voicevoxInstallProgress", {
-                    received: (
-                      voicevoxInstallProgress.received /
-                      1024 /
-                      1024
-                    ).toFixed(0),
-                    total:
-                      voicevoxInstallProgress.total > 0
-                        ? (voicevoxInstallProgress.total / 1024 / 1024).toFixed(
-                            0,
-                          )
-                        : "?",
-                  })
-                : voicevoxInstallProgress.phase === "extract"
-                  ? t("settings.voicevoxExtracting")
-                  : t("settings.voicevoxVerifying")}
-            </p>
-          )}
-          {voicevoxInstallError && (
-            <p className={styles.note}>{voicevoxInstallError}</p>
-          )}
-          <div className={styles.actions}>
-            {voicevoxInstallKind === "missing" && (
-              <button
-                type="button"
-                className={styles.button}
-                onClick={handleVoicevoxInstall}
-                disabled={voicevoxBusy}
+                }`}
               >
-                {voicevoxBusy
-                  ? t("settings.voicevoxInstalling")
-                  : t("settings.voicevoxInstall")}
-              </button>
-            )}
-            {voicevoxInstallKind === "managed" && (
-              <button
-                type="button"
-                className={styles.button}
-                onClick={handleVoicevoxUninstall}
-                disabled={voicevoxBusy}
-              >
-                {t("settings.voicevoxUninstall")}
-              </button>
-            )}
-            {/* When VOICEVOX.app is already installed (kind === "bundled_app")
-                Chappie just uses it — no install button is needed. */}
-            <button
-              type="button"
-              className={styles.button}
-              onClick={refreshVoicevoxStatus}
-              disabled={voicevoxBusy}
-            >
-              {t("settings.voicevoxRecheck")}
-            </button>
+                <span className={styles.badgeDot} />
+                {voicevoxInstallKind === "managed"
+                  ? t("settings.voicevoxStatusManaged")
+                  : voicevoxInstallKind === "bundled_app"
+                    ? t("settings.voicevoxStatusBundledApp")
+                    : voicevoxInstallKind === "missing"
+                      ? t("settings.voicevoxStatusMissing")
+                      : t("settings.voicevoxStatusChecking")}
+              </span>
+              {voicevoxInstallKind === "missing" && (
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  onClick={handleVoicevoxInstall}
+                  disabled={voicevoxBusy}
+                >
+                  {voicevoxBusy
+                    ? t("settings.voicevoxInstalling")
+                    : t("settings.voicevoxInstall")}
+                </button>
+              )}
+              {voicevoxInstallKind === "managed" && (
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  onClick={handleVoicevoxUninstall}
+                  disabled={voicevoxBusy}
+                >
+                  {t("settings.voicevoxUninstall")}
+                </button>
+              )}
+            </div>
           </div>
-          {voicevoxStatus === "unreachable" && (
-            <p className={styles.note}>
-              {t("settings.voicevoxStatusUnreachable")}
-            </p>
+          {(voicevoxInstallProgress ||
+            voicevoxInstallError ||
+            voicevoxStatus === "unreachable") && (
+            <div className={styles.groupBlock}>
+              {voicevoxInstallProgress && (
+                <p className={styles.note} style={{ marginTop: 0 }}>
+                  {voicevoxInstallProgress.phase === "download"
+                    ? t("settings.voicevoxInstallProgress", {
+                        received: (
+                          voicevoxInstallProgress.received /
+                          1024 /
+                          1024
+                        ).toFixed(0),
+                        total:
+                          voicevoxInstallProgress.total > 0
+                            ? (
+                                voicevoxInstallProgress.total /
+                                1024 /
+                                1024
+                              ).toFixed(0)
+                            : "?",
+                      })
+                    : voicevoxInstallProgress.phase === "extract"
+                      ? t("settings.voicevoxExtracting")
+                      : t("settings.voicevoxVerifying")}
+                </p>
+              )}
+              {voicevoxInstallError && (
+                <p className={styles.note} style={{ marginTop: 0 }}>
+                  {voicevoxInstallError}
+                </p>
+              )}
+              {voicevoxStatus === "unreachable" && (
+                <p className={styles.note} style={{ marginTop: 0 }}>
+                  {t("settings.voicevoxStatusUnreachable")}
+                </p>
+              )}
+            </div>
           )}
-          <p className={styles.note}>{t("settings.voicevoxCredits")}</p>
-        </section>
-      )}
-
-      {/* Autostart */}
-      <section className={styles.card}>
-        <div className={styles.row}>
-          <span className={styles.rowLabel}>
-            {t("settings.autostartLabel")}
-          </span>
-          <label className={styles.checkRow}>
-            <input
-              type="checkbox"
-              checked={autostart}
-              onChange={(e) => setAutostart(e.target.checked)}
-            />
-            {t("settings.autostartCheckbox")}
-          </label>
         </div>
-      </section>
-
-      <div className={styles.saveBar}>
-        {saved && (
-          <span className={styles.savedFlash}>{t("settings.saved")}</span>
-        )}
-        <button
-          type="button"
-          className={`${styles.button} ${styles.buttonPrimary}`}
-          onClick={onSave}
-        >
-          {t("settings.save")}
-        </button>
-      </div>
+      )}
 
       {version && <div className={styles.footer}>v{version}</div>}
     </main>

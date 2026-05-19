@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 // Wraps the macOS permission triplet that every native permission in
 // chappie shares: a `check_*` Tauri command that returns the current
@@ -32,6 +32,24 @@ export function usePermissionStatus<S extends string>(opts: {
       console.error(`[settings] ${checkCommand} failed`, e);
     }
   }, [checkCommand]);
+
+  // Re-check status whenever the Settings window regains focus. The user
+  // typically grants permission externally (System Settings → Privacy)
+  // and comes back expecting the badge to update; without this they'd
+  // have to close + reopen Settings, so previously every permission row
+  // had a manual "Recheck" button. Auto-refresh lets us drop that button
+  // and tighten each row.
+  useEffect(() => {
+    const onFocus = () => {
+      void refresh();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [refresh]);
 
   const request = useCallback(async () => {
     setRequesting(true);

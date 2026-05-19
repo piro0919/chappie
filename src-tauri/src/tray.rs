@@ -763,7 +763,7 @@ pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
         WebviewUrl::App("index.html?view=settings".into()),
     )
     .title("Chappie 設定")
-    .inner_size(480.0, 720.0)
+    .inner_size(640.0, 720.0)
     .resizable(true)
     .focused(true)
     .build()?;
