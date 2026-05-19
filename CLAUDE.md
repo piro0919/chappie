@@ -83,17 +83,18 @@ pnpm tauri build
 - `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD`: minisign signing for the updater (auto-update breaks without it).
 - `APPLE_SIGNING_IDENTITY="-"`: ad-hoc code signing. **Skip this and macOS will show "the app is damaged" after distribution.**
 
-Outputs:
+Outputs from `pnpm tauri build`:
 - `src-tauri/target/release/bundle/macos/Chappie.app`
 - `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz` (updater feed)
 - `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz.sig` (minisign signature)
-- `src-tauri/target/release/bundle/dmg/Chappie_<version>_aarch64.dmg`
+
+The DMG is built separately via `pnpm dmg` (called automatically by `pnpm release`). We took it out of the Tauri bundler because Tauri's `bundle_dmg.sh` Finder layout step relies on AppleScript and hangs intermittently. `scripts/build-dmg.sh` uses `hdiutil` directly — no AppleScript, no Finder, no flake — at the cost of giving up the custom window layout / background image (a tray-only app doesn't need those anyway).
 
 ### Release (publish to GitHub + bump updater feed)
 
 1. Bump versions in `package.json` and `src-tauri/tauri.conf.json`.
 2. Run the release build above with the env vars.
-3. `pnpm release` — creates the GitHub Release and uploads `.app.tar.gz` / `.sig` / `latest.json` / `.dmg`.
+3. `pnpm release` — builds the DMG (`pnpm dmg`), creates the GitHub Release, and uploads `.app.tar.gz` / `.sig` / `latest.json` / `.dmg`.
 4. The updater feed at `https://github.com/piro0919/chappie/releases/latest/download/latest.json` will surface the new build to existing installs on next launch.
 
 ## Spec & Plan

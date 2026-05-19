@@ -27,7 +27,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app"],
     "createUpdaterArtifacts": true,
     "category": "Productivity",
     "shortDescription": "Hands-free voice AI assistant",
