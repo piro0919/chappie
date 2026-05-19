@@ -21,6 +21,7 @@ use serde_json::Value;
 mod astro;
 mod fetch;
 mod fx;
+mod mlb;
 mod news;
 mod quake;
 mod wiki;
@@ -36,6 +37,7 @@ pub fn tools_openai_schema() -> Vec<Value> {
     out.extend(fx::tools());
     out.extend(astro::tools());
     out.extend(fetch::tools());
+    out.extend(mlb::tools());
     out
 }
 
@@ -60,6 +62,9 @@ pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
     }
     if let Some(rest) = name.strip_prefix("mcp_fetch_") {
         return Some(fetch::execute(rest, args).await);
+    }
+    if let Some(rest) = name.strip_prefix("mcp_mlb_") {
+        return Some(mlb::execute(rest, args).await);
     }
     None
 }

@@ -48,7 +48,7 @@ pub fn tools() -> Vec<Value> {
             "type": "function",
             "function": {
                 "name": "mcp_news_search",
-                "description": "**特定トピックのニュース**を Google News から検索する。「プロ野球ニュース」「大谷の最新」「○○について何かあった？」「△△社のニュース」など。query にはユーザーが言った話題をそのまま入れる（球団名・選手名・会社名・キーワードなど）。limit=取得件数（既定 5、最大 10）。\n\n**結果が 0 件 / フェッチ失敗の場合**: 返り値に `fallback_url` が入っているので、続けて `open_url` でその URL を開き、「見つからなかったのでブラウザで開きました」と一言伝える。ユーザーに聞き返さない。",
+                "description": "**特定トピックのニュース**を Google News から検索する。「プロ野球ニュース」「大谷の最新」「○○について何かあった？」「△△社のニュース」など。query にはユーザーが言った話題をそのまま入れる（球団名・選手名・会社名・キーワードなど）。limit=取得件数（既定 5、最大 10）。\n\n**返り値には常に `fallback_url`（Google News 検索ページの URL）が含まれる**。以下の3ケースは items を読み上げず、必ず続けて `open_url` で fallback_url を開き、「ブラウザで開きました」とだけ伝える（ユーザーに聞き返さない）:\n  1. items が 0 件（フェッチ失敗 / ヒット無し）\n  2. ユーザーが時点指定（「今日の」「最新の」「速報」「今」など）しているのに、items の `published` がその時点に合致しない（例: 24時間以上前の記事しか無い）\n  3. items のタイトルがユーザーの問いに直接答えていない（例: 試合結果を聞かれたが日程一覧記事しか出てこない）\n\n上記に該当しない場合のみ、items のタイトルを簡潔に読み上げる。リンクは読み上げない。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -152,6 +152,7 @@ async fn search(args: &Value) -> String {
         "query": query,
         "fetched_at": chrono::Local::now().to_rfc3339(),
         "items": items,
+        "fallback_url": fallback_url,
     })
     .to_string()
 }

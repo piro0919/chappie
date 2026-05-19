@@ -1004,6 +1004,13 @@ fn capabilities_en() -> String {
             ],
         ),
         (
+            "MLB scores",
+            &[
+                "Dodgers game today?, did the Yankees win?",
+                "Live inning + score, final results from the official MLB schedule API",
+            ],
+        ),
+        (
             "Page summary",
             &[
                 "Read the URL on my clipboard, summarize this link",

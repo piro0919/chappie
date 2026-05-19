@@ -87,6 +87,11 @@ pub async fn chat_complete_generic<P: LlmProvider>(
     let mut end_conversation = false;
     let mut full_text = String::new();
     let mut called_tools: Vec<String> = Vec::new();
+    // If a tool returned a `fallback_url` (currently: mcp_news_search) and
+    // the model ends the turn claiming it opened a browser without
+    // actually calling open_url / web_search, force-open this URL so the
+    // user isn't lied to. Latest fallback_url wins across rounds.
+    let mut pending_fallback_url: Option<String> = None;
 
     for round in 0..=MAX_TOOL_ROUNDS {
         let body = provider.build_body(&state, &model, &tools);
@@ -142,6 +147,36 @@ pub async fn chat_complete_generic<P: LlmProvider>(
             } else {
                 full_text
             };
+            // Safety net for Gemini Flash hallucination: when a previous
+            // tool returned a fallback_url and the model claims it opened
+            // a browser without actually invoking open_url / web_search,
+            // execute the open_url call ourselves.
+            if let Some(url) = &pending_fallback_url {
+                let already_opened = called_tools
+                    .iter()
+                    .any(|n| n == "open_url" || n == "web_search");
+                let claims_opened = [
+                    "ブラウザ", "Google", "検索", "browser", "Search", "search",
+                ]
+                .iter()
+                .any(|kw| text.contains(kw));
+                if !already_opened && claims_opened {
+                    crate::linfo!(
+                        app,
+                        label,
+                        "force-open fallback_url (model claimed open without calling): {url}"
+                    );
+                    let args = json!({ "url": url });
+                    let _ = crate::tools::execute_tool(
+                        app,
+                        "open_url",
+                        &args,
+                        &mut end_conversation,
+                    )
+                    .await;
+                    called_tools.push("open_url".to_string());
+                }
+            }
             crate::linfo!(
                 app,
                 label,
@@ -183,6 +218,11 @@ pub async fn chat_complete_generic<P: LlmProvider>(
                 "tool {name} -> {result:?}",
                 name = call.name
             );
+            if let Ok(v) = serde_json::from_str::<Value>(&result) {
+                if let Some(u) = v.get("fallback_url").and_then(|x| x.as_str()) {
+                    pending_fallback_url = Some(u.to_string());
+                }
+            }
             results.push(ToolResult {
                 call_id: call.id.clone(),
                 name: call.name.clone(),
