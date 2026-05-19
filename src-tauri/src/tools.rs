@@ -1002,15 +1002,13 @@ pub(crate) async fn execute_tool(
             if q.trim().is_empty() {
                 return json!({ "ok": false, "error": "query is required" }).to_string();
             }
+            // No explicit HUD here — the wallpaper change itself is the
+            // visual confirmation. The LLM's spoken response (or HUD
+            // routing when muted) covers messaging for both success and
+            // failure paths via the existing pipeline.
             match crate::wallpaper::set_wallpaper(app, &q).await {
-                Ok(r) => {
-                    crate::hud::show(app, format!("🖼️ {} の壁紙にしました", q), 2500);
-                    json!({ "ok": true, "monitors": r.monitors }).to_string()
-                }
-                Err(e) => {
-                    crate::hud::show(app, "🖼️ 壁紙取得に失敗しました", 2500);
-                    json!({ "ok": false, "error": e }).to_string()
-                }
+                Ok(r) => json!({ "ok": true, "monitors": r.monitors }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
             }
         }
         "open_finder" => {
