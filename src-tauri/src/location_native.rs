@@ -24,9 +24,45 @@ mod imp {
         CLAuthorizationStatus, CLGeocoder, CLLocation, CLLocationManager, CLPlacemark,
     };
     use objc2_foundation::{NSArray, NSError, NSString};
+    use std::collections::HashMap;
     use std::sync::mpsc;
-    use std::sync::OnceLock;
+    use std::sync::{Mutex, OnceLock};
     use std::time::{Duration, Instant};
+
+    /// Coord → locality cache. Keyed by lat/lon rounded to ~110m
+    /// buckets (3 decimal places × 1000) so a slightly drifting fix
+    /// from CoreLocation doesn't trigger a fresh CLGeocoder call.
+    /// TTL is long because cities don't move; the parent cache in
+    /// `location.rs` already expires the full UserLocation every
+    /// 30 min, but on its miss path we re-fetch the coord *and* the
+    /// locality. The latter is the expensive part (network + Apple
+    /// Maps round-trip, up to 5 s on timeout), and the user
+    /// usually hasn't actually moved between cache expirations.
+    static GEOCODE_CACHE: OnceLock<Mutex<HashMap<(i32, i32), (Option<String>, Instant)>>> =
+        OnceLock::new();
+    const GEOCODE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
+
+    fn coord_key(lat: f64, lon: f64) -> (i32, i32) {
+        ((lat * 1000.0).round() as i32, (lon * 1000.0).round() as i32)
+    }
+
+    fn geocode_cache_lookup(lat: f64, lon: f64) -> Option<Option<String>> {
+        let map = GEOCODE_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+        let guard = map.lock().ok()?;
+        let (val, t) = guard.get(&coord_key(lat, lon))?;
+        if t.elapsed() < GEOCODE_TTL {
+            Some(val.clone())
+        } else {
+            None
+        }
+    }
+
+    fn geocode_cache_store(lat: f64, lon: f64, name: Option<String>) {
+        let map = GEOCODE_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+        if let Ok(mut guard) = map.lock() {
+            guard.insert(coord_key(lat, lon), (name, Instant::now()));
+        }
+    }
 
     #[link(name = "CoreFoundation", kind = "framework")]
     extern "C" {
@@ -146,7 +182,16 @@ mod imp {
 
         // Best-effort reverse geocoding. Pure cosmetic — if it fails we
         // still have lat/lon (the weather tool consumes those directly).
-        let locality = reverse_geocode(lat, lon).ok().flatten();
+        // Cache hit skips the CLGeocoder round-trip entirely; on miss we
+        // store the result (including None, so repeated geocode failures
+        // don't keep hammering Apple Maps).
+        let locality = if let Some(cached) = geocode_cache_lookup(lat, lon) {
+            cached
+        } else {
+            let fresh = reverse_geocode(lat, lon).ok().flatten();
+            geocode_cache_store(lat, lon, fresh.clone());
+            fresh
+        };
         Ok((lat, lon, locality))
     }
 
