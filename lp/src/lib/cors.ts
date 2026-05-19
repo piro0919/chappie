@@ -28,5 +28,9 @@ export function withCors<T extends NextResponse>(res: T): T {
   for (const [k, v] of Object.entries(corsHeaders())) {
     res.headers.set(k, v);
   }
+  // Next's default for dynamic routes is `public, max-age=0, must-revalidate`,
+  // which some WebViews honor as "use cached body until revalidated" rather
+  // than "always re-fetch". Bearer-protected JSON should never be cached.
+  res.headers.set("Cache-Control", "no-store");
   return res;
 }
