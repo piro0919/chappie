@@ -28,6 +28,12 @@ use tauri::{AppHandle, Manager};
 
 const DEFAULT_PROXY_URL: &str = "https://chappie.kkweb.io/api/wallpaper";
 const MAX_IMAGE_BYTES: u64 = 20 * 1024 * 1024; // 20 MB
+/// Cache TTL — files in ~/.chappie/wallpapers/ untouched for this long
+/// get swept on the next `set_wallpaper` call. Bounds the cache to
+/// roughly "themes the user has actually used in the last month",
+/// which is what we want: a one-off "壁紙を森にして" from 6 months ago
+/// shouldn't squat on disk forever.
+const CACHE_TTL_SECONDS: u64 = 30 * 24 * 60 * 60;
 
 #[derive(Debug, Deserialize)]
 struct ProxyImage {
@@ -61,6 +67,11 @@ pub async fn set_wallpaper(app: &AppHandle, query: &str) -> Result<SetWallpaperR
     if images.is_empty() {
         return Err("no images found".into());
     }
+
+    // Sweep stale cache entries before downloading — cheap dir scan,
+    // bounds disk usage without needing a startup hook. Best-effort:
+    // a failure here mustn't block the actual wallpaper change.
+    let _ = sweep_stale_cache();
 
     let paths = download_all(&images).await?;
     apply_wallpaper(&paths, monitor_count)?;
@@ -160,6 +171,37 @@ fn cache_dir() -> Result<PathBuf, String> {
     p.push("wallpapers");
     std::fs::create_dir_all(&p).map_err(|e| format!("create cache dir: {e}"))?;
     Ok(p)
+}
+
+/// Delete pixabay-*.jpg files whose mtime is older than CACHE_TTL_SECONDS.
+/// Best-effort — any individual unlink error is swallowed so a permission
+/// blip doesn't break the user-facing wallpaper change. Returns the count
+/// of files removed so tests can assert on it.
+fn sweep_stale_cache() -> std::io::Result<usize> {
+    let dir = cache_dir().map_err(std::io::Error::other)?;
+    let cutoff = std::time::SystemTime::now()
+        .checked_sub(std::time::Duration::from_secs(CACHE_TTL_SECONDS))
+        .unwrap_or(std::time::UNIX_EPOCH);
+    let mut removed = 0usize;
+    for entry in std::fs::read_dir(&dir)? {
+        let Ok(entry) = entry else { continue };
+        let path = entry.path();
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default();
+        // Only sweep files we own — leave anything else alone in case
+        // the user has dropped their own images here.
+        if !name.starts_with("pixabay-") {
+            continue;
+        }
+        let Ok(meta) = entry.metadata() else { continue };
+        let Ok(modified) = meta.modified() else { continue };
+        if modified < cutoff && std::fs::remove_file(&path).is_ok() {
+            removed += 1;
+        }
+    }
+    Ok(removed)
 }
 
 async fn download_all(images: &[ProxyImage]) -> Result<Vec<PathBuf>, String> {
@@ -304,5 +346,38 @@ mod tests {
     #[test]
     fn urlencoding_passes_safe_chars() {
         assert_eq!(urlencoding_minimal("hello-world.JPG_v2~"), "hello-world.JPG_v2~");
+    }
+
+    #[test]
+    fn sweep_preserves_fresh_and_foreign_files() {
+        // Sandbox HOME so we don't touch the real ~/.chappie. mtime
+        // backdating would need an extra dev-dep (filetime crate),
+        // so this test only verifies the negative-space behavior:
+        // fresh pixabay files and non-pixabay files always survive a
+        // sweep. The "stale files actually get deleted" path is
+        // exercised manually during dev (or in a future integration
+        // test with a fs::utime polyfill).
+        let tmp = std::env::temp_dir().join(format!("chappie-wallpaper-sweep-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        let prev_home = std::env::var_os("HOME");
+        std::env::set_var("HOME", &tmp);
+
+        let dir = cache_dir().unwrap();
+        let fresh = dir.join("pixabay-123.jpg");
+        let foreign = dir.join("not-ours.jpg");
+        std::fs::write(&fresh, b"x").unwrap();
+        std::fs::write(&foreign, b"x").unwrap();
+
+        sweep_stale_cache().unwrap();
+        assert!(fresh.exists(), "fresh pixabay file must survive");
+        assert!(foreign.exists(), "non-pixabay file must survive");
+
+        let _ = std::fs::remove_dir_all(&tmp);
+        if let Some(h) = prev_home {
+            std::env::set_var("HOME", h);
+        } else {
+            std::env::remove_var("HOME");
+        }
     }
 }
