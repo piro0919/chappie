@@ -138,6 +138,13 @@ export type Settings = {
    * the audio frame size — Settings UI converts to ms for display.
    */
   vadSilenceFrames: number;
+  /**
+   * Opt-in to usage analytics. When true, every chat turn is reported
+   * to chappie.kkweb.io/api/analytics with the utterance + tool names +
+   * lang/mode/latency. Audio is NEVER sent. Free-mode users get +10
+   * daily quota as a thank-you. Default OFF.
+   */
+  analyticsConsent: boolean;
 };
 
 const DEFAULTS: Settings = {
@@ -162,6 +169,7 @@ const DEFAULTS: Settings = {
   speakerThreshold: 0.4,
   vadThreshold: 0.25,
   vadSilenceFrames: 22,
+  analyticsConsent: false,
 };
 const FILE = "settings.json";
 
@@ -261,6 +269,9 @@ export async function loadSettings(): Promise<Settings> {
     vadSilenceFrames:
       (await store.get<number>("vadSilenceFrames")) ??
       DEFAULTS.vadSilenceFrames,
+    analyticsConsent:
+      (await store.get<boolean>("analyticsConsent")) ??
+      DEFAULTS.analyticsConsent,
   };
 }
 
@@ -352,6 +363,9 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.vadSilenceFrames !== undefined) {
     await store.set("vadSilenceFrames", patch.vadSilenceFrames);
+  }
+  if (patch.analyticsConsent !== undefined) {
+    await store.set("analyticsConsent", patch.analyticsConsent);
   }
   await store.save();
 }

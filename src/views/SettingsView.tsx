@@ -70,6 +70,19 @@ export function SettingsView() {
   const [proactiveQuietHoursStart, setProactiveQuietHoursStart] =
     useState("07:00");
   const [proactiveQuietHoursEnd, setProactiveQuietHoursEnd] = useState("22:00");
+  const [analyticsConsent, setAnalyticsConsent] = useState(false);
+  const [analyticsBusy, setAnalyticsBusy] = useState(false);
+  const [analyticsRecent, setAnalyticsRecent] = useState<
+    Array<{
+      ts_unix: number;
+      utterance: string;
+      tool_calls: string[];
+      lang: string;
+      mode: string;
+      success: boolean;
+    }>
+  >([]);
+  const [analyticsRecentOpen, setAnalyticsRecentOpen] = useState(false);
   const [subscriptionEmail, setSubscriptionEmail] = useState("");
   const [subscriptionStatus, setSubscriptionStatus] =
     useState<SubscriptionStatus>("inactive");
@@ -250,6 +263,15 @@ export function SettingsView() {
       setSpeakerThreshold(s.speakerThreshold);
       setVadThreshold(s.vadThreshold);
       setVadSilenceFrames(s.vadSilenceFrames);
+      setAnalyticsConsent(s.analyticsConsent);
+      // Mirror the stored consent flag into the Rust process so the
+      // dispatch hot path doesn't run with a stale default-false until
+      // the first toggle. Cached-only invoke, no network round-trip.
+      try {
+        await invoke("analytics_set_consent_cached", {
+          consent: s.analyticsConsent,
+        });
+      } catch {}
       try {
         const [min, max, def] = await invoke<[number, number, number]>(
           "speaker_threshold_range",
@@ -548,6 +570,48 @@ export function SettingsView() {
     }
   }
 
+  async function onToggleAnalyticsConsent(next: boolean) {
+    // ON: explicit consent modal to honor the "transparent before
+    //     toggle flips" promise. The browser confirm is uglier than a
+    //     custom modal but lives at runtime in WKWebView reliably and
+    //     doesn't need extra component plumbing.
+    if (next && !window.confirm(t("settings.analyticsConsentModal"))) {
+      return;
+    }
+    setAnalyticsBusy(true);
+    try {
+      await invoke("analytics_set_consent", { consent: next });
+      setAnalyticsConsent(next);
+    } catch (e) {
+      console.warn("[settings] analytics consent toggle failed", e);
+    } finally {
+      setAnalyticsBusy(false);
+    }
+  }
+
+  async function onDeleteAnalyticsHistory() {
+    if (!window.confirm(t("settings.analyticsDeleteConfirm"))) return;
+    setAnalyticsBusy(true);
+    try {
+      await invoke("analytics_delete_history");
+      setAnalyticsConsent(false);
+      setAnalyticsRecent([]);
+    } catch (e) {
+      console.warn("[settings] analytics delete failed", e);
+    } finally {
+      setAnalyticsBusy(false);
+    }
+  }
+
+  async function onRefreshAnalyticsRecent() {
+    try {
+      const r = await invoke<typeof analyticsRecent>("analytics_recent_events");
+      setAnalyticsRecent(r);
+    } catch (e) {
+      console.warn("[settings] analytics recent failed", e);
+    }
+  }
+
   // Auto-save: persist every form-state change after a 300ms debounce.
   // Replaces the explicit save button — matches the macOS System
   // Settings idiom where toggling a control immediately commits, no
@@ -577,6 +641,7 @@ export function SettingsView() {
             speakerThreshold,
             vadThreshold,
             vadSilenceFrames,
+            analyticsConsent,
           });
           await invoke("set_speaker_threshold", { value: speakerThreshold });
           await invoke("set_vad_threshold", { value: vadThreshold });
@@ -608,6 +673,7 @@ export function SettingsView() {
     speakerThreshold,
     vadThreshold,
     vadSilenceFrames,
+    analyticsConsent,
   ]);
 
   if (!loaded) {
@@ -1270,6 +1336,111 @@ export function SettingsView() {
               {t("settings.ltmForget")}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Usage analytics — opt-in voice utterance + tool name sharing.
+          Default OFF. Free-tier users get +10 daily quota as a thank-
+          you; Pro / BYOK get the toggle for altruistic feedback. The
+          transparency block lists exactly what gets sent and what
+          doesn't; recent events let users preview before / during
+          opting in. */}
+      <div className={styles.group}>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
+            {t("settings.analyticsLabel")}
+          </span>
+          <div className={styles.groupRowActions}>
+            <span
+              className={`${styles.badge} ${
+                analyticsConsent ? styles.badgeGranted : styles.badgeNeutral
+              }`}
+            >
+              <span className={styles.badgeDot} />
+              {analyticsConsent
+                ? t("settings.analyticsStatusOn")
+                : t("settings.analyticsStatusOff")}
+            </span>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={() => onToggleAnalyticsConsent(!analyticsConsent)}
+              disabled={analyticsBusy}
+            >
+              {analyticsConsent
+                ? t("settings.analyticsTurnOff")
+                : t("settings.analyticsTurnOn")}
+            </button>
+          </div>
+        </div>
+        <div className={styles.groupBlock}>
+          <p className={styles.note}>
+            {mode === "free"
+              ? t("settings.analyticsDescriptionFree")
+              : subscriptionEntitled
+                ? t("settings.analyticsDescriptionPro")
+                : t("settings.analyticsDescriptionByok")}
+          </p>
+          <div className={styles.actions} style={{ marginTop: 8, gap: 12 }}>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={() => {
+                const next = !analyticsRecentOpen;
+                setAnalyticsRecentOpen(next);
+                if (next) void onRefreshAnalyticsRecent();
+              }}
+            >
+              {analyticsRecentOpen
+                ? t("settings.analyticsRecentHide")
+                : t("settings.analyticsRecentShow")}
+            </button>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={onDeleteAnalyticsHistory}
+              disabled={analyticsBusy}
+            >
+              {t("settings.analyticsDelete")}
+            </button>
+          </div>
+          {analyticsRecentOpen && (
+            <div style={{ marginTop: 12 }}>
+              {analyticsRecent.length === 0 ? (
+                <p className={styles.note}>
+                  {t("settings.analyticsRecentEmpty")}
+                </p>
+              ) : (
+                <ul
+                  style={{
+                    listStyle: "none",
+                    padding: 0,
+                    margin: 0,
+                    fontSize: 12,
+                  }}
+                >
+                  {analyticsRecent.map((e) => (
+                    <li
+                      key={e.ts_unix}
+                      style={{
+                        padding: "6px 0",
+                        borderTop: "1px solid var(--border-color, #eee)",
+                      }}
+                    >
+                      <div style={{ opacity: 0.7 }}>
+                        {new Date(e.ts_unix * 1000).toLocaleTimeString()} ·{" "}
+                        {e.lang} · {e.mode} ·{" "}
+                        {e.tool_calls.length === 0
+                          ? "(chitchat)"
+                          : e.tool_calls.join(", ")}
+                      </div>
+                      <div>{e.utterance}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

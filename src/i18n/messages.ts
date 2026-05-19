@@ -129,6 +129,20 @@ type Messages = {
     ltmForget: string;
     ltmForgetConfirm: string;
     ltmForgetDone: string;
+    analyticsLabel: string;
+    analyticsStatusOn: string;
+    analyticsStatusOff: string;
+    analyticsTurnOn: string;
+    analyticsTurnOff: string;
+    analyticsDescriptionFree: string;
+    analyticsDescriptionPro: string;
+    analyticsDescriptionByok: string;
+    analyticsConsentModal: string;
+    analyticsDelete: string;
+    analyticsDeleteConfirm: string;
+    analyticsRecentShow: string;
+    analyticsRecentHide: string;
+    analyticsRecentEmpty: string;
     proactiveLabel: string;
     proactiveMasterToggle: string;
     proactiveMorningBriefToggle: string;
@@ -321,6 +335,26 @@ const ja: Messages = {
     ltmForgetConfirm:
       "本当に会話ログ・日次サマリ・トピックを全部削除しますか？モデルファイルと「私について」の記憶（save_memory のもの）は残ります。",
     ltmForgetDone: "削除しました",
+    analyticsLabel: "使用データの匿名共有",
+    analyticsStatusOn: "ON",
+    analyticsStatusOff: "OFF",
+    analyticsTurnOn: "ON にする",
+    analyticsTurnOff: "OFF にする",
+    analyticsDescriptionFree:
+      "話しかけた音声の書き起こしと、呼び出された機能名を機能改善のため匿名で送信します。録音そのものは送りません。ONにすると Free モードのデイリー上限が +10 増えます（5 → 15）。",
+    analyticsDescriptionPro:
+      "話しかけた音声の書き起こしと、呼び出された機能名を機能改善のため匿名で送信します。録音そのものは送りません。Pro は元から無制限ですが、ぜひご協力ください。",
+    analyticsDescriptionByok:
+      "話しかけた音声の書き起こしと、呼び出された機能名を機能改善のため匿名で送信します。録音そのものは送りません。BYOK にも特典なし、機能改善へのご協力です。",
+    analyticsConsentModal:
+      "Chappie に話しかけた音声の書き起こしと、Chappie が呼び出した機能名を、サーバーに匿名で送信します。録音そのもの・LLM の応答は送りません。デバイス ID はハードウェアから一方向に生成された UUID（逆引き不可）です。データの送信を ON にしますか？",
+    analyticsDelete: "送信済みデータを削除",
+    analyticsDeleteConfirm:
+      "これまでに送信した利用データを全て削除し、共有を OFF にします。よろしいですか？",
+    analyticsRecentShow: "直近の送信内容を見る",
+    analyticsRecentHide: "閉じる",
+    analyticsRecentEmpty:
+      "このセッションでまだ送信したターンはありません（OFF 状態では生成のみ・送信は行いません）。",
     proactiveLabel: "プロアクティブ通知",
     proactiveMasterToggle: "有効にする",
     proactiveMorningBriefToggle: "朝のブリーフィング",
@@ -524,6 +558,26 @@ const en: Messages = {
     ltmForgetConfirm:
       'Really delete all conversation logs, daily summaries, and topic snapshots? The model file and your saved "about me" facts (from save_memory) will stay.',
     ltmForgetDone: "Deleted",
+    analyticsLabel: "Share anonymous usage data",
+    analyticsStatusOn: "ON",
+    analyticsStatusOff: "OFF",
+    analyticsTurnOn: "Turn on",
+    analyticsTurnOff: "Turn off",
+    analyticsDescriptionFree:
+      "Send a transcript of what you said and the names of the tools Chappie used, anonymously, to help improve the product. Audio is never sent. Turning this on adds +10 to your Free daily limit (5 → 15).",
+    analyticsDescriptionPro:
+      "Send a transcript of what you said and the names of the tools Chappie used, anonymously, to help improve the product. Audio is never sent. Pro is already unlimited, so no extra perk — but help us make it better!",
+    analyticsDescriptionByok:
+      "Send a transcript of what you said and the names of the tools Chappie used, anonymously, to help improve the product. Audio is never sent. BYOK has no extra perk; this is purely to help us improve Chappie.",
+    analyticsConsentModal:
+      "Chappie will send a transcript of what you said and the names of the tools it used to our server, anonymously. The audio itself and the LLM's response are NEVER sent. The device id is a one-way UUID derived from your hardware (not reversible to a personal identity). Turn data sharing on?",
+    analyticsDelete: "Delete sent data",
+    analyticsDeleteConfirm:
+      "This will delete every event we have for this device and turn sharing off. Continue?",
+    analyticsRecentShow: "Show recent shares",
+    analyticsRecentHide: "Hide",
+    analyticsRecentEmpty:
+      "Nothing reported this session yet (with sharing OFF, events are not sent — this list shows what would be).",
     proactiveLabel: "Proactive notifications",
     proactiveMasterToggle: "Enable",
     proactiveMorningBriefToggle: "Morning briefing",
@@ -728,6 +782,26 @@ const es: Messages = {
     ltmForgetConfirm:
       '¿Eliminar todos los registros de conversación, resúmenes diarios y temas? El archivo del modelo y los datos guardados de "sobre mí" (con save_memory) se mantienen.',
     ltmForgetDone: "Borrado",
+    analyticsLabel: "Compartir datos de uso anónimos",
+    analyticsStatusOn: "ON",
+    analyticsStatusOff: "OFF",
+    analyticsTurnOn: "Activar",
+    analyticsTurnOff: "Desactivar",
+    analyticsDescriptionFree:
+      "Enviar la transcripción de tu voz y los nombres de las herramientas que usó Chappie, de forma anónima, para mejorar el producto. El audio nunca se envía. Al activar esto, el límite diario gratuito sube +10 (5 → 15).",
+    analyticsDescriptionPro:
+      "Enviar la transcripción de tu voz y los nombres de las herramientas que usó Chappie, de forma anónima, para mejorar el producto. El audio nunca se envía. Pro ya es ilimitado; tu colaboración nos ayuda a mejorar.",
+    analyticsDescriptionByok:
+      "Enviar la transcripción de tu voz y los nombres de las herramientas que usó Chappie, de forma anónima. El audio nunca se envía. BYOK no recibe ventajas; es solo para mejorar el producto.",
+    analyticsConsentModal:
+      "Chappie enviará la transcripción de tu voz y los nombres de las herramientas usadas, de forma anónima. El audio y la respuesta del LLM nunca se envían. El ID del dispositivo es un UUID de una vía (no reversible). ¿Activar?",
+    analyticsDelete: "Borrar datos enviados",
+    analyticsDeleteConfirm:
+      "Esto borrará todos los eventos de este dispositivo y desactivará el envío. ¿Continuar?",
+    analyticsRecentShow: "Ver envíos recientes",
+    analyticsRecentHide: "Ocultar",
+    analyticsRecentEmpty:
+      "Nada enviado en esta sesión (con el envío OFF no se envía nada — esto muestra lo que se enviaría).",
     proactiveLabel: "Notificaciones proactivas",
     proactiveMasterToggle: "Activar",
     proactiveMorningBriefToggle: "Resumen matutino",
@@ -932,6 +1006,26 @@ const fr: Messages = {
     ltmForgetConfirm:
       "Vraiment supprimer tous les journaux de conversation, résumés quotidiens et sujets ? Le fichier du modèle et les faits enregistrés « à mon sujet » (via save_memory) restent.",
     ltmForgetDone: "Supprimé",
+    analyticsLabel: "Partager les données d'usage anonymes",
+    analyticsStatusOn: "ON",
+    analyticsStatusOff: "OFF",
+    analyticsTurnOn: "Activer",
+    analyticsTurnOff: "Désactiver",
+    analyticsDescriptionFree:
+      "Envoyer la transcription de votre voix et les noms des outils utilisés par Chappie, anonymement, pour améliorer le produit. L'audio n'est jamais envoyé. En activant ceci, votre limite Free quotidienne augmente de +10 (5 → 15).",
+    analyticsDescriptionPro:
+      "Envoyer la transcription de votre voix et les noms des outils utilisés par Chappie, anonymement, pour améliorer le produit. L'audio n'est jamais envoyé. Pro est déjà illimité ; merci de nous aider à l'améliorer !",
+    analyticsDescriptionByok:
+      "Envoyer la transcription de votre voix et les noms des outils utilisés par Chappie, anonymement. L'audio n'est jamais envoyé. BYOK n'a pas de bonus ; c'est juste pour améliorer le produit.",
+    analyticsConsentModal:
+      "Chappie enverra la transcription de votre voix et les noms des outils utilisés, anonymement. L'audio et la réponse du LLM ne sont JAMAIS envoyés. L'identifiant d'appareil est un UUID à sens unique (non réversible). Activer le partage ?",
+    analyticsDelete: "Supprimer les données envoyées",
+    analyticsDeleteConfirm:
+      "Ceci supprimera tous les événements pour cet appareil et désactivera le partage. Continuer ?",
+    analyticsRecentShow: "Voir les envois récents",
+    analyticsRecentHide: "Masquer",
+    analyticsRecentEmpty:
+      "Rien envoyé cette session (avec le partage OFF, rien n'est envoyé — cette liste montre ce qui serait envoyé).",
     proactiveLabel: "Notifications proactives",
     proactiveMasterToggle: "Activer",
     proactiveMorningBriefToggle: "Briefing matinal",
@@ -1136,6 +1230,26 @@ const de: Messages = {
     ltmForgetConfirm:
       "Wirklich alle Gesprächsprotokolle, Tageszusammenfassungen und Themen löschen? Die Modelldatei und die gespeicherten Profil-Fakten (via save_memory) bleiben erhalten.",
     ltmForgetDone: "Gelöscht",
+    analyticsLabel: "Anonyme Nutzungsdaten teilen",
+    analyticsStatusOn: "AN",
+    analyticsStatusOff: "AUS",
+    analyticsTurnOn: "Einschalten",
+    analyticsTurnOff: "Ausschalten",
+    analyticsDescriptionFree:
+      "Sende anonym eine Transkription deiner Stimme und die Namen der von Chappie aufgerufenen Tools, um das Produkt zu verbessern. Audio wird niemals gesendet. Aktivieren erhöht dein Free-Tageslimit um +10 (5 → 15).",
+    analyticsDescriptionPro:
+      "Sende anonym eine Transkription deiner Stimme und die Namen der genutzten Tools, um das Produkt zu verbessern. Audio wird niemals gesendet. Pro ist bereits unbegrenzt; bitte hilf uns trotzdem!",
+    analyticsDescriptionByok:
+      "Sende anonym eine Transkription deiner Stimme und die Namen der genutzten Tools. Audio wird niemals gesendet. BYOK erhält keinen Bonus; nur zur Produktverbesserung.",
+    analyticsConsentModal:
+      "Chappie sendet anonym eine Transkription deiner Stimme und die Namen der verwendeten Tools an unseren Server. Audio und LLM-Antwort werden NIE gesendet. Die Geräte-ID ist eine Einweg-UUID (nicht reversibel). Teilen aktivieren?",
+    analyticsDelete: "Gesendete Daten löschen",
+    analyticsDeleteConfirm:
+      "Dies löscht alle Ereignisse für dieses Gerät und schaltet die Freigabe aus. Fortfahren?",
+    analyticsRecentShow: "Letzte Übertragungen anzeigen",
+    analyticsRecentHide: "Ausblenden",
+    analyticsRecentEmpty:
+      "In dieser Sitzung noch nichts gesendet (mit AUS wird nichts gesendet — diese Liste zeigt, was gesendet würde).",
     proactiveLabel: "Proaktive Benachrichtigungen",
     proactiveMasterToggle: "Aktivieren",
     proactiveMorningBriefToggle: "Morgenbriefing",
@@ -1334,6 +1448,25 @@ const zh: Messages = {
     ltmForgetConfirm:
       "确定要删除所有对话日志、每日总结和话题快照吗？模型文件和保存的「关于我」的资料（通过 save_memory）会保留。",
     ltmForgetDone: "已删除",
+    analyticsLabel: "匿名共享使用数据",
+    analyticsStatusOn: "开启",
+    analyticsStatusOff: "关闭",
+    analyticsTurnOn: "开启",
+    analyticsTurnOff: "关闭",
+    analyticsDescriptionFree:
+      "匿名发送语音转录文本和 Chappie 调用的工具名，用于产品改进。永不发送音频。开启后免费版每日上限 +10（5 → 15）。",
+    analyticsDescriptionPro:
+      "匿名发送语音转录文本和 Chappie 调用的工具名，用于产品改进。永不发送音频。Pro 已无限制，请协助我们继续完善。",
+    analyticsDescriptionByok:
+      "匿名发送语音转录文本和 Chappie 调用的工具名，用于产品改进。永不发送音频。BYOK 无额外特权，仅用于改进产品。",
+    analyticsConsentModal:
+      "Chappie 会将你的语音转录文本和使用的工具名匿名发送至服务器。绝不会发送音频本身和 LLM 回复。设备 ID 是从硬件单向生成的 UUID（不可反查）。开启数据共享？",
+    analyticsDelete: "删除已发送数据",
+    analyticsDeleteConfirm: "此操作将删除该设备的所有事件并关闭共享。继续？",
+    analyticsRecentShow: "查看最近发送内容",
+    analyticsRecentHide: "隐藏",
+    analyticsRecentEmpty:
+      "本次会话尚未发送（关闭时不会发送，此列表展示将要发送的内容）。",
     proactiveLabel: "主动通知",
     proactiveMasterToggle: "启用",
     proactiveMorningBriefToggle: "早间简报",
@@ -1535,6 +1668,26 @@ const pt: Messages = {
     ltmForgetConfirm:
       "Excluir todos os registros de conversa, resumos diários e tópicos? O arquivo do modelo e os dados salvos sobre você (via save_memory) permanecem.",
     ltmForgetDone: "Apagado",
+    analyticsLabel: "Compartilhar dados de uso anônimos",
+    analyticsStatusOn: "ON",
+    analyticsStatusOff: "OFF",
+    analyticsTurnOn: "Ativar",
+    analyticsTurnOff: "Desativar",
+    analyticsDescriptionFree:
+      "Envia a transcrição da sua voz e os nomes das ferramentas usadas pelo Chappie, anonimamente, para melhorar o produto. Áudio nunca é enviado. Ativar adiciona +10 ao limite diário Free (5 → 15).",
+    analyticsDescriptionPro:
+      "Envia a transcrição da sua voz e os nomes das ferramentas usadas pelo Chappie, anonimamente, para melhorar o produto. Áudio nunca é enviado. Pro já é ilimitado; ajude-nos a melhorar!",
+    analyticsDescriptionByok:
+      "Envia a transcrição da sua voz e os nomes das ferramentas usadas, anonimamente. Áudio nunca é enviado. BYOK não tem bônus; apenas para melhorar o produto.",
+    analyticsConsentModal:
+      "O Chappie enviará a transcrição da sua voz e os nomes das ferramentas usadas, anonimamente. Áudio e resposta do LLM nunca são enviados. ID do dispositivo é um UUID de mão única (não reversível). Ativar compartilhamento?",
+    analyticsDelete: "Excluir dados enviados",
+    analyticsDeleteConfirm:
+      "Isto excluirá todos os eventos deste dispositivo e desativará o compartilhamento. Continuar?",
+    analyticsRecentShow: "Ver envios recentes",
+    analyticsRecentHide: "Ocultar",
+    analyticsRecentEmpty:
+      "Nada enviado nesta sessão (com OFF nada é enviado — esta lista mostra o que seria enviado).",
     proactiveLabel: "Notificações proativas",
     proactiveMasterToggle: "Ativar",
     proactiveMorningBriefToggle: "Resumo matinal",
@@ -1737,6 +1890,26 @@ const ko: Messages = {
     ltmForgetConfirm:
       '정말로 모든 대화 로그, 일일 요약, 화제 스냅샷을 삭제할까요? 모델 파일과 저장된 "나에 대해" 정보(save_memory로 저장한 것)는 남습니다.',
     ltmForgetDone: "삭제됨",
+    analyticsLabel: "익명 사용 데이터 공유",
+    analyticsStatusOn: "ON",
+    analyticsStatusOff: "OFF",
+    analyticsTurnOn: "켜기",
+    analyticsTurnOff: "끄기",
+    analyticsDescriptionFree:
+      "말한 음성의 텍스트와 Chappie가 호출한 기능 이름을 익명으로 보내 제품 개선에 사용합니다. 음성은 보내지 않습니다. 켜면 Free 일일 한도가 +10 증가합니다(5 → 15).",
+    analyticsDescriptionPro:
+      "말한 음성의 텍스트와 Chappie가 호출한 기능 이름을 익명으로 보내 제품 개선에 사용합니다. 음성은 보내지 않습니다. Pro는 이미 무제한이지만 협력 부탁드립니다.",
+    analyticsDescriptionByok:
+      "말한 음성의 텍스트와 Chappie가 호출한 기능 이름을 익명으로 보냅니다. 음성은 보내지 않습니다. BYOK은 보너스 없이 순수한 협력입니다.",
+    analyticsConsentModal:
+      "Chappie가 말한 음성의 텍스트와 사용된 기능 이름을 서버에 익명으로 보냅니다. 음성과 LLM 응답은 절대 보내지 않습니다. 기기 ID는 하드웨어에서 단방향으로 생성된 UUID(역추적 불가)입니다. 공유를 켜시겠습니까?",
+    analyticsDelete: "보낸 데이터 삭제",
+    analyticsDeleteConfirm:
+      "이 기기의 모든 이벤트를 삭제하고 공유를 끕니다. 계속하시겠습니까?",
+    analyticsRecentShow: "최근 전송 보기",
+    analyticsRecentHide: "숨기기",
+    analyticsRecentEmpty:
+      "이 세션에서 아직 보낸 항목이 없습니다(OFF 상태에서는 보내지 않으며, 이 목록은 보낼 내용을 보여줍니다).",
     proactiveLabel: "능동적 알림",
     proactiveMasterToggle: "사용",
     proactiveMorningBriefToggle: "아침 브리핑",
@@ -1941,6 +2114,26 @@ const it: Messages = {
     ltmForgetConfirm:
       "Davvero eliminare tutti i log delle conversazioni, i riassunti quotidiani e gli argomenti? Il file del modello e i fatti salvati su di te (tramite save_memory) restano.",
     ltmForgetDone: "Eliminato",
+    analyticsLabel: "Condivisione anonima dati di utilizzo",
+    analyticsStatusOn: "ON",
+    analyticsStatusOff: "OFF",
+    analyticsTurnOn: "Attiva",
+    analyticsTurnOff: "Disattiva",
+    analyticsDescriptionFree:
+      "Invia in modo anonimo la trascrizione della tua voce e i nomi degli strumenti usati da Chappie, per migliorare il prodotto. L'audio non viene mai inviato. Attivare aumenta il limite giornaliero Free di +10 (5 → 15).",
+    analyticsDescriptionPro:
+      "Invia in modo anonimo la trascrizione della tua voce e i nomi degli strumenti usati da Chappie, per migliorare il prodotto. L'audio non viene mai inviato. Pro è già illimitato; aiutaci a migliorarlo!",
+    analyticsDescriptionByok:
+      "Invia in modo anonimo la trascrizione della tua voce e i nomi degli strumenti usati. L'audio non viene mai inviato. BYOK non ha bonus; serve solo a migliorare il prodotto.",
+    analyticsConsentModal:
+      "Chappie invierà la trascrizione della tua voce e i nomi degli strumenti usati al server, anonimamente. L'audio e la risposta dell'LLM NON sono mai inviati. L'ID dispositivo è un UUID a senso unico (non reversibile). Attivare la condivisione?",
+    analyticsDelete: "Elimina dati inviati",
+    analyticsDeleteConfirm:
+      "Verranno eliminati tutti gli eventi per questo dispositivo e la condivisione sarà disattivata. Continuare?",
+    analyticsRecentShow: "Mostra invii recenti",
+    analyticsRecentHide: "Nascondi",
+    analyticsRecentEmpty:
+      "Nulla inviato in questa sessione (con OFF non viene inviato nulla — questa lista mostra ciò che sarebbe inviato).",
     proactiveLabel: "Notifiche proattive",
     proactiveMasterToggle: "Attiva",
     proactiveMorningBriefToggle: "Briefing mattutino",

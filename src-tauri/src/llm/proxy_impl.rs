@@ -79,6 +79,13 @@ impl LlmProvider for ProxyProvider {
                 format!("Bearer {}", self.subscription_token),
             );
         }
+        // Pass the local analytics-consent state up to the proxy so it
+        // can bump the Free daily quota when the user has opted in.
+        // The header is advisory at this layer — the analytics event
+        // ingestion endpoint re-verifies consent independently.
+        if crate::analytics::consent() {
+            req = req.header("X-Chappie-Analytics-Consent", "true");
+        }
         req
     }
 

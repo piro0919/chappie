@@ -1,3 +1,4 @@
+mod analytics;
 mod apm;
 mod audio;
 mod speaker;
@@ -397,6 +398,41 @@ fn notify_idle_state(idle: bool) {
     proactive::notify_idle(idle);
 }
 
+/// Set the user's opt-in state for usage analytics. The renderer calls
+/// this when the toggle changes in Settings. We POST the new state to
+/// the proxy, then update the cached flag that the dispatch hot path
+/// reads each turn.
+#[tauri::command]
+async fn analytics_set_consent(consent: bool) -> Result<(), String> {
+    analytics::set_consent_server(consent).await
+}
+
+/// Cheaper variant that only updates the in-process cache without
+/// hitting the proxy — the renderer calls this on launch with the
+/// already-persisted consent state so the Rust side doesn't reflect a
+/// stale default of `false` while waiting for a server round-trip.
+#[tauri::command]
+fn analytics_set_consent_cached(consent: bool) {
+    analytics::set_consent_cached(consent);
+}
+
+/// Delete every analytics row + the consent row for this device. Also
+/// flips the local cache off. Renderer calls this from the Settings UI
+/// "Delete sent data" button.
+#[tauri::command]
+async fn analytics_delete_history() -> Result<(), String> {
+    analytics::delete_history().await
+}
+
+/// Returns the last few events the desktop has reported, so the
+/// Settings UI can preview "what gets shared". The ring is in-memory
+/// per-launch; this is intentional — the goal is to show what's
+/// flowing right now, not a permanent audit trail.
+#[tauri::command]
+fn analytics_recent_events() -> Vec<analytics::RecentEvent> {
+    analytics::recent_events()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -478,6 +514,10 @@ pub fn run() {
             tool_usage::list_tool_usage,
             set_proactive_config,
             notify_idle_state,
+            analytics_set_consent,
+            analytics_set_consent_cached,
+            analytics_delete_history,
+            analytics_recent_events,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

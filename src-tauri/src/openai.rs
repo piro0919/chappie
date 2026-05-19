@@ -37,6 +37,64 @@ pub async fn chat_complete(
     messages: Vec<ChatMessage>,
     on_chunk: Channel<String>,
 ) -> Result<ChatResult, String> {
+    // Capture the analytics-relevant bits before dispatch consumes the
+    // messages vec. We report at the end whether the turn succeeded or
+    // failed — both paths are valuable for product analysis (failed
+    // turns are exactly where the chitchat classifier / tool routing
+    // need improvement).
+    let analytics_utterance = messages
+        .iter()
+        .rev()
+        .find(|m| m.role == "user")
+        .map(|m| m.content.clone())
+        .unwrap_or_default();
+    let analytics_mode = match mode.as_deref() {
+        Some("free") => "free".to_string(),
+        Some("paid") => "paid".to_string(),
+        _ => "byok".to_string(),
+    };
+    let analytics_lang = format!("{:?}", crate::i18n::current()).to_lowercase();
+    let analytics_turn_id = uuid::Uuid::new_v4().to_string();
+    let start = std::time::Instant::now();
+
+    let result = chat_complete_inner(
+        app,
+        api_key,
+        model,
+        mode,
+        subscription_token,
+        messages,
+        on_chunk,
+    )
+    .await;
+
+    let latency_ms = start.elapsed().as_millis() as u64;
+    let (tool_calls, success) = match &result {
+        Ok(r) => (r.tool_calls.clone(), true),
+        Err(_) => (Vec::new(), false),
+    };
+    crate::analytics::report_turn(
+        analytics_turn_id,
+        analytics_utterance,
+        tool_calls,
+        analytics_lang,
+        analytics_mode,
+        latency_ms,
+        success,
+    );
+
+    result
+}
+
+async fn chat_complete_inner(
+    app: tauri::AppHandle,
+    api_key: String,
+    model: String,
+    mode: Option<String>,
+    subscription_token: Option<String>,
+    messages: Vec<ChatMessage>,
+    on_chunk: Channel<String>,
+) -> Result<ChatResult, String> {
     // Free / Paid both route through the chappie.kkweb.io proxy. The
     // renderer doesn't pass an api_key here; we load the device id from
     // disk for quota tracking and forward the subscription token (when

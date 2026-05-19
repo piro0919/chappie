@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { verifyBearer } from "@/lib/auth";
-import { consumeQuota } from "@/lib/quota";
+import { ANALYTICS_OPT_IN_BONUS, consumeQuota, DAILY_LIMIT } from "@/lib/quota";
 import { isStaffEmail } from "@/lib/staff";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -55,10 +55,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Analytics opt-in bumps Free daily quota. Header is trusted at the
+  // quota layer; the analytics ingestion endpoint re-verifies against
+  // the analytics_consent table separately, so faking the header here
+  // only raises the cap without granting any data flow.
+  const consentBonus =
+    req.headers.get("x-chappie-analytics-consent") === "true"
+      ? ANALYTICS_OPT_IN_BONUS
+      : 0;
+  const effectiveLimit = DAILY_LIMIT + consentBonus;
+
   let quotaLimit = 0;
   let quotaRemaining = "unlimited";
   if (!paid) {
-    const quota = await consumeQuota(deviceId, turnId);
+    const quota = await consumeQuota(deviceId, turnId, effectiveLimit);
     if (!quota.ok) {
       return NextResponse.json(
         {

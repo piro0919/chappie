@@ -1,7 +1,10 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 
-const DAILY_LIMIT = Number(process.env.CHAPPIE_FREE_DAILY_LIMIT ?? "20");
+export const DAILY_LIMIT = Number(process.env.CHAPPIE_FREE_DAILY_LIMIT ?? "20");
+export const ANALYTICS_OPT_IN_BONUS = Number(
+  process.env.CHAPPIE_ANALYTICS_QUOTA_BONUS ?? "10",
+);
 
 export type QuotaResult =
   | { ok: true; count: number; limit: number; remaining: number }
@@ -12,10 +15,15 @@ export type QuotaResult =
  * increment the device's daily quota. Subsequent rounds in the same
  * Chappie turn (e.g. tool-call follow-ups) reuse the turn_id and do
  * NOT consume additional quota.
+ *
+ * `limitOverride` lets callers (currently the chat route, when the
+ * client opts in to analytics) raise the daily ceiling above the
+ * default DAILY_LIMIT. Pass undefined to use DAILY_LIMIT as-is.
  */
 export async function consumeQuota(
   deviceId: string,
   turnId: string,
+  limitOverride?: number,
 ): Promise<QuotaResult> {
   const { data, error } = await supabaseAdmin.rpc("consume_quota_with_turn", {
     p_device_id: deviceId,
@@ -27,11 +35,12 @@ export async function consumeQuota(
   }
 
   const count = typeof data === "number" ? data : Number(data);
-  const remaining = Math.max(0, DAILY_LIMIT - count);
+  const effectiveLimit = limitOverride ?? DAILY_LIMIT;
+  const remaining = Math.max(0, effectiveLimit - count);
 
-  if (count > DAILY_LIMIT) {
-    return { ok: false, count, limit: DAILY_LIMIT, remaining: 0 };
+  if (count > effectiveLimit) {
+    return { ok: false, count, limit: effectiveLimit, remaining: 0 };
   }
 
-  return { ok: true, count, limit: DAILY_LIMIT, remaining };
+  return { ok: true, count, limit: effectiveLimit, remaining };
 }
