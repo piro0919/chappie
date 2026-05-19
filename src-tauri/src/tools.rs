@@ -21,6 +21,27 @@ pub fn all_tools() -> Value {
     tools
 }
 
+/// Tool list used when the chitchat classifier (see `llm::chitchat`)
+/// flags an utterance as pure small-talk. The LLM still needs
+/// `end_conversation` so it can hang up the session ("ありがとう、また
+/// ね" → wake-word standby), but every other tool is dropped from the
+/// payload — saving ~8k input tokens per chitchat turn. Looked up by
+/// name rather than by index so reordering `native_tools()` stays safe.
+pub fn minimal_tools() -> Value {
+    let all = native_tools();
+    let end_conv = all
+        .as_array()
+        .and_then(|a| {
+            a.iter().find(|t| {
+                t.pointer("/function/name")
+                    == Some(&Value::String("end_conversation".into()))
+            })
+        })
+        .cloned()
+        .expect("end_conversation must exist in native_tools()");
+    json!([end_conv])
+}
+
 fn native_tools() -> Value {
     json!([
         {

@@ -81,7 +81,19 @@ pub async fn chat_complete_generic<P: LlmProvider>(
     );
 
     let mut state = provider.prepare_state(messages);
-    let tools = crate::tools::all_tools();
+    let chitchat = crate::llm::chitchat::is_chitchat(&last_user_text, crate::i18n::current());
+    let tools = if chitchat {
+        crate::tools::minimal_tools()
+    } else {
+        crate::tools::all_tools()
+    };
+    crate::linfo!(
+        app,
+        label,
+        "chitchat_classifier mode={} tools_n={}",
+        if chitchat { "chitchat" } else { "full" },
+        tools.as_array().map(|a| a.len()).unwrap_or(0),
+    );
     let endpoint = provider.endpoint(&model, &api_key);
 
     let mut end_conversation = false;

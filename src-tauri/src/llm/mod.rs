@@ -9,6 +9,7 @@
 // See plan: ~/.claude/plans/plan-harmonic-rose.md
 
 pub mod anthropic_impl;
+pub mod chitchat;
 pub mod dispatch;
 pub mod events;
 pub mod gemini_impl;
