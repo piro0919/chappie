@@ -214,6 +214,13 @@
         "example2": "\"5 miles in km?\"",
         "example3": "\"100 pounds in kg?\"",
         "body": "Voice-only conversion across temperature, length, weight, volume, speed, and area. Handy when you're following a recipe written in the other measurement system, or just need a number fast."
+      },
+      "wallpaper": {
+        "title": "Change your wallpaper with your voice",
+        "example1": "\"Change my wallpaper to a forest\"",
+        "example2": "\"Set a night sky wallpaper\"",
+        "example3": "\"Make it aesthetic\"",
+        "body": "Say a theme and your desktop picture swaps to a matching photo on the spot. Multi-monitor setups get a different photo per screen. Great for a quick vibe reset or a tidy desk before a call."
       }
     }
   },

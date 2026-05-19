@@ -98,6 +98,13 @@ fn capabilities_pt() -> String {
             ],
         ),
         (
+            "Papel de parede",
+            &[
+                "Muda o papel de parede para floresta, estética, céu noturno",
+                "Cada monitor recebe uma foto diferente (via Pixabay)",
+            ],
+        ),
+        (
             "Área de transferência",
             &["Lê a área de transferência", "Escreve ___ e copia"],
         ),
@@ -216,6 +223,13 @@ fn capabilities_ko() -> String {
             ],
         ),
         (
+            "배경화면",
+            &[
+                "배경화면을 숲으로, 밤하늘로, 감성적인 배경화면으로",
+                "모니터마다 다른 사진 (Pixabay 사용)",
+            ],
+        ),
+        (
             "클립보드",
             &["클립보드 읽어줘", "___ 적어서 클립보드에 복사해 줘"],
         ),
@@ -328,6 +342,13 @@ fn capabilities_it() -> String {
             &[
                 "Prossimo brano, pausa (controlla Spotify o Apple Music aperto)",
                 "Cosa sta suonando? (legge titolo e artista)",
+            ],
+        ),
+        (
+            "Sfondo",
+            &[
+                "Cambia lo sfondo in foresta, mettilo estetico, cielo stellato",
+                "Ogni monitor riceve una foto diversa (tramite Pixabay)",
             ],
         ),
         (
@@ -452,6 +473,13 @@ fn capabilities_es() -> String {
             ],
         ),
         (
+            "Fondo de pantalla",
+            &[
+                "Cambia el fondo de pantalla a un bosque, ponlo estético, cielo nocturno",
+                "Cada monitor recibe una foto distinta (vía Pixabay)",
+            ],
+        ),
+        (
             "Portapapeles",
             &["Léeme el portapapeles", "Escribe ___ y cópialo"],
         ),
@@ -570,6 +598,13 @@ fn capabilities_fr() -> String {
             &[
                 "Piste suivante, pause (contrôle Spotify ou Apple Music ouvert)",
                 "Qu'est-ce qui passe ? (lit le titre et l'artiste)",
+            ],
+        ),
+        (
+            "Fond d'écran",
+            &[
+                "Change le fond d'écran en forêt, mets-le esthétique, ciel nocturne",
+                "Chaque écran reçoit une photo différente (via Pixabay)",
             ],
         ),
         (
@@ -694,6 +729,13 @@ fn capabilities_de() -> String {
             ],
         ),
         (
+            "Hintergrundbild",
+            &[
+                "Mach das Hintergrundbild zum Wald, ästhetisch, Nachthimmel",
+                "Jeder Monitor bekommt ein eigenes Foto (über Pixabay)",
+            ],
+        ),
+        (
             "Zwischenablage",
             &["Lies die Zwischenablage", "Schreib ___ und kopier's"],
         ),
@@ -812,6 +854,13 @@ fn capabilities_zh() -> String {
             &[
                 "下一首, 暂停(控制已打开的 Spotify 或 Apple Music)",
                 "现在播放什么?(读出歌名和艺术家)",
+            ],
+        ),
+        (
+            "壁纸",
+            &[
+                "把壁纸换成森林、夜空, 来个有质感的壁纸",
+                "多显示器每块屏配不同照片(来自 Pixabay)",
             ],
         ),
         (
@@ -964,6 +1013,13 @@ fn capabilities_ja() -> String {
             &[
                 "次の曲、止めて（起動中の Spotify / Apple Music を操作）",
                 "いま何の曲？（曲名・アーティスト読み上げ）",
+            ],
+        ),
+        (
+            "壁紙",
+            &[
+                "壁紙を森に変えて、夜空の壁紙にして、おしゃれな壁紙にして",
+                "複数モニターには違う写真を 1 枚ずつ（Pixabay の写真を使用）",
             ],
         ),
         (
@@ -1132,6 +1188,13 @@ fn capabilities_en() -> String {
             &[
                 "Next track, pause (controls a running Spotify or Apple Music)",
                 "What's playing? (reads the track + artist)",
+            ],
+        ),
+        (
+            "Wallpaper",
+            &[
+                "Change my wallpaper to a forest, set an aesthetic wallpaper, make it night sky",
+                "Each monitor gets its own photo (uses Pixabay)",
             ],
         ),
         (

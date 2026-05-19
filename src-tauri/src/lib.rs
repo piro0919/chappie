@@ -45,6 +45,7 @@ mod tray;
 mod updater;
 mod voicevox;
 mod volume;
+mod wallpaper;
 mod weather;
 
 use once_cell::sync::OnceCell;

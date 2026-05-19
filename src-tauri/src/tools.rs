@@ -244,6 +244,24 @@ fn native_tools() -> Value {
         {
             "type": "function",
             "function": {
+                "name": "set_wallpaper",
+                "description": "デスクトップの壁紙を query に合う写真に変える。「壁紙を森に」「夜空にして」「おしゃれな壁紙にして」。複数モニターには異なる写真を設定。Pixabay の写真を使う。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "壁紙のテーマ。例: forest, night sky, cat, minimal, aesthetic。日本語も可だが英語の方がヒット率が高い。"
+                        }
+                    },
+                    "required": ["query"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "open_finder",
                 "description": "Finder で場所を開く。「ダウンロード開いて」「ゴミ箱開いて」など。target はキーワード（downloads / desktop / documents / pictures / music / movies / applications / trash / home、日本語エイリアス可）または絶対パス（~/ 展開可）。",
                 "parameters": {
@@ -973,6 +991,26 @@ pub(crate) async fn execute_tool(
                     json!({ "ok": true, "muted": muted }).to_string()
                 }
                 Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "set_wallpaper" => {
+            let q = args
+                .get("query")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if q.trim().is_empty() {
+                return json!({ "ok": false, "error": "query is required" }).to_string();
+            }
+            match crate::wallpaper::set_wallpaper(app, &q).await {
+                Ok(r) => {
+                    crate::hud::show(app, format!("🖼️ {} の壁紙にしました", q), 2500);
+                    json!({ "ok": true, "monitors": r.monitors }).to_string()
+                }
+                Err(e) => {
+                    crate::hud::show(app, "🖼️ 壁紙取得に失敗しました", 2500);
+                    json!({ "ok": false, "error": e }).to_string()
+                }
             }
         }
         "open_finder" => {
