@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import {
   disable as disableAutostart,
   enable as enableAutostart,
@@ -53,6 +55,31 @@ export function ConversationWorker(): null {
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Speaker recognition threshold: persisted in settings.json but read
+  // by audio.rs as a Rust-side runtime override. Push it on launch and
+  // whenever Settings emits `settings:updated` so the gate uses the
+  // user's chosen strictness without a process restart.
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    const push = async () => {
+      try {
+        const s = await loadSettings();
+        await invoke("set_speaker_threshold", { value: s.speakerThreshold });
+      } catch (e) {
+        console.warn("[conversation-worker] push speaker threshold failed", e);
+      }
+    };
+    void push();
+    void listen("settings:updated", () => {
+      void push();
+    }).then((u) => {
+      unlisten = u;
+    });
+    return () => {
+      unlisten?.();
     };
   }, []);
 

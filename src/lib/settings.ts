@@ -116,6 +116,14 @@ export type Settings = {
   proactiveIdleChatterAfterMin: number;
   proactiveQuietHoursStart: string;
   proactiveQuietHoursEnd: string;
+  /**
+   * Cosine-similarity threshold for the speaker recognition gate.
+   * Range / default are sourced from Rust (`speaker_threshold_range`)
+   * so the slider stays in sync with what audio.rs actually compares
+   * against. 0 sentinel here means "use Rust default" — loadSettings
+   * normalises that to the actual default at read time.
+   */
+  speakerThreshold: number;
 };
 
 const DEFAULTS: Settings = {
@@ -137,6 +145,7 @@ const DEFAULTS: Settings = {
   proactiveIdleChatterAfterMin: 60,
   proactiveQuietHoursStart: "07:00",
   proactiveQuietHoursEnd: "22:00",
+  speakerThreshold: 0.4,
 };
 const FILE = "settings.json";
 
@@ -228,6 +237,9 @@ export async function loadSettings(): Promise<Settings> {
     proactiveQuietHoursEnd:
       (await store.get<string>("proactiveQuietHoursEnd")) ??
       DEFAULTS.proactiveQuietHoursEnd,
+    speakerThreshold:
+      (await store.get<number>("speakerThreshold")) ??
+      DEFAULTS.speakerThreshold,
   };
 }
 
@@ -310,6 +322,9 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.proactiveQuietHoursEnd !== undefined) {
     await store.set("proactiveQuietHoursEnd", patch.proactiveQuietHoursEnd);
+  }
+  if (patch.speakerThreshold !== undefined) {
+    await store.set("speakerThreshold", patch.speakerThreshold);
   }
   await store.save();
 }

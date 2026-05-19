@@ -23,6 +23,7 @@
 use crate::download::{download_with_progress, file_exists_nonempty};
 use kaldi_fbank_rust_kautism::{FbankOptions, FrameExtractionOptions, MelBanksOptions, OnlineFbank};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::OnceLock;
 use tauri::{AppHandle, Emitter, Runtime};
 use tract_onnx::prelude::*;
@@ -36,8 +37,30 @@ const MODEL_URL: &str =
 /// Cosine similarity threshold above which a segment is considered the
 /// enrolled user. Tuned permissive to start — false-reject of the real
 /// user is a bigger UX issue than the occasional echo slipping through.
-/// Adjustable later from a setting.
-pub const ENROLL_THRESHOLD: f32 = 0.40;
+/// Settings exposes a slider that overrides this at runtime via
+/// `set_threshold`; this constant is the default and the lower bound of
+/// the slider range.
+pub const DEFAULT_THRESHOLD: f32 = 0.40;
+pub const MIN_THRESHOLD: f32 = 0.30;
+pub const MAX_THRESHOLD: f32 = 0.55;
+
+/// Runtime-adjustable threshold. f32 bits stored as u32 because there is
+/// no AtomicF32. 0 sentinel = "not set", treated as DEFAULT_THRESHOLD.
+static THRESHOLD_BITS: AtomicU32 = AtomicU32::new(0);
+
+pub fn current_threshold() -> f32 {
+    let bits = THRESHOLD_BITS.load(Ordering::Relaxed);
+    if bits == 0 {
+        DEFAULT_THRESHOLD
+    } else {
+        f32::from_bits(bits)
+    }
+}
+
+pub fn set_threshold(value: f32) {
+    let clamped = value.clamp(MIN_THRESHOLD, MAX_THRESHOLD);
+    THRESHOLD_BITS.store(clamped.to_bits(), Ordering::Relaxed);
+}
 
 type Model = SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>;
 
@@ -338,11 +361,25 @@ mod tests {
     }
 
     #[test]
-    fn enroll_threshold_is_lenient_by_design() {
-        // The threshold lives as `pub const` because audio.rs reads it
-        // directly. Lock it in — bumping it silently above ~0.5 would
+    fn default_threshold_is_lenient_by_design() {
+        // Lock the default in — bumping it silently above ~0.5 would
         // make the gate reject legitimate user speech once mic /
-        // distance conditions drift from enrollment.
-        assert!(ENROLL_THRESHOLD >= 0.30 && ENROLL_THRESHOLD <= 0.50);
+        // distance conditions drift from enrollment. The slider in
+        // Settings can go higher, but the default stays permissive.
+        assert!(DEFAULT_THRESHOLD >= 0.30 && DEFAULT_THRESHOLD <= 0.50);
+        assert!(MIN_THRESHOLD <= DEFAULT_THRESHOLD);
+        assert!(MAX_THRESHOLD >= DEFAULT_THRESHOLD);
+    }
+
+    #[test]
+    fn threshold_override_round_trips_and_clamps() {
+        super::set_threshold(0.42);
+        assert!((super::current_threshold() - 0.42).abs() < 1e-6);
+        super::set_threshold(0.99);
+        assert!((super::current_threshold() - MAX_THRESHOLD).abs() < 1e-6);
+        super::set_threshold(0.10);
+        assert!((super::current_threshold() - MIN_THRESHOLD).abs() < 1e-6);
+        // Reset for any subsequent test relying on the default.
+        super::set_threshold(DEFAULT_THRESHOLD);
     }
 }

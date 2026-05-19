@@ -35,6 +35,22 @@ describe("settings", () => {
     subscriptionPeriodEnd: "",
   } as const;
 
+  const PROACTIVE_DEFAULTS = {
+    proactiveMorningBriefEnabled: false,
+    proactiveMorningBriefTime: "07:00",
+    proactiveCalendarEnabled: false,
+    proactiveCalendarLeadMin: 15,
+    proactiveWeatherEnabled: false,
+    proactiveIdleChatterEnabled: false,
+    proactiveIdleChatterAfterMin: 60,
+    proactiveQuietHoursStart: "07:00",
+    proactiveQuietHoursEnd: "22:00",
+  } as const;
+
+  const SPEAKER_DEFAULTS = {
+    speakerThreshold: 0.4,
+  } as const;
+
   it("returns defaults when store is empty", async () => {
     expect(await loadSettings()).toEqual({
       mode: "free",
@@ -42,6 +58,8 @@ describe("settings", () => {
       language: "auto",
       autostart: false,
       ...SUBSCRIPTION_DEFAULTS,
+      ...PROACTIVE_DEFAULTS,
+      ...SPEAKER_DEFAULTS,
     });
   });
 
@@ -55,6 +73,8 @@ describe("settings", () => {
       language: "en",
       autostart: false,
       ...SUBSCRIPTION_DEFAULTS,
+      ...PROACTIVE_DEFAULTS,
+      ...SPEAKER_DEFAULTS,
     });
   });
 
@@ -69,6 +89,8 @@ describe("settings", () => {
       language: "auto",
       autostart: false,
       ...SUBSCRIPTION_DEFAULTS,
+      ...PROACTIVE_DEFAULTS,
+      ...SPEAKER_DEFAULTS,
     });
   });
 

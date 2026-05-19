@@ -596,11 +596,12 @@ fn run_segmenter(
                             if let Some(score) =
                                 crate::speaker::score_against_enrolled(&buf)
                             {
-                                if score < crate::speaker::ENROLL_THRESHOLD {
+                                let threshold = crate::speaker::current_threshold();
+                                if score < threshold {
                                     crate::linfo!(
                                         &app2,
                                         "speaker",
-                                        "drop: cos={score:.3} < threshold (other voice)"
+                                        "drop: cos={score:.3} < {threshold:.2} (other voice)"
                                     );
                                     return;
                                 }

@@ -286,6 +286,25 @@ fn speaker_clear_enrollment() -> Result<(), String> {
     speaker::clear_enrollment()
 }
 
+#[tauri::command]
+fn get_speaker_threshold() -> f32 {
+    speaker::current_threshold()
+}
+
+#[tauri::command]
+fn set_speaker_threshold(value: f32) {
+    speaker::set_threshold(value);
+}
+
+#[tauri::command]
+fn speaker_threshold_range() -> (f32, f32, f32) {
+    (
+        speaker::MIN_THRESHOLD,
+        speaker::MAX_THRESHOLD,
+        speaker::DEFAULT_THRESHOLD,
+    )
+}
+
 /// Enroll the current user's voice from a 16 kHz mono PCM buffer.
 /// `samples` is expected to be ~5-10 s of clean speech (the renderer
 /// records and passes raw f32 PCM). We chunk it into ~3 s windows,
@@ -388,6 +407,9 @@ pub fn run() {
             speaker_is_enrolled,
             speaker_clear_enrollment,
             speaker_enroll,
+            get_speaker_threshold,
+            set_speaker_threshold,
+            speaker_threshold_range,
             set_whisper_language,
             set_app_language,
             mic_permission::check_microphone_permission,

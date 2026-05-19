@@ -136,6 +136,43 @@
   background: #fafafa;
 }
 
+.thresholdBox {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #e5e5ea;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.thresholdLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  color: #1d1d1f;
+  margin-bottom: 8px;
+}
+
+.thresholdValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #6e6e73;
+}
+
+.thresholdSlider {
+  width: 100%;
+  margin: 0;
+}
+
+.thresholdScale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6e6e73;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
 .enrollStep {
   font-size: 11px;
   color: #6e6e73;

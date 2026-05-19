@@ -137,6 +137,12 @@ export function SettingsView() {
   });
   const [speakerError, setSpeakerError] = useState<string | null>(null);
   const [speakerLevel, setSpeakerLevel] = useState(0);
+  const [speakerThreshold, setSpeakerThreshold] = useState(0.4);
+  const [speakerThresholdRange, setSpeakerThresholdRange] = useState<{
+    min: number;
+    max: number;
+    default: number;
+  }>({ min: 0.3, max: 0.55, default: 0.4 });
   const ENROLL_PHRASE_SECONDS = 3;
   const ENROLL_PHRASE_COUNT = 3;
   const ENROLL_SECONDS = ENROLL_PHRASE_SECONDS * ENROLL_PHRASE_COUNT;
@@ -232,6 +238,13 @@ export function SettingsView() {
       setProactiveIdleChatterAfterMin(s.proactiveIdleChatterAfterMin);
       setProactiveQuietHoursStart(s.proactiveQuietHoursStart);
       setProactiveQuietHoursEnd(s.proactiveQuietHoursEnd);
+      setSpeakerThreshold(s.speakerThreshold);
+      try {
+        const [min, max, def] = await invoke<[number, number, number]>(
+          "speaker_threshold_range",
+        );
+        setSpeakerThresholdRange({ min, max, default: def });
+      } catch {}
       // Hydrate supabase-js and pull live subscription state in the
       // background. If the network is down we'll just keep showing the
       // cached values from settings.json.
@@ -531,7 +544,13 @@ export function SettingsView() {
       proactiveIdleChatterAfterMin,
       proactiveQuietHoursStart,
       proactiveQuietHoursEnd,
+      speakerThreshold,
     });
+    try {
+      await invoke("set_speaker_threshold", { value: speakerThreshold });
+    } catch (e) {
+      console.warn("[settings] push speaker threshold failed", e);
+    }
     try {
       if (autostart) await enableAutostart();
       else await disableAutostart();
@@ -867,6 +886,30 @@ export function SettingsView() {
         </div>
         <p className={styles.note}>{t("settings.speakerDescription")}</p>
         <p className={styles.note}>{t("settings.speakerPrivacy")}</p>
+        {speakerEnrolled && (
+          <div className={styles.thresholdBox}>
+            <div className={styles.thresholdLabel}>
+              <span>{t("settings.speakerStrictnessLabel")}</span>
+              <span className={styles.thresholdValue}>
+                {speakerThreshold.toFixed(2)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={speakerThresholdRange.min}
+              max={speakerThresholdRange.max}
+              step={0.01}
+              value={speakerThreshold}
+              onChange={(e) => setSpeakerThreshold(parseFloat(e.target.value))}
+              className={styles.thresholdSlider}
+            />
+            <div className={styles.thresholdScale}>
+              <span>{t("settings.speakerStrictnessLow")}</span>
+              <span>{t("settings.speakerStrictnessHigh")}</span>
+            </div>
+            <p className={styles.note}>{t("settings.speakerStrictnessHint")}</p>
+          </div>
+        )}
         {speakerPhase.kind === "downloading" && (
           <p className={styles.note}>
             {t("settings.speakerModelDownloading", {
