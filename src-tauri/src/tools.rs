@@ -104,7 +104,7 @@ fn native_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "open_youtube",
-                "description": "YouTube の**特定の動画やジャンルを見たい/流したい**指示で使う。常に手前に出る小窓（ミニプレイヤー）で再生する。「YouTube で猫の動画」「作業用 BGM 流して」「○○のレシピ動画見ながら作業したい」のように **何を見たいか具体的に決まっている**とき。**「YouTube 開いて」のように単にサイトを開くだけの指示は open_url を使う**。\n\n**呼び方**: `candidates` には自分の知識から **3〜5 個の YouTube 動画 URL / ID 候補**を入れる（例: lofi なら `https://www.youtube.com/watch?v=jfKfPfyJRdk` 等）。Rust 側で oEmbed API で「存在 + 埋め込み可能」を順に確認 → 最初に通ったやつを再生する。**自信ある具体的な定番 URL から並べる**こと。`fallback_search_query` には全候補が外れた時用のユーザー意図に近い検索語を入れる（その場合既定ブラウザで YouTube 検索を開く）。**自分が一切知らないジャンル**なら candidates は空配列でも OK（その場合 fallback_search_query だけが使われる）。",
+                "description": "YouTube の特定動画やジャンルを**ミニプレイヤー**で見たい時に使う（「YouTube で猫の動画」「作業用 BGM 流して」など、見たい内容が具体的に決まっているケース）。candidates には自分の知識から 3〜5 個の動画 URL/ID を確信度が高い順で（例: lofi なら https://www.youtube.com/watch?v=jfKfPfyJRdk のような定番）。Rust 側で oEmbed 確認の上、最初に通った候補を再生する。知らないジャンルなら空配列でも可。fallback_search_query は全候補外れ時に既定ブラウザで開く検索語。単にサイトを開くだけの「YouTube 開いて」は open_url。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -242,7 +242,7 @@ fn native_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "open_app",
-                "description": "macOS のアプリを起動。「Slack 開いて」「メモ開いて」など。name はユーザが言った名前そのまま（'Slack', 'メモ', 'Visual Studio Code'）。`open -a` 経由。アプリでもウェブでもありえる名前（Notion / Twitter / GitHub / YouTube / ChatGPT 等）は **まず open_app を試す** → 失敗（not_installed=true）なら open_url か web_search にフォールバック。ウェブで開いた旨を一言伝えれば OK、失敗を長々説明しない。",
+                "description": "macOS のアプリを起動。「Slack 開いて」「メモ開いて」など。name はユーザが言った名前そのまま（'Slack', 'メモ', 'Visual Studio Code'）。`open -a` 経由。Notion / GitHub / Twitter / YouTube / ChatGPT などウェブにも存在する名前は **まず open_app を試す** → 失敗（not_installed=true）なら open_url / web_search にフォールバックして、自然にウェブで開いた旨を一言伝える（聞き返さず・失敗を長々説明しない）。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -290,7 +290,7 @@ fn native_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "list_capabilities",
-                "description": "Chappie ができることの一覧を返す。「何ができるの?」「使い方教えて」「どんな機能があるの?」など**自己紹介系の質問だけ**この tool を先に呼んで答える（自分の記憶で適当に答えない）。応答は 2〜3 カテゴリに絞って自然な会話調で。**呼ばない場面**: 占い・ジョーク・創作・翻訳・要約・雑談・相談・気休めなど tool 不要のリクエストにはこの tool を呼ばず**直接生成で応じる**（リストに無い＝対応してない、ではない）。",
+                "description": "Chappie の機能一覧を返す。「何ができる?」「使い方教えて」「どんな機能?」など自己紹介系の質問にだけ呼ぶ。応答は 2〜3 カテゴリに絞って自然な会話調で。占い・ジョーク・創作・翻訳・要約・雑談・相談など tool 不要のリクエストでは呼ばず直接生成で応じる。",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -516,7 +516,7 @@ fn native_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "control_music",
-                "description": "起動中の Spotify / Apple Music を操作。「再生して」「流して」=play、「音楽止めて」「曲止めて」「一時停止」=pause、「次の曲」「スキップ」=next、「前の曲」「戻して」=previous、「切り替え」=toggle。**「止めて」が音楽文脈ならこの tool（end_conversation ではない）**。app=auto は Spotify 優先、なければ Music。**勝手にアプリは起動しない**ので両方未起動ならエラー。**直接呼ぶこと**: 何が再生中かや他のタイマー類を事前に確認する必要は一切ない（get_now_playing / list_timers / list_reminders を先に呼ばない）。",
+                "description": "起動中の Spotify / Apple Music を操作。「再生」「流して」=play、「止めて」「一時停止」=pause、「次の曲」=next、「前の曲」=previous、「切り替え」=toggle。app=auto は Spotify 優先。直接呼ぶ（get_now_playing / list_timers / list_reminders を先に確認しない）。勝手にアプリ起動はしないので両方未起動だとエラー。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -558,7 +558,7 @@ fn native_tools() -> Value {
             "type": "function",
             "function": {
                 "name": "add_reminder_at",
-                "description": "絶対時刻のリマインダー。「明日7時に起こして」「20時に薬」「毎朝7時に起こして」「毎週月曜9時にミーティング」など。**先に get_current_time で現在時刻を確認**してから at に未来の絶対時刻を組み立てる。at はローカルタイムで `YYYY-MM-DD HH:MM`。「明日」「来週」は現在時刻基準で解決。**繰り返し**指示（「毎朝」「毎日」「毎週○曜」「毎月○日」）があれば recurrence を設定: daily（毎日同時刻）/ weekly（毎週同曜日同時刻）/ monthly（毎月同日同時刻）。一度きりは省略 or once。再起動後も保持。秒単位の相対（「3分後」）は set_timer。",
+                "description": "絶対時刻のリマインダー（「明日7時に起こして」「毎週月曜9時に会議」など）。先に get_current_time で現在時刻を取り、at に未来のローカル `YYYY-MM-DD HH:MM` を組み立てる（「明日」「来週」は現在時刻基準で解決）。繰り返し指示は recurrence: daily=毎日同時刻 / weekly=毎週同曜日同時刻 / monthly=毎月同日同時刻。秒単位の相対（「3分後」）は set_timer。再起動後も保持される。",
                 "parameters": {
                     "type": "object",
                     "properties": {

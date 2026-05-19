@@ -11,7 +11,7 @@ pub fn tools() -> Vec<Value> {
         "type": "function",
         "function": {
             "name": "mcp_mlb_games",
-            "description": "MLB の試合スコア・予定を取得する。「大谷の今日の試合」「ドジャースの試合結果」「MLB の試合教えて」など。team=任意（チーム名の一部、英語: 'Dodgers' / 'Yankees' / 'Angels' / 'Padres' / 'Cubs' 等、必ず正式名の英語で）。日本人選手で絞りたい時のマッピング: 大谷翔平→'Dodgers', ダルビッシュ→'Padres', 鈴木誠也→'Cubs', 千賀滉大→'Mets', 吉田正尚→'Red Sox', 山本由伸→'Dodgers', 今永昇太→'Cubs'。date=任意（YYYY-MM-DD、UTC基準）。未指定なら直近 2 日分（UTC の今日と昨日）を返すので、日本時間の『今日』『昨日』を両方カバーできる。返り値の各 game は status (Scheduled/In Progress/Final 等)、home/away (チーム名 + score)、venue を含む。Final なら勝敗を読み上げ、In Progress なら現在のスコアと回を読み上げる。Scheduled なら開始時刻を伝える。",
+            "description": "MLB の試合スコア・予定を取得（「大谷の今日の試合」「ドジャースの試合結果」「MLB の試合教えて」など）。team=任意（英語の正式名の一部、例: 'Dodgers', 'Yankees'）。日本人選手→チーム: 大谷=Dodgers / ダルビッシュ=Padres / 鈴木誠也=Cubs / 千賀=Mets / 吉田正尚=Red Sox / 山本由伸=Dodgers / 今永=Cubs。date=任意（YYYY-MM-DD UTC、未指定で直近 2 日分が返るので日本時間の『今日』『昨日』両方カバー）。返り値は status (Scheduled/In Progress/Final)、home/away (チーム名+score)、venue、current_inning。読み上げ: Final は勝敗、In Progress は現在のスコアと回、Scheduled は開始時刻。",
             "parameters": {
                 "type": "object",
                 "properties": {
