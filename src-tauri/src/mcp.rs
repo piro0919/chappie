@@ -24,6 +24,7 @@ mod fx;
 mod mlb;
 mod news;
 mod quake;
+mod stocks;
 mod units;
 mod wiki;
 
@@ -40,6 +41,7 @@ pub fn tools_openai_schema() -> Vec<Value> {
     out.extend(fetch::tools());
     out.extend(mlb::tools());
     out.extend(units::tools());
+    out.extend(stocks::tools());
     out
 }
 
@@ -70,6 +72,9 @@ pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
     }
     if let Some(rest) = name.strip_prefix("mcp_units_") {
         return Some(units::execute(rest, args).await);
+    }
+    if let Some(rest) = name.strip_prefix("mcp_stocks_") {
+        return Some(stocks::execute(rest, args).await);
     }
     None
 }

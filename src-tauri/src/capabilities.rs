@@ -60,6 +60,10 @@ fn capabilities_pt() -> String {
             &["1 dólar em iene?, e o euro?", "Quanto são 100 dólares em ienes? (amount converte na hora)"],
         ),
         (
+            "Ações e índices",
+            &["Cotação da Apple, S&P hoje, Nikkei?", "Stooq (US ~15min atrasado, sem chave, não para trading)"],
+        ),
+        (
             "Conversão de unidades",
             &["70°F em Celsius?, 5 milhas em km?, 100 libras em kg?", "Temperatura / comprimento / peso / volume / velocidade / área"],
         ),
@@ -174,6 +178,10 @@ fn capabilities_ko() -> String {
             &["1달러 얼마야?, 유로는?", "100달러는 얼마야? (amount 지정 시 즉시 환산)"],
         ),
         (
+            "주식·지수",
+            &["애플 주가, 오늘 S&P, 닛케이는?", "Stooq (미국주 약 15분 지연, 무료, 매매용 아님)"],
+        ),
+        (
             "단위 환산",
             &["화씨 70도는 몇 도?, 5마일은 몇 km?, 100파운드는 몇 kg?", "온도 / 길이 / 무게 / 부피 / 속도 / 면적"],
         ),
@@ -283,6 +291,10 @@ fn capabilities_it() -> String {
         (
             "Cambio",
             &["1 dollaro in yen?, e l'euro?", "Quanti yen sono 100 dollari? (amount converte al volo)"],
+        ),
+        (
+            "Azioni e indici",
+            &["Quotazione Apple, S&P oggi, Nikkei?", "Stooq (azioni US ~15min ritardo, senza chiave, non per trading)"],
         ),
         (
             "Conversione unità",
@@ -402,6 +414,10 @@ fn capabilities_es() -> String {
             &["¿1 dólar en yenes?, ¿y el euro?", "¿Cuántos yenes son 100 dólares? (amount convierte al vuelo)"],
         ),
         (
+            "Acciones e índices",
+            &["¿Cotización de Apple?, ¿S&P hoy?, ¿Nikkei?", "Stooq (acciones US ~15min de retraso, sin clave, no para trading)"],
+        ),
+        (
             "Conversión de unidades",
             &["¿70°F en Celsius?, ¿5 millas en km?, ¿100 libras en kg?", "Temperatura / longitud / peso / volumen / velocidad / área"],
         ),
@@ -517,6 +533,10 @@ fn capabilities_fr() -> String {
         (
             "Taux de change",
             &["1 dollar en yens ?, et l'euro ?", "Combien font 100 dollars en yens ? (amount convertit à la volée)"],
+        ),
+        (
+            "Actions et indices",
+            &["Cours d'Apple ?, S&P aujourd'hui ?, Nikkei ?", "Stooq (actions US ~15min de délai, sans clé, pas pour le trading)"],
         ),
         (
             "Conversion d'unités",
@@ -636,6 +656,10 @@ fn capabilities_de() -> String {
             &["1 Dollar in Yen?, und der Euro?", "Wieviel sind 100 Dollar in Yen? (amount rechnet direkt um)"],
         ),
         (
+            "Aktien und Indizes",
+            &["Apple-Kurs?, S&P heute?, Nikkei?", "Stooq (US-Aktien ~15min verzögert, ohne Key, nicht zum Handeln)"],
+        ),
+        (
             "Einheiten umrechnen",
             &["70°F in Celsius?, 5 Meilen in km?, 100 Pfund in kg?", "Temperatur / Länge / Gewicht / Volumen / Geschwindigkeit / Fläche"],
         ),
@@ -751,6 +775,10 @@ fn capabilities_zh() -> String {
         (
             "汇率",
             &["1 美元多少日元？, 欧元呢？", "100 美元换多少日元？(amount 指定即时换算)"],
+        ),
+        (
+            "股票·指数",
+            &["苹果股价、今天的标普、日经？", "Stooq（美股延迟约 15 分钟，无需 key，仅供参考非交易用）"],
         ),
         (
             "单位换算",
@@ -878,6 +906,13 @@ fn capabilities_ja() -> String {
             &[
                 "ドル円教えて、ユーロは？",
                 "100 ドルは何円？（amount 指定で換算）",
+            ],
+        ),
+        (
+            "株価・指数",
+            &[
+                "アップルの株価、S&P 今いくつ？、日経平均教えて",
+                "Stooq（米株は約 15 分遅延、無料・無 key、取引には使わない）",
             ],
         ),
         (
@@ -1029,6 +1064,13 @@ fn capabilities_en() -> String {
             &[
                 "USD to JPY, what's the euro at?",
                 "How much is 100 dollars in yen? (amount converts inline)",
+            ],
+        ),
+        (
+            "Stocks & indices",
+            &[
+                "Apple stock?, S&P today?, Nikkei?",
+                "Stooq (US equities ~15min delayed, no key, not for trading)",
             ],
         ),
         (
