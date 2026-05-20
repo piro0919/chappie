@@ -18,52 +18,52 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.6.2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["macos-private-api", "tray-icon", "image-png", "test"] }
-tauri-plugin-opener = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+tauri = { version = "2.11.2", features = ["macos-private-api", "tray-icon", "image-png", "test"] }
+tauri-plugin-opener = "2.5.4"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
 whisper-rs = "0.16"
-once_cell = "1"
-uuid = { version = "1", features = ["v4", "v5"] }
+once_cell = "1.21.4"
+uuid = { version = "1.23.1", features = ["v4", "v5"] }
 tauri-plugin-store = "2.4.3"
-reqwest = { version = "0.13", default-features = false, features = ["rustls", "stream", "system-proxy"] }
-tokio = { version = "1.52.2", features = ["rt-multi-thread", "macros", "fs", "io-util", "process", "time"] }
+reqwest = { version = "0.13.3", default-features = false, features = ["rustls", "stream", "system-proxy"] }
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "fs", "io-util", "process", "time"] }
 dirs = "6.0.0"
 futures-util = "0.3.32"
 tauri-plugin-single-instance = "2.4.2"
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-updater = "2.10.1"
-tauri-plugin-process = "2"
-tauri-plugin-dialog = "2"
-tauri-plugin-deep-link = "2"
-cpal = "0.17"
-rubato = { version = "0.16", features = ["fft_resampler"], default-features = false }
-voice_activity_detector = "0.2"
+tauri-plugin-process = "2.3.1"
+tauri-plugin-dialog = "2.7.1"
+tauri-plugin-deep-link = "2.4.9"
+cpal = "0.17.3"
+rubato = { version = "0.16.2", features = ["fft_resampler"], default-features = false }
+voice_activity_detector = "0.2.1"
 # WebRTC's AudioProcessing module (AEC3 / AGC2 / noise suppression).
 # `bundled` builds the C++ library from source at build time so we don't
 # rely on a system-installed copy on user machines. Used by `apm.rs`.
-webrtc-audio-processing = { version = "2", features = ["bundled"] }
+webrtc-audio-processing = { version = "2.1.0", features = ["bundled"] }
 # Speaker recognition: WeSpeaker ECAPA-TDNN ONNX via pure-Rust tract +
 # kaldi-compatible 80-dim mel filterbank for preprocessing. Model file
 # is downloaded on first run (mirroring the Whisper model flow in
 # `model.rs`) so the bundled binary stays small.
-tract-onnx = "0.22"
+tract-onnx = "0.22.1"
 kaldi-fbank-rust-kautism = "0.1"
 # Text tokenization for the multilingual-e5-small embedding model used
 # by rag.rs. HuggingFace's `tokenizers` crate loads a tokenizer.json
 # file (BPE / WordPiece / Unigram all supported).
 tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
-chrono = "0.4"
-chrono-tz = "0.10"
-urlencoding = "2"
-url = "2"
-arboard = "3"
-rss = { version = "2.0", default-features = false }
+chrono = "0.4.44"
+chrono-tz = "0.10.4"
+urlencoding = "2.1.3"
+url = "2.5.8"
+arboard = "3.6.1"
+rss = { version = "2.0.13", default-features = false }
 readability = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2 = "0.6"
-objc2-foundation = { version = "0.3", features = ["NSDate", "NSArray", "NSPredicate", "NSString", "NSError", "NSURL"] }
+objc2 = "0.6.4"
+objc2-foundation = { version = "0.3.2", features = ["NSDate", "NSArray", "NSPredicate", "NSString", "NSError", "NSURL"] }
 objc2-event-kit = { version = "0.3.2", features = [
     "EKTypes",
     "EKObject",
@@ -81,7 +81,7 @@ objc2-core-location = { version = "0.3.2", features = [
     "CLError",
     "block2",
 ] }
-block2 = "0.6"
+block2 = "0.6.2"
 # Metal-accelerated Whisper on macOS. Cargo unions features across target
 # sections, so the macOS build still gets `metal` even though the base
 # whisper-rs dep above doesn't enable it.
