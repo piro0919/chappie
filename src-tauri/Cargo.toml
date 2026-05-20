@@ -37,7 +37,7 @@ tauri-plugin-process = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"
 cpal = "0.17"
-rubato = { version = "0.16", features = ["fft_resampler"], default-features = false }
+rubato = { version = "3.0.0", features = ["fft_resampler"], default-features = false }
 voice_activity_detector = "0.2"
 # WebRTC's AudioProcessing module (AEC3 / AGC2 / noise suppression).
 # `bundled` builds the C++ library from source at build time so we don't
