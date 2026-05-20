@@ -61,11 +61,28 @@ away.
 | ⚾ | MLB scores | Today's and yesterday's MLB games from the official feed. Knows which team each Japanese star plays for. "Any Ohtani game today?", "How did the Dodgers do?" |
 | 📈 | Stocks & indices | Latest quotes for US / JP equities, major indices, and crypto via Stooq. "What's Apple at?", "How's the S&P doing?" (US equities ~15 min delayed) |
 | 📐 | Unit conversion | Temperature / length / weight / volume / speed / area. "70°F in Celsius?", "5 miles in km?", "100 pounds in kg?" |
-| 🖼️ | Wallpaper change | "Change my wallpaper to a forest", "Set a night sky", "Make it aesthetic". Multi-monitor setups get a different photo per screen (via Pixabay). |
+| 🖼️ | Wallpaper change | "Change my wallpaper to a forest" (Pixabay, a different photo per monitor), "Set today's picture of the day" (Wikimedia), "Set a famous painting" (Art Institute of Chicago). |
 | 🗂 | Conversation memory *(experimental, opt-in)* | Remembers the flow of your conversations over weeks: drops natural references like "the meeting you mentioned last week" or "the ramen place you said you wanted to try". Daily summaries + semantic recall via a local embedding model (~470 MB, downloaded on first opt-in). Enable / disable / wipe from Settings. |
 | 🔋 | Battery status | "What's my battery at?", "How much charge is left?" |
 | 🔒 | Lock / sleep / stay-awake | "Lock the screen", "Put the Mac to sleep", "Stay awake for 30 minutes" |
 | 📸 | Screenshot | "Take a screenshot", "Capture the whole screen and save it to my desktop" |
+| 🕰 | World clock | "What time is it in London?", "Time in New York?" |
+| 📰 | News | "What's the latest news?", "Tech news", "Nintendo news" (NHK / Hacker News / BBC + keyword search) |
+| 📖 | Wikipedia | "What is ___?", "What happened on this day?", "Anything interesting nearby?" |
+| 🚨 | Earthquakes | "Any recent earthquakes?", "Did it just shake?" (JMA feed) |
+| 💱 | Currency | "What's USD/JPY?", "100 dollars in yen?" |
+| 🌅 | Sun & moon | "What time is sunset today?", "Is tonight a full moon?" |
+| 📄 | Read a web page | "Read the link in my clipboard", "Summarize this page" |
+| 🌫️ | Air quality | "How's the air today?", "Is there dust?", "Is the UV strong?" (PM2.5 / dust / UV) |
+| 🎌 | Public holidays | "When's the next holiday?", "Any holidays next month?" |
+| 🌊 | Waves & surf | "How are the waves today?", "Is it surfable?" |
+| 🌌 | Aurora & space weather | "Can I see the aurora tonight?", "Any geomagnetic storm?" |
+| 📍 | Nearby landmarks | "Anything interesting nearby?", "What's around here?" |
+| ✈️ | Planes overhead | "What plane is flying over me?", "Any planes overhead?" |
+| 🛰️ | ISS location | "Where's the space station now?", "How high is the ISS?" |
+| 🔴 | Pokémon | "What are Pikachu's base stats?", "What type is Charizard?" |
+| 🏎️ | Formula 1 | "When's the next F1 race?", "Last race results?", "Driver standings?" |
+| 🎬 | Anime | "How many episodes of Attack on Titan?", "What's Demon Slayer's rating?", "What's it about?" |
 | 👋 | Goodbye → back to standby | "Thanks, see you later" |
 
 More tools coming over time.
@@ -94,7 +111,9 @@ More tools coming over time.
   - **Pro** *(¥500/月)*: same proxy as Free but the daily cap is lifted, and the 8 paid VOICEVOX speakers (四国めたん, 春日部つむぎ, 冥鳴ひまり, 小夜/SAYO, 中国うさぎ, 東北ずん子, 東北きりたん, 東北イタコ) unlock. Magic-link sign-in (Supabase) + Stripe checkout, both driven from the Settings panel. Mutually exclusive with BYOK at the radio level, but premium-content entitlement is decided by `subscriptionStatus`, so a Pro subscriber who chooses BYOK still keeps the premium voices.
   - **BYOK**: bring your own key from OpenAI / Anthropic / Gemini for unlimited use. Provider auto-detected from the key prefix. Default models are each provider's cheapest tool-capable tier; override with `CHAPPIE_MODEL` env var.
   - In all three modes the HTTP call lives in Rust so the key (or device id / subscription token) never enters the renderer. Override the proxy URL with `CHAPPIE_PROXY_URL` for self-hosting.
-- **Tools**: `set_timer` / `list_timers` / `cancel_timer` / `add_reminder_at` / `list_reminders` / `cancel_reminder` / `get_current_time` / `get_weather` / `open_url` / `web_search` / `open_app` / `open_finder` / `get_volume` / `set_volume` / `set_mute` / `control_music` / `get_now_playing` / `get_battery_status` / `read_clipboard` / `write_clipboard` / `take_screenshot` / `add_note` / `list_notes` / `delete_note` / `lock_screen` / `set_sleep_prevention` / `get_sleep_prevention` / `list_capabilities` / `end_conversation` (multi-round tool calling in `openai.rs`)
+- **Tools** (~40 native + ~21 MCP-contributed, multi-round tool calling in `openai.rs`):
+  - **Native**: `set_timer` / `list_timers` / `cancel_timer` / `add_reminder_at` / `list_reminders` / `cancel_reminder` / `get_current_time` / `get_world_time` / `get_weather` / `open_url` / `open_youtube` / `close_youtube` / `web_search` / `open_app` / `open_finder` / `get_volume` / `set_volume` / `set_mute` / `control_music` / `get_now_playing` / `get_battery_status` / `read_clipboard` / `write_clipboard` / `take_screenshot` / `set_wallpaper` / `set_wallpaper_potd` / `set_artwork_wallpaper` / `add_note` / `list_notes` / `delete_note` / `save_memory` / `recall_memory` / `list_memories` / `forget_memory` / `lock_screen` / `set_sleep_prevention` / `get_sleep_prevention` / `list_events` / `list_capabilities` / `end_conversation`
+  - **MCP servers** (in-process, `mcp_<server>_<tool>`, all free / key-less): news (latest / search), wiki (summary / on-this-day / nearby), quake, fx, astro, fetch, mlb, stocks, units, airquality, aurora, holidays, marine, flights, iss, pokemon, f1, anime — see [docs/modules/rust-backend.md](docs/modules/rust-backend.md) for the full list
 - **Conversation memory** *(experimental, opt-in)*: 3-layer long-term memory. **L1**: raw `~/.chappie/log/<date>.jsonl` of every turn, semantically indexed with [`multilingual-e5-small`](https://huggingface.co/intfloat/multilingual-e5-small) ONNX via tract (384-dim, 100+ languages incl. all 9 Chappie locales). **L2**: daily summaries generated by the same LLM that powers chat, written to `~/.chappie/summaries/`. **L3**: longitudinal topic / preference extraction from the last 30 days of summaries, refreshed weekly. All three layers feed the system prompt so the model can drop natural references without being mechanical. Embedding model is downloaded on first opt-in (~470 MB) and can be removed any time from Settings.
 - **Text-to-speech**: Web Speech API `SpeechSynthesis` (macOS native voices), streamed sentence-by-sentence as the model produces tokens. Voice is auto-selected to match the chosen language — no picker.
 - **i18n**: 9 languages cover the UI, system prompt, wake-word ack, timer/reminder readouts, tray menu, updater dialog, and the `list_capabilities` self-introduction. Whisper's language hint is set to the resolved locale.
