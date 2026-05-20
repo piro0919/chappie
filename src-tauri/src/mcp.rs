@@ -19,8 +19,10 @@
 use serde_json::Value;
 
 mod airquality;
+mod anime;
 mod astro;
 mod aurora;
+mod f1;
 mod fetch;
 mod flights;
 mod fx;
@@ -41,7 +43,9 @@ mod wiki;
 pub fn tools_openai_schema() -> Vec<Value> {
     let mut out = Vec::new();
     out.extend(airquality::tools());
+    out.extend(anime::tools());
     out.extend(aurora::tools());
+    out.extend(f1::tools());
     out.extend(flights::tools());
     out.extend(holidays::tools());
     out.extend(iss::tools());
@@ -66,8 +70,14 @@ pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
     if let Some(rest) = name.strip_prefix("mcp_airquality_") {
         return Some(airquality::execute(rest, args).await);
     }
+    if let Some(rest) = name.strip_prefix("mcp_anime_") {
+        return Some(anime::execute(rest, args).await);
+    }
     if let Some(rest) = name.strip_prefix("mcp_aurora_") {
         return Some(aurora::execute(rest, args).await);
+    }
+    if let Some(rest) = name.strip_prefix("mcp_f1_") {
+        return Some(f1::execute(rest, args).await);
     }
     if let Some(rest) = name.strip_prefix("mcp_flights_") {
         return Some(flights::execute(rest, args).await);

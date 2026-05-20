@@ -305,6 +305,20 @@
         "example2": "\"What type is Charizard?\"",
         "example3": "\"Tell me Mewtwo's stats\"",
         "body": "Base stats, types, and abilities for any Pokémon, by voice — a quick refresh before a battle or a quiz with the kids. Just say the name."
+      },
+      "f1": {
+        "title": "Formula 1 schedule & results",
+        "example1": "\"When's the next F1 race?\"",
+        "example2": "\"What were the last F1 results?\"",
+        "example3": "\"Show me the driver standings\"",
+        "body": "The next race, the last podium, and the current driver standings — by voice. Just right for a refresher before a race weekend."
+      },
+      "anime": {
+        "title": "Anime info",
+        "example1": "\"How many episodes of Attack on Titan?\"",
+        "example2": "\"What's the rating for Demon Slayer?\"",
+        "example3": "\"What's Chainsaw Man about?\"",
+        "body": "Episode count, airing status, score, and synopsis for any anime, by voice — handy when you're deciding what to watch next or catching up on a hit."
       }
     }
   },

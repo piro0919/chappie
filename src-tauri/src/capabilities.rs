@@ -163,6 +163,20 @@ fn capabilities_pt() -> String {
             ],
         ),
         (
+            "Fórmula 1",
+            &[
+                "Quando é a próxima corrida de F1?, resultado da última?, classificação?",
+                "Próxima corrida, último pódio, classificação atual (Jolpica)",
+            ],
+        ),
+        (
+            "Anime",
+            &[
+                "Quantos episódios de ___?, nota de ___?, sobre o que é?",
+                "Episódios, status, nota, gêneros e sinopse (MyAnimeList)",
+            ],
+        ),
+        (
             "Feriados",
             &[
                 "Quando é o próximo feriado?, tem feriado mês que vem?",
@@ -360,6 +374,20 @@ fn capabilities_ko() -> String {
             ],
         ),
         (
+            "F1",
+            &[
+                "다음 F1 언제?, 지난 경기 결과는?, 드라이버 순위는?",
+                "다음 경기 일정·지난 포디움·현재 순위 (Jolpica)",
+            ],
+        ),
+        (
+            "애니메이션",
+            &[
+                "___ 몇 화까지 나왔어?, ___ 평점은?, 어떤 내용이야?",
+                "화수·방영 상태·점수·장르·줄거리 (MyAnimeList)",
+            ],
+        ),
+        (
             "공휴일",
             &[
                 "다음 공휴일 언제?, 다음 달 공휴일 있어?",
@@ -551,6 +579,20 @@ fn capabilities_it() -> String {
             &[
                 "Quali sono le statistiche base di Pikachu?, di che tipo è Charizard?",
                 "Statistiche base, tipi e abilità (PokéAPI)",
+            ],
+        ),
+        (
+            "Formula 1",
+            &[
+                "Quando è la prossima gara di F1?, risultati dell'ultima?, classifica piloti?",
+                "Prossima gara, ultimo podio, classifica attuale (Jolpica)",
+            ],
+        ),
+        (
+            "Anime",
+            &[
+                "Quanti episodi di ___?, voto di ___?, di cosa parla?",
+                "Episodi, stato, voto, generi e trama (MyAnimeList)",
             ],
         ),
         (
@@ -754,6 +796,20 @@ fn capabilities_es() -> String {
             ],
         ),
         (
+            "Fórmula 1",
+            &[
+                "¿Cuándo es la próxima carrera de F1?, ¿resultados de la última?, ¿clasificación?",
+                "Próxima carrera, último podio, clasificación actual (Jolpica)",
+            ],
+        ),
+        (
+            "Anime",
+            &[
+                "¿Cuántos episodios de ___?, ¿nota de ___?, ¿de qué va?",
+                "Episodios, estado, nota, géneros y sinopsis (MyAnimeList)",
+            ],
+        ),
+        (
             "Festivos",
             &[
                 "¿Cuándo es el próximo festivo?, ¿hay festivos el mes que viene?",
@@ -951,6 +1007,20 @@ fn capabilities_fr() -> String {
             &[
                 "Quelles sont les stats de base de Pikachu ?, le type de Dracaufeu ?",
                 "Stats de base, types et capacités (PokéAPI)",
+            ],
+        ),
+        (
+            "Formule 1",
+            &[
+                "C'est quand la prochaine course de F1 ?, résultats de la dernière ?, classement ?",
+                "Prochaine course, dernier podium, classement actuel (Jolpica)",
+            ],
+        ),
+        (
+            "Anime",
+            &[
+                "Combien d'épisodes de ___ ?, la note de ___ ?, ça parle de quoi ?",
+                "Épisodes, statut, note, genres et synopsis (MyAnimeList)",
             ],
         ),
         (
@@ -1154,6 +1224,20 @@ fn capabilities_de() -> String {
             ],
         ),
         (
+            "Formel 1",
+            &[
+                "Wann ist das nächste F1-Rennen?, Ergebnis des letzten?, Fahrerwertung?",
+                "Nächstes Rennen, letztes Podium, aktuelle Wertung (Jolpica)",
+            ],
+        ),
+        (
+            "Anime",
+            &[
+                "Wie viele Folgen von ___?, Bewertung von ___?, worum geht's?",
+                "Folgen, Status, Bewertung, Genres und Handlung (MyAnimeList)",
+            ],
+        ),
+        (
             "Feiertage",
             &[
                 "Wann ist der nächste Feiertag?, gibt's nächsten Monat Feiertage?",
@@ -1351,6 +1435,20 @@ fn capabilities_zh() -> String {
             &[
                 "皮卡丘的种族值是多少?, 喷火龙是什么属性?",
                 "种族值、属性和特性(PokéAPI)",
+            ],
+        ),
+        (
+            "F1(一级方程式)",
+            &[
+                "下一场 F1 什么时候?, 上一场结果?, 车手排名?",
+                "下一场比赛、上一场领奖台、当前排名(Jolpica)",
+            ],
+        ),
+        (
+            "动画",
+            &[
+                "___ 出到第几集了?, ___ 的评分?, 讲什么的?",
+                "集数、放送状态、评分、类型和简介(MyAnimeList)",
             ],
         ),
         (
@@ -1582,6 +1680,20 @@ fn capabilities_ja() -> String {
             &[
                 "ピカチュウの種族値は？／リザードンのタイプは？",
                 "種族値・タイプ・特性を返す（PokéAPI）",
+            ],
+        ),
+        (
+            "F1",
+            &[
+                "次のF1いつ？／前回の結果は？／ドライバーランキング",
+                "次戦の日程・前回の表彰台・現在の順位（Jolpica）",
+            ],
+        ),
+        (
+            "アニメ",
+            &[
+                "○○って何話まで？／○○の評価は？／どんな話？",
+                "話数・放送状況・スコア・ジャンル・あらすじ（MyAnimeList）",
             ],
         ),
         (
@@ -1829,6 +1941,20 @@ fn capabilities_en() -> String {
             &[
                 "What are Pikachu's base stats?, Charizard's type?",
                 "Base stats, types and abilities (PokéAPI)",
+            ],
+        ),
+        (
+            "Formula 1",
+            &[
+                "When's the next F1 race?, last race results?, driver standings?",
+                "Next race, last podium, current standings (Jolpica)",
+            ],
+        ),
+        (
+            "Anime",
+            &[
+                "How many episodes of ___?, ___'s rating?, what's it about?",
+                "Episodes, status, score, genres and synopsis (MyAnimeList)",
             ],
         ),
         (

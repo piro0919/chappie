@@ -137,6 +137,9 @@ const CASES: &[Case] = &[
     Case { label: "mcp/iss", utterance: "宇宙ステーション今どこ?", expected_first: "mcp_iss_location" },
     // ポケモン種族値 → pokemon stats (NOT wiki summary / web_search).
     Case { label: "mcp/pokemon", utterance: "ピカチュウの種族値は?", expected_first: "mcp_pokemon_stats" },
+    // F1 → f1 info (NOT mcp_mlb_games / web_search). アニメ → anime info.
+    Case { label: "mcp/f1", utterance: "次のF1いつ?", expected_first: "mcp_f1_info" },
+    Case { label: "mcp/anime", utterance: "進撃の巨人って何話まで?", expected_first: "mcp_anime_info" },
     // Relative-volume / relative-date utterances kick off a multi-round
     // sequence in production (get_volume → set_volume; get_current_time
     // → add_reminder_at). We only assert the FIRST tool here because

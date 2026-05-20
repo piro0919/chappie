@@ -38,6 +38,8 @@ export const CAPABILITY_IDS = [
   "flights",
   "iss",
   "pokemon",
+  "f1",
+  "anime",
   "goodbye",
 ] as const;
 
@@ -152,6 +154,8 @@ export const CAPABILITY_ICONS: Record<CapabilityId, string> = {
   flights: "✈️",
   iss: "🛰️",
   pokemon: "🔴",
+  f1: "🏎️",
+  anime: "🎬",
 };
 
 export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
@@ -195,4 +199,6 @@ export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
   flights: ["example1", "example2", "example3"],
   iss: ["example1", "example2", "example3"],
   pokemon: ["example1", "example2", "example3"],
+  f1: ["example1", "example2", "example3"],
+  anime: ["example1", "example2", "example3"],
 };
