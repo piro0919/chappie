@@ -113,6 +113,11 @@ const CASES: &[Case] = &[
     Case { label: "mcp/fx", utterance: "ドル円いくら?", expected_first: "mcp_fx_rate" },
     Case { label: "mcp/astro", utterance: "今日の日の入り何時?", expected_first: "mcp_astro_sunmoon" },
     Case { label: "mcp/fetch", utterance: "https://example.com 読んで", expected_first: "mcp_fetch_readable" },
+    // "今日は何の日?" must route to onthisday, NOT get_current_time (both
+    // mention 今日); "今日の空気どう?" must route to air-quality, NOT
+    // get_weather (both are ambient-condition questions about 今日).
+    Case { label: "mcp/onthisday", utterance: "今日は何の日?", expected_first: "mcp_wiki_onthisday" },
+    Case { label: "mcp/airquality", utterance: "今日の空気どう?", expected_first: "mcp_airquality_current" },
     // Relative-volume / relative-date utterances kick off a multi-round
     // sequence in production (get_volume → set_volume; get_current_time
     // → add_reminder_at). We only assert the FIRST tool here because
