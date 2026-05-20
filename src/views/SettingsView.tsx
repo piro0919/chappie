@@ -1187,38 +1187,6 @@ export function SettingsView() {
         </div>
         <div className={styles.groupRow}>
           <span className={styles.groupRowLabel}>
-            {t("settings.screenAccess")}
-          </span>
-          <div className={styles.groupRowActions}>
-            <span
-              className={`${styles.badge} ${screen.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
-            >
-              <span className={styles.badgeDot} />
-              {screen.status === "granted"
-                ? t("settings.screenGranted")
-                : t("settings.screenDenied")}
-            </span>
-            {screen.status !== "granted" && (
-              <button
-                type="button"
-                className={styles.iconButton}
-                onClick={() => {
-                  void invoke("open_screen_recording_settings").catch((e) =>
-                    console.error(
-                      "[settings] open_screen_recording_settings",
-                      e,
-                    ),
-                  );
-                }}
-              >
-                {t("settings.micOpenSystem")}
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.groupRow}>
-          <span className={styles.groupRowLabel}>
             {t("settings.calendarAccess")}
           </span>
           <div className={styles.groupRowActions}>
@@ -1273,6 +1241,50 @@ export function SettingsView() {
                 className={styles.iconButton}
                 onClick={() => {
                   void openUrl(LOCATION_PRIVACY_URL).catch(() => {});
+                }}
+              >
+                {t("settings.micOpenSystem")}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
+            {t("settings.screenAccess")}
+          </span>
+          <div className={styles.groupRowActions}>
+            <span
+              className={`${styles.badge} ${screen.status === "granted" ? styles.badgeGranted : styles.badgeNeutral}`}
+            >
+              <span className={styles.badgeDot} />
+              {screen.status === "granted"
+                ? t("settings.screenGranted")
+                : t("settings.screenDenied")}
+            </span>
+            {screen.status !== "granted" && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={() => {
+                  // Screen Recording has no in-dialog "Allow" — the user
+                  // must flip the toggle in System Settings. But macOS
+                  // won't list an app that never invoked a capture API,
+                  // so there'd be no toggle to flip. Firing the
+                  // ScreenCaptureKit request registers Chappie into the
+                  // Screen Recording list (off state) and shows the
+                  // one-time prompt; we don't await it (it blocks until
+                  // the prompt is dismissed) and open the pane alongside,
+                  // where the list updates live.
+                  void invoke("request_screen_recording_access").catch(
+                    () => {},
+                  );
+                  void invoke("open_screen_recording_settings").catch((e) =>
+                    console.error(
+                      "[settings] open_screen_recording_settings",
+                      e,
+                    ),
+                  );
                 }}
               >
                 {t("settings.micOpenSystem")}
