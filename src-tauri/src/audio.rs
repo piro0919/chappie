@@ -281,7 +281,7 @@ fn run_capture(
         }
     };
 
-    let in_rate = supported.sample_rate().0;
+    let in_rate = supported.sample_rate();
     let in_channels = supported.channels() as usize;
     let sample_format = supported.sample_format();
     let config: StreamConfig = supported.config();
