@@ -752,6 +752,12 @@ pub fn apply_tray_state(app: &AppHandle, state: TrayState) -> tauri::Result<()> 
 
 pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
     if let Some(win) = app.get_webview_window("settings") {
+        // An accessory-mode app can lose its front ordering when a system
+        // permission dialog (EventKit / CoreLocation / mic) is dismissed —
+        // the Settings window then drops behind other apps. Re-activating
+        // alongside show()/focus() raises it back above them.
+        #[cfg(target_os = "macos")]
+        activate_app_for_window();
         let _ = win.show();
         let _ = win.unminimize();
         let _ = win.set_focus();

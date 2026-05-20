@@ -61,6 +61,10 @@ export function usePermissionStatus<S extends string>(opts: {
       console.error(`[settings] ${requestCommand} failed`, e);
     } finally {
       setRequesting(false);
+      // Dismissing the OS permission dialog can drop this accessory-mode
+      // window behind other apps (most noticeable with the calendar
+      // prompt). Re-raise the Settings window so the user lands back on it.
+      await invoke("open_settings").catch(() => {});
     }
   }, [requestCommand, refresh]);
 
