@@ -35,18 +35,18 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
-    "@commitlint/cli": "^20.5.3",
-    "@commitlint/config-conventional": "^20.5.3",
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@tauri-apps/cli": "^2.11.2",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react": "^6.0.2",
     "happy-dom": "^20.9.0",
     "lefthook": "^2.1.8",
     "secretlint": "^13.0.2",
-    "typescript": "~5.9.3",
-    "vite": "^7.3.3",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.13",
     "vitest": "^4.1.7"
   }
 }
