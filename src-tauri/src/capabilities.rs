@@ -116,6 +116,21 @@ fn capabilities_pt() -> String {
             &[
                 "Muda o papel de parede para floresta, estética, céu noturno",
                 "Cada monitor recebe uma foto diferente (via Pixabay)",
+                "Põe a imagem do dia da Wikipédia como papel de parede",
+            ],
+        ),
+        (
+            "Feriados",
+            &[
+                "Quando é o próximo feriado?, tem feriado mês que vem?",
+                "Lista os feriados do ano (qualquer país, 100+)",
+            ],
+        ),
+        (
+            "Ondas / surf",
+            &[
+                "Como estão as ondas hoje?, dá pra surfar?",
+                "Altura, período e direção das ondas no litoral (não no interior)",
             ],
         ),
         (
@@ -255,6 +270,21 @@ fn capabilities_ko() -> String {
             &[
                 "배경화면을 숲으로, 밤하늘로, 감성적인 배경화면으로",
                 "모니터마다 다른 사진 (Pixabay 사용)",
+                "오늘의 위키백과 사진을 배경화면으로",
+            ],
+        ),
+        (
+            "공휴일",
+            &[
+                "다음 공휴일 언제?, 다음 달 공휴일 있어?",
+                "올해 공휴일 알려줘 (국가 지정 가능, 100여 개국)",
+            ],
+        ),
+        (
+            "파도 · 서핑",
+            &[
+                "오늘 파도 어때?, 서핑할 만해?",
+                "해안의 파고·주기·방향 (내륙은 미지원)",
             ],
         ),
         (
@@ -391,6 +421,21 @@ fn capabilities_it() -> String {
             &[
                 "Cambia lo sfondo in foresta, mettilo estetico, cielo stellato",
                 "Ogni monitor riceve una foto diversa (tramite Pixabay)",
+                "Metti la foto del giorno di Wikipedia come sfondo",
+            ],
+        ),
+        (
+            "Festività",
+            &[
+                "Qual è la prossima festività?, ci sono feste il mese prossimo?",
+                "Elenca le feste dell'anno (qualsiasi paese, 100+)",
+            ],
+        ),
+        (
+            "Onde / surf",
+            &[
+                "Com'è il mare oggi?, si può surfare?",
+                "Altezza, periodo e direzione delle onde sulla costa (non nell'entroterra)",
             ],
         ),
         (
@@ -533,6 +578,21 @@ fn capabilities_es() -> String {
             &[
                 "Cambia el fondo de pantalla a un bosque, ponlo estético, cielo nocturno",
                 "Cada monitor recibe una foto distinta (vía Pixabay)",
+                "Pon la imagen del día de Wikipedia como fondo",
+            ],
+        ),
+        (
+            "Festivos",
+            &[
+                "¿Cuándo es el próximo festivo?, ¿hay festivos el mes que viene?",
+                "Lista los festivos del año (cualquier país, 100+)",
+            ],
+        ),
+        (
+            "Olas / surf",
+            &[
+                "¿Cómo están las olas hoy?, ¿se puede surfear?",
+                "Altura, periodo y dirección del oleaje en la costa (no en el interior)",
             ],
         ),
         (
@@ -675,6 +735,21 @@ fn capabilities_fr() -> String {
             &[
                 "Change le fond d'écran en forêt, mets-le esthétique, ciel nocturne",
                 "Chaque écran reçoit une photo différente (via Pixabay)",
+                "Mets la photo du jour de Wikipédia en fond d'écran",
+            ],
+        ),
+        (
+            "Jours fériés",
+            &[
+                "C'est quand le prochain jour férié ?, des fériés le mois prochain ?",
+                "Liste les fériés de l'année (tout pays, 100+)",
+            ],
+        ),
+        (
+            "Vagues / surf",
+            &[
+                "Comment sont les vagues aujourd'hui ?, c'est surfable ?",
+                "Hauteur, période et direction des vagues sur la côte (pas à l'intérieur)",
             ],
         ),
         (
@@ -817,6 +892,21 @@ fn capabilities_de() -> String {
             &[
                 "Mach das Hintergrundbild zum Wald, ästhetisch, Nachthimmel",
                 "Jeder Monitor bekommt ein eigenes Foto (über Pixabay)",
+                "Mach das Wikipedia-Bild des Tages zum Hintergrund",
+            ],
+        ),
+        (
+            "Feiertage",
+            &[
+                "Wann ist der nächste Feiertag?, gibt's nächsten Monat Feiertage?",
+                "Nenne die Feiertage des Jahres (beliebiges Land, 100+)",
+            ],
+        ),
+        (
+            "Wellen / Surf",
+            &[
+                "Wie sind die Wellen heute?, kann man surfen?",
+                "Wellenhöhe, -periode und -richtung an der Küste (nicht im Inland)",
             ],
         ),
         (
@@ -959,6 +1049,21 @@ fn capabilities_zh() -> String {
             &[
                 "把壁纸换成森林、夜空, 来个有质感的壁纸",
                 "多显示器每块屏配不同照片(来自 Pixabay)",
+                "把维基百科每日图片设为壁纸",
+            ],
+        ),
+        (
+            "节假日",
+            &[
+                "下一个节假日是什么时候?, 下个月有假吗?",
+                "列出今年的节假日(可指定国家, 100+ 国家)",
+            ],
+        ),
+        (
+            "海浪 · 冲浪",
+            &[
+                "今天浪怎么样?, 能冲浪吗?",
+                "海岸的浪高、周期和方向(内陆不支持)",
             ],
         ),
         (
@@ -1132,6 +1237,21 @@ fn capabilities_ja() -> String {
             &[
                 "壁紙を森に変えて、夜空の壁紙にして、おしゃれな壁紙にして",
                 "複数モニターには違う写真を 1 枚ずつ（Pixabay の写真を使用）",
+                "今日の一枚を壁紙に（ウィキペディアの今日の写真）",
+            ],
+        ),
+        (
+            "祝日",
+            &[
+                "次の祝日いつ？／来月祝日ある？",
+                "今年の祝日教えて（国コード指定可、100+ カ国）",
+            ],
+        ),
+        (
+            "海・波",
+            &[
+                "今日の波どう？／波高い？／サーフィンできそう？",
+                "海沿いの波高・周期・向き（内陸は対象外）",
             ],
         ),
         (
@@ -1321,6 +1441,21 @@ fn capabilities_en() -> String {
             &[
                 "Change my wallpaper to a forest, set an aesthetic wallpaper, make it night sky",
                 "Each monitor gets its own photo (uses Pixabay)",
+                "Set today's Wikipedia picture of the day as wallpaper",
+            ],
+        ),
+        (
+            "Public holidays",
+            &[
+                "When's the next holiday?, any holidays next month?",
+                "List this year's holidays (any country, 100+ supported)",
+            ],
+        ),
+        (
+            "Waves / surf",
+            &[
+                "How are the waves today?, is it surfable?",
+                "Wave height, period and direction for the coast (not inland)",
             ],
         ),
         (

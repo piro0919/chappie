@@ -235,6 +235,27 @@
         "example2": "\"What happened on May 20th?\"",
         "example3": "\"Tell me today's events\"",
         "body": "Reads out historical events for the date, with the year — a nice little conversation starter for the morning. Name a date to hear any day in history."
+      },
+      "potd": {
+        "title": "Picture of the day as wallpaper",
+        "example1": "\"Set today's picture of the day as wallpaper\"",
+        "example2": "\"Use today's Wikipedia photo\"",
+        "example3": "\"Make today's featured photo my wallpaper\"",
+        "body": "Wikipedia's hand-picked photo of the day becomes your desktop wallpaper — a fresh, beautiful shot every day with zero effort, plus a word on what it is."
+      },
+      "holidays": {
+        "title": "Public holidays on the spot",
+        "example1": "\"When's the next holiday?\"",
+        "example2": "\"Any holidays next month?\"",
+        "example3": "\"List this year's holidays\"",
+        "body": "The next holiday or the whole year's holidays, by voice — handy for planning a trip or a long weekend. Name a country for holidays abroad."
+      },
+      "marine": {
+        "title": "Surf and waves on the spot",
+        "example1": "\"How are the waves today?\"",
+        "example2": "\"Is it surfable?\"",
+        "example3": "\"What are the waves like in Malibu?\"",
+        "body": "Wave height, period, and direction for where you are or any coast you name — all by voice. A quick check before you head out to surf or fish."
       }
     }
   },

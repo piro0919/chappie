@@ -82,6 +82,143 @@ pub async fn set_wallpaper(app: &AppHandle, query: &str) -> Result<SetWallpaperR
     })
 }
 
+#[derive(Debug, Serialize)]
+pub struct PotdResult {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub monitors: usize,
+}
+
+/// Set every monitor's wallpaper to Wikimedia's "Picture of the day".
+/// Unlike `set_wallpaper`, this hits Wikimedia directly (no proxy, no
+/// key) — the image lives on Commons. We pull the POTD from the English
+/// "featured" feed (the picture is language-agnostic; en is the most
+/// reliably populated feed) and re-verify the URL host before download.
+pub async fn set_wallpaper_potd(app: &AppHandle) -> Result<PotdResult, String> {
+    let monitor_count = count_monitors(app)?;
+    let potd = fetch_potd().await?;
+
+    let _ = sweep_stale_cache();
+
+    let dir = cache_dir()?;
+    let client = crate::http::build_client(Some(30), Some("chappie-wallpaper/1.0"));
+    let dest = dir.join(format!("potd-{}.jpg", potd.cache_key));
+
+    if !(dest.exists() && std::fs::metadata(&dest).map(|m| m.len() > 0).unwrap_or(false)) {
+        // Prefer the upscaled thumbnail (bounded size, good resolution);
+        // fall back to the smaller thumbnail Wikimedia handed us.
+        let mut downloaded = false;
+        for url in &potd.urls {
+            if download_one(&client, url, &dest).await.is_ok() {
+                downloaded = true;
+                break;
+            }
+        }
+        if !downloaded {
+            return Err("could not download picture of the day".into());
+        }
+    }
+
+    apply_wallpaper(&[dest], monitor_count)?;
+
+    Ok(PotdResult {
+        title: potd.title,
+        description: potd.description,
+        monitors: monitor_count,
+    })
+}
+
+struct Potd {
+    /// Candidate image URLs, tried in order (best resolution first).
+    urls: Vec<String>,
+    title: Option<String>,
+    description: Option<String>,
+    cache_key: String,
+}
+
+async fn fetch_potd() -> Result<Potd, String> {
+    use chrono::Datelike;
+    let now = chrono::Utc::now();
+    let (y, m, d) = (now.year(), now.month(), now.day());
+    let url = format!(
+        "https://en.wikipedia.org/api/rest_v1/feed/featured/{:04}/{:02}/{:02}",
+        y, m, d
+    );
+    let v: serde_json::Value = crate::mcp::HTTP
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("featured feed: {e}"))?
+        .json()
+        .await
+        .map_err(|e| format!("featured json: {e}"))?;
+    let image = v
+        .get("image")
+        .ok_or_else(|| "no picture of the day in feed".to_string())?;
+
+    let thumb = image
+        .get("thumbnail")
+        .and_then(|t| t.get("source"))
+        .and_then(|s| s.as_str())
+        .filter(|s| is_wikimedia_url(s));
+    let original = image
+        .get("image")
+        .and_then(|t| t.get("source"))
+        .and_then(|s| s.as_str())
+        .filter(|s| is_wikimedia_url(s));
+
+    let mut urls = Vec::new();
+    if let Some(t) = thumb {
+        // Wikimedia thumb URLs embed the width as `/{N}px-`; bumping it
+        // to 1920 yields a wallpaper-sized render without fetching the
+        // (often >20 MB) original.
+        if let Some(upscaled) = upscale_thumb(t, 1920) {
+            urls.push(upscaled);
+        }
+        urls.push(t.to_string());
+    }
+    if let Some(o) = original {
+        urls.push(o.to_string());
+    }
+    if urls.is_empty() {
+        return Err("picture of the day URL not on Wikimedia host".into());
+    }
+
+    let title = image
+        .get("title")
+        .and_then(|s| s.as_str())
+        .map(String::from);
+    let description = image
+        .get("description")
+        .and_then(|d| d.get("text"))
+        .and_then(|s| s.as_str())
+        .map(String::from);
+
+    Ok(Potd {
+        urls,
+        title,
+        description,
+        cache_key: format!("{:04}{:02}{:02}", y, m, d),
+    })
+}
+
+/// Rewrite a Wikimedia thumbnail URL to a different pixel width by
+/// swapping the `/{N}px-` segment. Returns None if the URL doesn't match
+/// the expected thumbnail shape.
+fn upscale_thumb(url: &str, width: u32) -> Option<String> {
+    let idx = url.rfind("px-")?;
+    let start = url[..idx].rfind('/')? + 1;
+    // Everything between the last '/' and "px-" must be digits.
+    if url[start..idx].is_empty() || !url[start..idx].bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    Some(format!("{}{}{}", &url[..start], width, &url[idx..]))
+}
+
+fn is_wikimedia_url(url: &str) -> bool {
+    url.to_lowercase().starts_with("https://upload.wikimedia.org/")
+}
+
 fn count_monitors(app: &AppHandle) -> Result<usize, String> {
     // Any existing window works for monitor enumeration; the main one
     // is created at startup. If none exist (shouldn't happen post-init)
@@ -192,7 +329,7 @@ fn sweep_stale_cache() -> std::io::Result<usize> {
             .unwrap_or_default();
         // Only sweep files we own — leave anything else alone in case
         // the user has dropped their own images here.
-        if !name.starts_with("pixabay-") {
+        if !name.starts_with("pixabay-") && !name.starts_with("potd-") {
             continue;
         }
         let Ok(meta) = entry.metadata() else { continue };

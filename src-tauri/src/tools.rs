@@ -262,6 +262,19 @@ fn native_tools() -> Value {
         {
             "type": "function",
             "function": {
+                "name": "set_wallpaper_potd",
+                "description": "Wikipedia（Wikimedia Commons）の「今日の一枚（Picture of the Day）」をデスクトップの壁紙にする。「今日の一枚を壁紙に」「ウィキペディアの今日の写真を壁紙にして」「今日のおすすめ写真にして」。テーマ指定の壁紙は set_wallpaper、日替わりの厳選写真はこちら。引数なし。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "open_finder",
                 "description": "Finder で場所を開く。「ダウンロード開いて」「ゴミ箱開いて」など。target はキーワード（downloads / desktop / documents / pictures / music / movies / applications / trash / home、日本語エイリアス可）または絶対パス（~/ 展開可）。",
                 "parameters": {
@@ -1008,6 +1021,21 @@ pub(crate) async fn execute_tool(
             // failure paths via the existing pipeline.
             match crate::wallpaper::set_wallpaper(app, &q).await {
                 Ok(r) => json!({ "ok": true, "monitors": r.monitors }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "set_wallpaper_potd" => {
+            // Like set_wallpaper, the change itself is the confirmation;
+            // title/description are returned so the LLM can mention what
+            // the photo is.
+            match crate::wallpaper::set_wallpaper_potd(app).await {
+                Ok(r) => json!({
+                    "ok": true,
+                    "monitors": r.monitors,
+                    "title": r.title,
+                    "description": r.description
+                })
+                .to_string(),
                 Err(e) => json!({ "ok": false, "error": e }).to_string(),
             }
         }

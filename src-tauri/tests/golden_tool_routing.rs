@@ -118,6 +118,12 @@ const CASES: &[Case] = &[
     // get_weather (both are ambient-condition questions about 今日).
     Case { label: "mcp/onthisday", utterance: "今日は何の日?", expected_first: "mcp_wiki_onthisday" },
     Case { label: "mcp/airquality", utterance: "今日の空気どう?", expected_first: "mcp_airquality_current" },
+    // 祝日 → holidays (NOT calendar's list_events, which is personal
+    // schedule). 波 → marine (NOT get_weather). POTD wallpaper → the
+    // dedicated tool, NOT set_wallpaper (which needs a theme query).
+    Case { label: "mcp/holidays", utterance: "次の祝日いつ?", expected_first: "mcp_holidays_next" },
+    Case { label: "mcp/marine", utterance: "今日の波どう?", expected_first: "mcp_marine_current" },
+    Case { label: "potd", utterance: "今日の一枚を壁紙にして", expected_first: "set_wallpaper_potd" },
     // Relative-volume / relative-date utterances kick off a multi-round
     // sequence in production (get_volume → set_volume; get_current_time
     // → add_reminder_at). We only assert the FIRST tool here because
