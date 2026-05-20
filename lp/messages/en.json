@@ -298,6 +298,13 @@
         "example2": "\"Where's the ISS?\"",
         "example3": "\"How high is the ISS?\"",
         "body": "Where the International Space Station is right now, with its altitude and speed — a bit of space before you glance up at the sky."
+      },
+      "pokemon": {
+        "title": "Pokémon base stats",
+        "example1": "\"What are Pikachu's base stats?\"",
+        "example2": "\"What type is Charizard?\"",
+        "example3": "\"Tell me Mewtwo's stats\"",
+        "body": "Base stats, types, and abilities for any Pokémon, by voice — a quick refresh before a battle or a quiz with the kids. Just say the name."
       }
     }
   },

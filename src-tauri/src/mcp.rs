@@ -29,6 +29,7 @@ mod iss;
 mod marine;
 mod mlb;
 mod news;
+mod pokemon;
 mod quake;
 mod stocks;
 mod units;
@@ -46,6 +47,7 @@ pub fn tools_openai_schema() -> Vec<Value> {
     out.extend(iss::tools());
     out.extend(marine::tools());
     out.extend(news::tools());
+    out.extend(pokemon::tools());
     out.extend(wiki::tools());
     out.extend(quake::tools());
     out.extend(fx::tools());
@@ -81,6 +83,9 @@ pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
     }
     if let Some(rest) = name.strip_prefix("mcp_news_") {
         return Some(news::execute(rest, args).await);
+    }
+    if let Some(rest) = name.strip_prefix("mcp_pokemon_") {
+        return Some(pokemon::execute(rest, args).await);
     }
     if let Some(rest) = name.strip_prefix("mcp_wiki_") {
         return Some(wiki::execute(rest, args).await);

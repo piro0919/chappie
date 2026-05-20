@@ -156,6 +156,13 @@ fn capabilities_pt() -> String {
             ],
         ),
         (
+            "Pokémon",
+            &[
+                "Quais os atributos do Pikachu?, qual o tipo do Charizard?",
+                "Atributos-base, tipos e habilidades (PokéAPI)",
+            ],
+        ),
+        (
             "Feriados",
             &[
                 "Quando é o próximo feriado?, tem feriado mês que vem?",
@@ -346,6 +353,13 @@ fn capabilities_ko() -> String {
             ],
         ),
         (
+            "포켓몬",
+            &[
+                "피카츄 종족값은?, 리자몽 타입은?",
+                "종족값·타입·특성 (PokéAPI)",
+            ],
+        ),
+        (
             "공휴일",
             &[
                 "다음 공휴일 언제?, 다음 달 공휴일 있어?",
@@ -530,6 +544,13 @@ fn capabilities_it() -> String {
             &[
                 "Dov'è la stazione spaziale adesso?, dov'è la ISS?",
                 "Posizione attuale della ISS (oceano/regione approssimativa), quota e velocità",
+            ],
+        ),
+        (
+            "Pokémon",
+            &[
+                "Quali sono le statistiche base di Pikachu?, di che tipo è Charizard?",
+                "Statistiche base, tipi e abilità (PokéAPI)",
             ],
         ),
         (
@@ -726,6 +747,13 @@ fn capabilities_es() -> String {
             ],
         ),
         (
+            "Pokémon",
+            &[
+                "¿Cuáles son las estadísticas base de Pikachu?, ¿de qué tipo es Charizard?",
+                "Estadísticas base, tipos y habilidades (PokéAPI)",
+            ],
+        ),
+        (
             "Festivos",
             &[
                 "¿Cuándo es el próximo festivo?, ¿hay festivos el mes que viene?",
@@ -916,6 +944,13 @@ fn capabilities_fr() -> String {
             &[
                 "Où est la station spatiale maintenant ?, où est l'ISS ?",
                 "Position actuelle de l'ISS (océan/région approximative), altitude et vitesse",
+            ],
+        ),
+        (
+            "Pokémon",
+            &[
+                "Quelles sont les stats de base de Pikachu ?, le type de Dracaufeu ?",
+                "Stats de base, types et capacités (PokéAPI)",
             ],
         ),
         (
@@ -1112,6 +1147,13 @@ fn capabilities_de() -> String {
             ],
         ),
         (
+            "Pokémon",
+            &[
+                "Wie sind Pikachus Basiswerte?, welcher Typ ist Glurak?",
+                "Basiswerte, Typen und Fähigkeiten (PokéAPI)",
+            ],
+        ),
+        (
             "Feiertage",
             &[
                 "Wann ist der nächste Feiertag?, gibt's nächsten Monat Feiertage?",
@@ -1302,6 +1344,13 @@ fn capabilities_zh() -> String {
             &[
                 "空间站现在在哪?, ISS 在哪?",
                 "ISS 当前位置(大致海域/地区)、高度和速度",
+            ],
+        ),
+        (
+            "宝可梦",
+            &[
+                "皮卡丘的种族值是多少?, 喷火龙是什么属性?",
+                "种族值、属性和特性(PokéAPI)",
             ],
         ),
         (
@@ -1526,6 +1575,13 @@ fn capabilities_ja() -> String {
             &[
                 "宇宙ステーション今どこ？／ISS どこ飛んでる？",
                 "ISS の現在地（おおまかな海域・地域）・高度・速度",
+            ],
+        ),
+        (
+            "ポケモン",
+            &[
+                "ピカチュウの種族値は？／リザードンのタイプは？",
+                "種族値・タイプ・特性を返す（PokéAPI）",
             ],
         ),
         (
@@ -1766,6 +1822,13 @@ fn capabilities_en() -> String {
             &[
                 "Where's the space station now?, where's the ISS?",
                 "The ISS's current position (rough ocean/region), altitude and speed",
+            ],
+        ),
+        (
+            "Pokémon",
+            &[
+                "What are Pikachu's base stats?, Charizard's type?",
+                "Base stats, types and abilities (PokéAPI)",
             ],
         ),
         (
