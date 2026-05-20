@@ -56,6 +56,10 @@ describe("settings", () => {
     vadSilenceFrames: 22,
   } as const;
 
+  const ANALYTICS_DEFAULTS = {
+    analyticsConsent: false,
+  } as const;
+
   it("returns defaults when store is empty", async () => {
     expect(await loadSettings()).toEqual({
       mode: "free",
@@ -66,6 +70,7 @@ describe("settings", () => {
       ...PROACTIVE_DEFAULTS,
       ...SPEAKER_DEFAULTS,
       ...VAD_DEFAULTS,
+      ...ANALYTICS_DEFAULTS,
     });
   });
 
@@ -82,6 +87,7 @@ describe("settings", () => {
       ...PROACTIVE_DEFAULTS,
       ...SPEAKER_DEFAULTS,
       ...VAD_DEFAULTS,
+      ...ANALYTICS_DEFAULTS,
     });
   });
 
@@ -99,6 +105,7 @@ describe("settings", () => {
       ...PROACTIVE_DEFAULTS,
       ...SPEAKER_DEFAULTS,
       ...VAD_DEFAULTS,
+      ...ANALYTICS_DEFAULTS,
     });
   });
 
