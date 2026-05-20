@@ -15,7 +15,8 @@
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, SampleFormat, StreamConfig};
-use rubato::{FftFixedIn, Resampler};
+use rubato::audioadapter_buffers::direct::InterleavedSlice;
+use rubato::{Fft, FixedSync, Resampler};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::Emitter;
@@ -379,14 +380,29 @@ fn run_segmenter(
     } else {
         FRAME_SAMPLES
     };
-    let mut resampler: Option<FftFixedIn<f32>> = if needs_resample {
+    // rubato 3.0: fixed-input FFT resampler, mono. `FixedSync::Input` means
+    // each call consumes exactly `in_frame_size` frames (matching how we
+    // drain `accum_in` below) and emits a variable number of output frames.
+    let mut resampler: Option<Fft<f32>> = if needs_resample {
         Some(
-            FftFixedIn::<f32>::new(in_rate as usize, TARGET_RATE as usize, in_frame_size, 2, 1)
-                .map_err(|e| format!("rubato init: {e}"))?,
+            Fft::<f32>::new(
+                in_rate as usize,
+                TARGET_RATE as usize,
+                in_frame_size,
+                2,
+                1,
+                FixedSync::Input,
+            )
+            .map_err(|e| format!("rubato init: {e}"))?,
         )
     } else {
         None
     };
+    // Reusable output scratch, sized to the resampler's max output frames so
+    // a single call always fits. rubato 3.0 writes into a caller-owned
+    // buffer (via audioadapter) instead of allocating a Vec per call.
+    let mut rs_out: Vec<f32> =
+        vec![0.0; resampler.as_ref().map_or(0, |r| r.output_frames_max())];
     let mut vad = VoiceActivityDetector::builder()
         .sample_rate(TARGET_RATE)
         .chunk_size(FRAME_SAMPLES)
@@ -477,10 +493,15 @@ fn run_segmenter(
         while accum_in.len() >= in_frame_size {
             let input_frame: Vec<f32> = accum_in.drain(..in_frame_size).collect();
             if let Some(rs) = resampler.as_mut() {
-                let out = rs
-                    .process(&[input_frame], None)
+                let in_adapter = InterleavedSlice::new(&input_frame, 1, in_frame_size)
+                    .map_err(|e| format!("rubato in adapter: {e}"))?;
+                let out_cap = rs_out.len();
+                let mut out_adapter = InterleavedSlice::new_mut(&mut rs_out, 1, out_cap)
+                    .map_err(|e| format!("rubato out adapter: {e}"))?;
+                let (_in_used, out_n) = rs
+                    .process_into_buffer(&in_adapter, &mut out_adapter, None)
                     .map_err(|e| format!("rubato process: {e}"))?;
-                accum_out.extend_from_slice(&out[0]);
+                accum_out.extend_from_slice(&rs_out[..out_n]);
             } else {
                 accum_out.extend_from_slice(&input_frame);
             }
