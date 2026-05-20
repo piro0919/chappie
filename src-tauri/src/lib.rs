@@ -146,16 +146,17 @@ pub(crate) fn run_whisper(audio: Vec<f32>) -> Result<String, String> {
         .full(params, &audio)
         .map_err(|e| format!("full inference: {e}"))?;
 
-    let n = state
-        .full_n_segments()
-        .map_err(|e| format!("full_n_segments: {e}"))?;
+    let n = state.full_n_segments();
 
     let mut out = String::new();
     for i in 0..n {
-        let text = state
-            .full_get_segment_text(i)
+        let segment = state
+            .get_segment(i)
+            .ok_or_else(|| format!("segment {i}: missing"))?;
+        let text = segment
+            .to_str()
             .map_err(|e| format!("segment {i} text: {e}"))?;
-        out.push_str(&text);
+        out.push_str(text);
     }
     Ok(out.trim().to_string())
 }

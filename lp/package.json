@@ -17,13 +17,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.105.4",
+    "@supabase/supabase-js": "^2.106.1",
     "jose": "^6.2.3",
     "lucide-react": "^0.577.0",
-    "next": "^16.2.4",
-    "next-intl": "^4.11.0",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
+    "next": "^16.2.6",
+    "next-intl": "^4.12.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "stripe": "^22.1.1"
   },
   "devDependencies": {

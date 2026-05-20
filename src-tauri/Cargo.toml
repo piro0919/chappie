@@ -22,7 +22,7 @@ tauri = { version = "2", features = ["macos-private-api", "tray-icon", "image-pn
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-whisper-rs = "0.14"
+whisper-rs = "0.16"
 once_cell = "1"
 uuid = { version = "1", features = ["v4", "v5"] }
 tauri-plugin-store = "2.4.3"
@@ -36,7 +36,7 @@ tauri-plugin-updater = "2.10.1"
 tauri-plugin-process = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"
-cpal = "0.15"
+cpal = "0.17"
 rubato = { version = "0.16", features = ["fft_resampler"], default-features = false }
 voice_activity_detector = "0.2"
 # WebRTC's AudioProcessing module (AEC3 / AGC2 / noise suppression).
@@ -47,12 +47,12 @@ webrtc-audio-processing = { version = "2", features = ["bundled"] }
 # kaldi-compatible 80-dim mel filterbank for preprocessing. Model file
 # is downloaded on first run (mirroring the Whisper model flow in
 # `model.rs`) so the bundled binary stays small.
-tract-onnx = "0.21"
+tract-onnx = "0.22"
 kaldi-fbank-rust-kautism = "0.1"
 # Text tokenization for the multilingual-e5-small embedding model used
 # by rag.rs. HuggingFace's `tokenizers` crate loads a tokenizer.json
 # file (BPE / WordPiece / Unigram all supported).
-tokenizers = { version = "0.20", default-features = false, features = ["onig"] }
+tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
 chrono = "0.4"
 chrono-tz = "0.10"
 urlencoding = "2"
@@ -85,7 +85,7 @@ block2 = "0.6"
 # Metal-accelerated Whisper on macOS. Cargo unions features across target
 # sections, so the macOS build still gets `metal` even though the base
 # whisper-rs dep above doesn't enable it.
-whisper-rs = { version = "0.14", features = ["metal"] }
+whisper-rs = { version = "0.16", features = ["metal"] }
 
 [features]
 default = []
