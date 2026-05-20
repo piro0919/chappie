@@ -22,11 +22,11 @@ export const CAPABILITY_IDS = [
   "memory",
   "battery",
   "lock",
-  "goodbye",
   "mlb",
   "stocks",
   "units",
   "wallpaper",
+  "goodbye",
 ] as const;
 
 export type CapabilityId = (typeof CAPABILITY_IDS)[number];
