@@ -6,6 +6,7 @@ import {
   enable as enableAutostart,
   isEnabled as isAutostartEnabled,
 } from "@tauri-apps/plugin-autostart";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 import { usePermissionStatus } from "../hooks/usePermissionStatus";
@@ -546,7 +547,7 @@ export function SettingsView() {
   }
 
   async function onForgetLtm() {
-    if (!window.confirm(t("settings.ltmForgetConfirm"))) return;
+    if (!(await ask(t("settings.ltmForgetConfirm")))) return;
     setLtmError(null);
     setLtmPhase({ kind: "wiping" });
     try {
@@ -560,7 +561,7 @@ export function SettingsView() {
   }
 
   async function onDisableLtm() {
-    if (!window.confirm(t("settings.ltmDisableConfirm"))) return;
+    if (!(await ask(t("settings.ltmDisableConfirm")))) return;
     setLtmError(null);
     try {
       await invoke("remove_embedding_model");
@@ -571,12 +572,20 @@ export function SettingsView() {
   }
 
   async function onToggleAnalyticsConsent(next: boolean) {
-    // ON: explicit consent modal to honor the "transparent before
-    //     toggle flips" promise. The browser confirm is uglier than a
-    //     custom modal but lives at runtime in WKWebView reliably and
-    //     doesn't need extra component plumbing.
-    if (next && !window.confirm(t("settings.analyticsConsentModal"))) {
-      return;
+    // ON: explicit consent step before the toggle commits. Tier-aware
+    // copy (Free gets the quota perk line, others get the plain ask),
+    // with button labels matching the inviting tone instead of the
+    // default OK / Cancel.
+    if (next) {
+      const msg =
+        mode === "free"
+          ? t("settings.analyticsConsentModalFree")
+          : t("settings.analyticsConsentModalOther");
+      const agreed = await ask(msg, {
+        okLabel: t("settings.analyticsConsentOk"),
+        cancelLabel: t("settings.analyticsConsentCancel"),
+      });
+      if (!agreed) return;
     }
     setAnalyticsBusy(true);
     try {
@@ -590,7 +599,7 @@ export function SettingsView() {
   }
 
   async function onDeleteAnalyticsHistory() {
-    if (!window.confirm(t("settings.analyticsDeleteConfirm"))) return;
+    if (!(await ask(t("settings.analyticsDeleteConfirm")))) return;
     setAnalyticsBusy(true);
     try {
       await invoke("analytics_delete_history");

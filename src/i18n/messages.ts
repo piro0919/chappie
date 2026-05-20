@@ -137,7 +137,10 @@ type Messages = {
     analyticsDescriptionFree: string;
     analyticsDescriptionPro: string;
     analyticsDescriptionByok: string;
-    analyticsConsentModal: string;
+    analyticsConsentModalFree: string;
+    analyticsConsentModalOther: string;
+    analyticsConsentOk: string;
+    analyticsConsentCancel: string;
     analyticsDelete: string;
     analyticsDeleteConfirm: string;
     analyticsRecentShow: string;
@@ -341,20 +344,24 @@ const ja: Messages = {
     analyticsTurnOn: "ON にする",
     analyticsTurnOff: "OFF にする",
     analyticsDescriptionFree:
-      "話しかけた音声の書き起こしと、呼び出された機能名を機能改善のため匿名で送信します。録音そのものは送りません。ONにすると Free モードのデイリー上限が +10 増えます（5 → 15）。",
+      "聞き取った言葉と使った機能を、改善のために匿名で送ります。音声そのものは送りません。ON にすると Free モードの 1 日の上限が 5 回から 15 回に増えます。",
     analyticsDescriptionPro:
-      "話しかけた音声の書き起こしと、呼び出された機能名を機能改善のため匿名で送信します。録音そのものは送りません。Pro は元から無制限ですが、ぜひご協力ください。",
+      "聞き取った言葉と使った機能を、改善のために匿名で送ります。音声そのものは送りません。Pro は元から無制限ですが、ぜひご協力ください。",
     analyticsDescriptionByok:
-      "話しかけた音声の書き起こしと、呼び出された機能名を機能改善のため匿名で送信します。録音そのものは送りません。BYOK にも特典なし、機能改善へのご協力です。",
-    analyticsConsentModal:
-      "Chappie に話しかけた音声の書き起こしと、Chappie が呼び出した機能名を、サーバーに匿名で送信します。録音そのもの・LLM の応答は送りません。デバイス ID はハードウェアから一方向に生成された UUID（逆引き不可）です。データの送信を ON にしますか？",
+      "聞き取った言葉と使った機能を、改善のために匿名で送ります。音声そのものは送りません。",
+    analyticsConsentModalFree:
+      "Chappie をもっと良くするのに協力しませんか？\n\n聞き取った言葉と使った機能を、改善のために匿名で送らせてください。音声そのものは送りません。\n\nお礼に、Free モードの 1 日の上限が 5 回から 15 回に増えます。いつでも OFF にできます。",
+    analyticsConsentModalOther:
+      "Chappie をもっと良くするのに協力しませんか？\n\n聞き取った言葉と使った機能を、改善のために匿名で送らせてください。音声そのものは送りません。いつでも OFF にできます。",
+    analyticsConsentOk: "協力する",
+    analyticsConsentCancel: "今はしない",
     analyticsDelete: "送信済みデータを削除",
     analyticsDeleteConfirm:
       "これまでに送信した利用データを全て削除し、共有を OFF にします。よろしいですか？",
     analyticsRecentShow: "直近の送信内容を見る",
     analyticsRecentHide: "閉じる",
     analyticsRecentEmpty:
-      "このセッションでまだ送信したターンはありません（OFF 状態では生成のみ・送信は行いません）。",
+      "このセッションでまだ送信した記録はありません。OFF のときは送信されず、ここに表示もされません。",
     proactiveLabel: "プロアクティブ通知",
     proactiveMasterToggle: "有効にする",
     proactiveMorningBriefToggle: "朝のブリーフィング",
@@ -564,20 +571,24 @@ const en: Messages = {
     analyticsTurnOn: "Turn on",
     analyticsTurnOff: "Turn off",
     analyticsDescriptionFree:
-      "Send a transcript of what you said and the names of the tools Chappie used, anonymously, to help improve the product. Audio is never sent. Turning this on adds +10 to your Free daily limit (5 → 15).",
+      "Sends what you said and the tools you used, anonymously, to help improve Chappie. Your audio is never sent. Turning this on raises your Free daily limit from 5 to 15 uses.",
     analyticsDescriptionPro:
-      "Send a transcript of what you said and the names of the tools Chappie used, anonymously, to help improve the product. Audio is never sent. Pro is already unlimited, so no extra perk — but help us make it better!",
+      "Sends what you said and the tools you used, anonymously, to help improve Chappie. Your audio is never sent. Pro is already unlimited, but we'd love your help.",
     analyticsDescriptionByok:
-      "Send a transcript of what you said and the names of the tools Chappie used, anonymously, to help improve the product. Audio is never sent. BYOK has no extra perk; this is purely to help us improve Chappie.",
-    analyticsConsentModal:
-      "Chappie will send a transcript of what you said and the names of the tools it used to our server, anonymously. The audio itself and the LLM's response are NEVER sent. The device id is a one-way UUID derived from your hardware (not reversible to a personal identity). Turn data sharing on?",
+      "Sends what you said and the tools you used, anonymously, to help improve Chappie. Your audio is never sent.",
+    analyticsConsentModalFree:
+      "Help make Chappie better?\n\nLet us send what you said and the tools you used, anonymously, to improve Chappie. Your audio itself is never sent.\n\nAs a thank-you, your Free daily limit goes from 5 to 15 uses. You can turn this off anytime.",
+    analyticsConsentModalOther:
+      "Help make Chappie better?\n\nLet us send what you said and the tools you used, anonymously, to improve Chappie. Your audio itself is never sent. You can turn this off anytime.",
+    analyticsConsentOk: "Help out",
+    analyticsConsentCancel: "Not now",
     analyticsDelete: "Delete sent data",
     analyticsDeleteConfirm:
       "This will delete every event we have for this device and turn sharing off. Continue?",
     analyticsRecentShow: "Show recent shares",
     analyticsRecentHide: "Hide",
     analyticsRecentEmpty:
-      "Nothing reported this session yet (with sharing OFF, events are not sent — this list shows what would be).",
+      "Nothing shared this session yet. When sharing is off, nothing is sent and nothing shows here.",
     proactiveLabel: "Proactive notifications",
     proactiveMasterToggle: "Enable",
     proactiveMorningBriefToggle: "Morning briefing",
@@ -788,20 +799,24 @@ const es: Messages = {
     analyticsTurnOn: "Activar",
     analyticsTurnOff: "Desactivar",
     analyticsDescriptionFree:
-      "Enviar la transcripción de tu voz y los nombres de las herramientas que usó Chappie, de forma anónima, para mejorar el producto. El audio nunca se envía. Al activar esto, el límite diario gratuito sube +10 (5 → 15).",
+      "Envía lo que dijiste y las herramientas que usaste, de forma anónima, para mejorar Chappie. Tu audio nunca se envía. Al activarlo, tu límite diario gratuito sube de 5 a 15 usos.",
     analyticsDescriptionPro:
-      "Enviar la transcripción de tu voz y los nombres de las herramientas que usó Chappie, de forma anónima, para mejorar el producto. El audio nunca se envía. Pro ya es ilimitado; tu colaboración nos ayuda a mejorar.",
+      "Envía lo que dijiste y las herramientas que usaste, de forma anónima, para mejorar Chappie. Tu audio nunca se envía. Pro ya es ilimitado, pero nos encantaría tu ayuda.",
     analyticsDescriptionByok:
-      "Enviar la transcripción de tu voz y los nombres de las herramientas que usó Chappie, de forma anónima. El audio nunca se envía. BYOK no recibe ventajas; es solo para mejorar el producto.",
-    analyticsConsentModal:
-      "Chappie enviará la transcripción de tu voz y los nombres de las herramientas usadas, de forma anónima. El audio y la respuesta del LLM nunca se envían. El ID del dispositivo es un UUID de una vía (no reversible). ¿Activar?",
+      "Envía lo que dijiste y las herramientas que usaste, de forma anónima, para mejorar Chappie. Tu audio nunca se envía.",
+    analyticsConsentModalFree:
+      "¿Ayudas a mejorar Chappie?\n\nDéjanos enviar lo que dijiste y las herramientas que usaste, de forma anónima, para mejorar Chappie. Tu audio nunca se envía.\n\nComo agradecimiento, tu límite diario gratuito sube de 5 a 15 usos. Puedes desactivarlo cuando quieras.",
+    analyticsConsentModalOther:
+      "¿Ayudas a mejorar Chappie?\n\nDéjanos enviar lo que dijiste y las herramientas que usaste, de forma anónima, para mejorar Chappie. Tu audio nunca se envía. Puedes desactivarlo cuando quieras.",
+    analyticsConsentOk: "Ayudar",
+    analyticsConsentCancel: "Ahora no",
     analyticsDelete: "Borrar datos enviados",
     analyticsDeleteConfirm:
       "Esto borrará todos los eventos de este dispositivo y desactivará el envío. ¿Continuar?",
     analyticsRecentShow: "Ver envíos recientes",
     analyticsRecentHide: "Ocultar",
     analyticsRecentEmpty:
-      "Nada enviado en esta sesión (con el envío OFF no se envía nada — esto muestra lo que se enviaría).",
+      "Nada enviado en esta sesión. Cuando está desactivado, no se envía nada ni se muestra aquí.",
     proactiveLabel: "Notificaciones proactivas",
     proactiveMasterToggle: "Activar",
     proactiveMorningBriefToggle: "Resumen matutino",
@@ -1012,20 +1027,24 @@ const fr: Messages = {
     analyticsTurnOn: "Activer",
     analyticsTurnOff: "Désactiver",
     analyticsDescriptionFree:
-      "Envoyer la transcription de votre voix et les noms des outils utilisés par Chappie, anonymement, pour améliorer le produit. L'audio n'est jamais envoyé. En activant ceci, votre limite Free quotidienne augmente de +10 (5 → 15).",
+      "Envoie ce que vous avez dit et les outils utilisés, anonymement, pour améliorer Chappie. Votre audio n'est jamais envoyé. En activant ceci, votre limite Free quotidienne passe de 5 à 15 utilisations.",
     analyticsDescriptionPro:
-      "Envoyer la transcription de votre voix et les noms des outils utilisés par Chappie, anonymement, pour améliorer le produit. L'audio n'est jamais envoyé. Pro est déjà illimité ; merci de nous aider à l'améliorer !",
+      "Envoie ce que vous avez dit et les outils utilisés, anonymement, pour améliorer Chappie. Votre audio n'est jamais envoyé. Pro est déjà illimité, mais votre aide est la bienvenue.",
     analyticsDescriptionByok:
-      "Envoyer la transcription de votre voix et les noms des outils utilisés par Chappie, anonymement. L'audio n'est jamais envoyé. BYOK n'a pas de bonus ; c'est juste pour améliorer le produit.",
-    analyticsConsentModal:
-      "Chappie enverra la transcription de votre voix et les noms des outils utilisés, anonymement. L'audio et la réponse du LLM ne sont JAMAIS envoyés. L'identifiant d'appareil est un UUID à sens unique (non réversible). Activer le partage ?",
+      "Envoie ce que vous avez dit et les outils utilisés, anonymement, pour améliorer Chappie. Votre audio n'est jamais envoyé.",
+    analyticsConsentModalFree:
+      "Aider à améliorer Chappie ?\n\nLaissez-nous envoyer ce que vous avez dit et les outils utilisés, anonymement, pour améliorer Chappie. Votre audio n'est jamais envoyé.\n\nEn remerciement, votre limite Free quotidienne passe de 5 à 15 utilisations. Vous pouvez désactiver à tout moment.",
+    analyticsConsentModalOther:
+      "Aider à améliorer Chappie ?\n\nLaissez-nous envoyer ce que vous avez dit et les outils utilisés, anonymement, pour améliorer Chappie. Votre audio n'est jamais envoyé. Vous pouvez désactiver à tout moment.",
+    analyticsConsentOk: "Aider",
+    analyticsConsentCancel: "Pas maintenant",
     analyticsDelete: "Supprimer les données envoyées",
     analyticsDeleteConfirm:
       "Ceci supprimera tous les événements pour cet appareil et désactivera le partage. Continuer ?",
     analyticsRecentShow: "Voir les envois récents",
     analyticsRecentHide: "Masquer",
     analyticsRecentEmpty:
-      "Rien envoyé cette session (avec le partage OFF, rien n'est envoyé — cette liste montre ce qui serait envoyé).",
+      "Rien envoyé cette session. Lorsque c'est désactivé, rien n'est envoyé ni affiché ici.",
     proactiveLabel: "Notifications proactives",
     proactiveMasterToggle: "Activer",
     proactiveMorningBriefToggle: "Briefing matinal",
@@ -1236,20 +1255,24 @@ const de: Messages = {
     analyticsTurnOn: "Einschalten",
     analyticsTurnOff: "Ausschalten",
     analyticsDescriptionFree:
-      "Sende anonym eine Transkription deiner Stimme und die Namen der von Chappie aufgerufenen Tools, um das Produkt zu verbessern. Audio wird niemals gesendet. Aktivieren erhöht dein Free-Tageslimit um +10 (5 → 15).",
+      "Sendet anonym, was du gesagt hast, und die genutzten Funktionen, um Chappie zu verbessern. Dein Audio wird nie gesendet. Beim Aktivieren steigt dein Free-Tageslimit von 5 auf 15 Nutzungen.",
     analyticsDescriptionPro:
-      "Sende anonym eine Transkription deiner Stimme und die Namen der genutzten Tools, um das Produkt zu verbessern. Audio wird niemals gesendet. Pro ist bereits unbegrenzt; bitte hilf uns trotzdem!",
+      "Sendet anonym, was du gesagt hast, und die genutzten Funktionen, um Chappie zu verbessern. Dein Audio wird nie gesendet. Pro ist bereits unbegrenzt, aber wir freuen uns über deine Hilfe.",
     analyticsDescriptionByok:
-      "Sende anonym eine Transkription deiner Stimme und die Namen der genutzten Tools. Audio wird niemals gesendet. BYOK erhält keinen Bonus; nur zur Produktverbesserung.",
-    analyticsConsentModal:
-      "Chappie sendet anonym eine Transkription deiner Stimme und die Namen der verwendeten Tools an unseren Server. Audio und LLM-Antwort werden NIE gesendet. Die Geräte-ID ist eine Einweg-UUID (nicht reversibel). Teilen aktivieren?",
+      "Sendet anonym, was du gesagt hast, und die genutzten Funktionen, um Chappie zu verbessern. Dein Audio wird nie gesendet.",
+    analyticsConsentModalFree:
+      "Hilfst du, Chappie besser zu machen?\n\nLass uns anonym senden, was du gesagt hast, und die genutzten Funktionen, um Chappie zu verbessern. Dein Audio wird nie gesendet.\n\nAls Dankeschön steigt dein Free-Tageslimit von 5 auf 15 Nutzungen. Du kannst es jederzeit ausschalten.",
+    analyticsConsentModalOther:
+      "Hilfst du, Chappie besser zu machen?\n\nLass uns anonym senden, was du gesagt hast, und die genutzten Funktionen, um Chappie zu verbessern. Dein Audio wird nie gesendet. Du kannst es jederzeit ausschalten.",
+    analyticsConsentOk: "Helfen",
+    analyticsConsentCancel: "Nicht jetzt",
     analyticsDelete: "Gesendete Daten löschen",
     analyticsDeleteConfirm:
       "Dies löscht alle Ereignisse für dieses Gerät und schaltet die Freigabe aus. Fortfahren?",
     analyticsRecentShow: "Letzte Übertragungen anzeigen",
     analyticsRecentHide: "Ausblenden",
     analyticsRecentEmpty:
-      "In dieser Sitzung noch nichts gesendet (mit AUS wird nichts gesendet — diese Liste zeigt, was gesendet würde).",
+      "In dieser Sitzung noch nichts gesendet. Wenn aus, wird nichts gesendet und nichts hier angezeigt.",
     proactiveLabel: "Proaktive Benachrichtigungen",
     proactiveMasterToggle: "Aktivieren",
     proactiveMorningBriefToggle: "Morgenbriefing",
@@ -1454,19 +1477,23 @@ const zh: Messages = {
     analyticsTurnOn: "开启",
     analyticsTurnOff: "关闭",
     analyticsDescriptionFree:
-      "匿名发送语音转录文本和 Chappie 调用的工具名，用于产品改进。永不发送音频。开启后免费版每日上限 +10（5 → 15）。",
+      "匿名发送你说的内容和用过的功能，用于改进 Chappie。绝不发送语音本身。开启后免费版每日上限从 5 次提升到 15 次。",
     analyticsDescriptionPro:
-      "匿名发送语音转录文本和 Chappie 调用的工具名，用于产品改进。永不发送音频。Pro 已无限制，请协助我们继续完善。",
+      "匿名发送你说的内容和用过的功能，用于改进 Chappie。绝不发送语音本身。Pro 已无限制，但欢迎你的协助。",
     analyticsDescriptionByok:
-      "匿名发送语音转录文本和 Chappie 调用的工具名，用于产品改进。永不发送音频。BYOK 无额外特权，仅用于改进产品。",
-    analyticsConsentModal:
-      "Chappie 会将你的语音转录文本和使用的工具名匿名发送至服务器。绝不会发送音频本身和 LLM 回复。设备 ID 是从硬件单向生成的 UUID（不可反查）。开启数据共享？",
+      "匿名发送你说的内容和用过的功能，用于改进 Chappie。绝不发送语音本身。",
+    analyticsConsentModalFree:
+      "帮助 Chappie 变得更好？\n\n让我们匿名发送你说的内容和用过的功能，用于改进 Chappie。绝不发送语音本身。\n\n作为感谢，免费版每日上限从 5 次提升到 15 次。随时可以关闭。",
+    analyticsConsentModalOther:
+      "帮助 Chappie 变得更好？\n\n让我们匿名发送你说的内容和用过的功能，用于改进 Chappie。绝不发送语音本身。随时可以关闭。",
+    analyticsConsentOk: "我来帮忙",
+    analyticsConsentCancel: "暂不",
     analyticsDelete: "删除已发送数据",
     analyticsDeleteConfirm: "此操作将删除该设备的所有事件并关闭共享。继续？",
     analyticsRecentShow: "查看最近发送内容",
     analyticsRecentHide: "隐藏",
     analyticsRecentEmpty:
-      "本次会话尚未发送（关闭时不会发送，此列表展示将要发送的内容）。",
+      "本次会话尚未发送任何内容。关闭时不会发送，也不会显示在这里。",
     proactiveLabel: "主动通知",
     proactiveMasterToggle: "启用",
     proactiveMorningBriefToggle: "早间简报",
@@ -1674,20 +1701,24 @@ const pt: Messages = {
     analyticsTurnOn: "Ativar",
     analyticsTurnOff: "Desativar",
     analyticsDescriptionFree:
-      "Envia a transcrição da sua voz e os nomes das ferramentas usadas pelo Chappie, anonimamente, para melhorar o produto. Áudio nunca é enviado. Ativar adiciona +10 ao limite diário Free (5 → 15).",
+      "Envia o que você disse e as ferramentas que usou, anonimamente, para melhorar o Chappie. Seu áudio nunca é enviado. Ativar aumenta seu limite diário Free de 5 para 15 usos.",
     analyticsDescriptionPro:
-      "Envia a transcrição da sua voz e os nomes das ferramentas usadas pelo Chappie, anonimamente, para melhorar o produto. Áudio nunca é enviado. Pro já é ilimitado; ajude-nos a melhorar!",
+      "Envia o que você disse e as ferramentas que usou, anonimamente, para melhorar o Chappie. Seu áudio nunca é enviado. Pro já é ilimitado, mas adoraríamos sua ajuda.",
     analyticsDescriptionByok:
-      "Envia a transcrição da sua voz e os nomes das ferramentas usadas, anonimamente. Áudio nunca é enviado. BYOK não tem bônus; apenas para melhorar o produto.",
-    analyticsConsentModal:
-      "O Chappie enviará a transcrição da sua voz e os nomes das ferramentas usadas, anonimamente. Áudio e resposta do LLM nunca são enviados. ID do dispositivo é um UUID de mão única (não reversível). Ativar compartilhamento?",
+      "Envia o que você disse e as ferramentas que usou, anonimamente, para melhorar o Chappie. Seu áudio nunca é enviado.",
+    analyticsConsentModalFree:
+      "Ajudar a melhorar o Chappie?\n\nDeixe-nos enviar o que você disse e as ferramentas que usou, anonimamente, para melhorar o Chappie. Seu áudio nunca é enviado.\n\nComo agradecimento, seu limite diário Free vai de 5 para 15 usos. Pode desativar quando quiser.",
+    analyticsConsentModalOther:
+      "Ajudar a melhorar o Chappie?\n\nDeixe-nos enviar o que você disse e as ferramentas que usou, anonimamente, para melhorar o Chappie. Seu áudio nunca é enviado. Pode desativar quando quiser.",
+    analyticsConsentOk: "Ajudar",
+    analyticsConsentCancel: "Agora não",
     analyticsDelete: "Excluir dados enviados",
     analyticsDeleteConfirm:
       "Isto excluirá todos os eventos deste dispositivo e desativará o compartilhamento. Continuar?",
     analyticsRecentShow: "Ver envios recentes",
     analyticsRecentHide: "Ocultar",
     analyticsRecentEmpty:
-      "Nada enviado nesta sessão (com OFF nada é enviado — esta lista mostra o que seria enviado).",
+      "Nada enviado nesta sessão. Quando desativado, nada é enviado nem exibido aqui.",
     proactiveLabel: "Notificações proativas",
     proactiveMasterToggle: "Ativar",
     proactiveMorningBriefToggle: "Resumo matinal",
@@ -1896,20 +1927,24 @@ const ko: Messages = {
     analyticsTurnOn: "켜기",
     analyticsTurnOff: "끄기",
     analyticsDescriptionFree:
-      "말한 음성의 텍스트와 Chappie가 호출한 기능 이름을 익명으로 보내 제품 개선에 사용합니다. 음성은 보내지 않습니다. 켜면 Free 일일 한도가 +10 증가합니다(5 → 15).",
+      "말한 내용과 사용한 기능을 익명으로 보내 Chappie 개선에 씁니다. 음성 자체는 보내지 않습니다. 켜면 Free 하루 한도가 5회에서 15회로 늘어납니다.",
     analyticsDescriptionPro:
-      "말한 음성의 텍스트와 Chappie가 호출한 기능 이름을 익명으로 보내 제품 개선에 사용합니다. 음성은 보내지 않습니다. Pro는 이미 무제한이지만 협력 부탁드립니다.",
+      "말한 내용과 사용한 기능을 익명으로 보내 Chappie 개선에 씁니다. 음성 자체는 보내지 않습니다. Pro는 이미 무제한이지만 협력해 주시면 감사하겠습니다.",
     analyticsDescriptionByok:
-      "말한 음성의 텍스트와 Chappie가 호출한 기능 이름을 익명으로 보냅니다. 음성은 보내지 않습니다. BYOK은 보너스 없이 순수한 협력입니다.",
-    analyticsConsentModal:
-      "Chappie가 말한 음성의 텍스트와 사용된 기능 이름을 서버에 익명으로 보냅니다. 음성과 LLM 응답은 절대 보내지 않습니다. 기기 ID는 하드웨어에서 단방향으로 생성된 UUID(역추적 불가)입니다. 공유를 켜시겠습니까?",
+      "말한 내용과 사용한 기능을 익명으로 보내 Chappie 개선에 씁니다. 음성 자체는 보내지 않습니다.",
+    analyticsConsentModalFree:
+      "Chappie를 더 좋게 만드는 데 도와주시겠어요?\n\n말한 내용과 사용한 기능을 익명으로 보내 Chappie 개선에 쓰게 해 주세요. 음성 자체는 보내지 않습니다.\n\n감사의 뜻으로 Free 하루 한도가 5회에서 15회로 늘어납니다. 언제든 끌 수 있습니다.",
+    analyticsConsentModalOther:
+      "Chappie를 더 좋게 만드는 데 도와주시겠어요?\n\n말한 내용과 사용한 기능을 익명으로 보내 Chappie 개선에 쓰게 해 주세요. 음성 자체는 보내지 않습니다. 언제든 끌 수 있습니다.",
+    analyticsConsentOk: "도와주기",
+    analyticsConsentCancel: "나중에",
     analyticsDelete: "보낸 데이터 삭제",
     analyticsDeleteConfirm:
       "이 기기의 모든 이벤트를 삭제하고 공유를 끕니다. 계속하시겠습니까?",
     analyticsRecentShow: "최근 전송 보기",
     analyticsRecentHide: "숨기기",
     analyticsRecentEmpty:
-      "이 세션에서 아직 보낸 항목이 없습니다(OFF 상태에서는 보내지 않으며, 이 목록은 보낼 내용을 보여줍니다).",
+      "이 세션에서 아직 보낸 기록이 없습니다. 꺼져 있을 때는 보내지 않으며 여기에도 표시되지 않습니다.",
     proactiveLabel: "능동적 알림",
     proactiveMasterToggle: "사용",
     proactiveMorningBriefToggle: "아침 브리핑",
@@ -2120,20 +2155,24 @@ const it: Messages = {
     analyticsTurnOn: "Attiva",
     analyticsTurnOff: "Disattiva",
     analyticsDescriptionFree:
-      "Invia in modo anonimo la trascrizione della tua voce e i nomi degli strumenti usati da Chappie, per migliorare il prodotto. L'audio non viene mai inviato. Attivare aumenta il limite giornaliero Free di +10 (5 → 15).",
+      "Invia in modo anonimo ciò che hai detto e gli strumenti che hai usato, per migliorare Chappie. L'audio non viene mai inviato. Attivandolo, il limite giornaliero Free passa da 5 a 15 utilizzi.",
     analyticsDescriptionPro:
-      "Invia in modo anonimo la trascrizione della tua voce e i nomi degli strumenti usati da Chappie, per migliorare il prodotto. L'audio non viene mai inviato. Pro è già illimitato; aiutaci a migliorarlo!",
+      "Invia in modo anonimo ciò che hai detto e gli strumenti che hai usato, per migliorare Chappie. L'audio non viene mai inviato. Pro è già illimitato, ma il tuo aiuto è gradito.",
     analyticsDescriptionByok:
-      "Invia in modo anonimo la trascrizione della tua voce e i nomi degli strumenti usati. L'audio non viene mai inviato. BYOK non ha bonus; serve solo a migliorare il prodotto.",
-    analyticsConsentModal:
-      "Chappie invierà la trascrizione della tua voce e i nomi degli strumenti usati al server, anonimamente. L'audio e la risposta dell'LLM NON sono mai inviati. L'ID dispositivo è un UUID a senso unico (non reversibile). Attivare la condivisione?",
+      "Invia in modo anonimo ciò che hai detto e gli strumenti che hai usato, per migliorare Chappie. L'audio non viene mai inviato.",
+    analyticsConsentModalFree:
+      "Vuoi aiutare a migliorare Chappie?\n\nLasciaci inviare in modo anonimo ciò che hai detto e gli strumenti che hai usato, per migliorare Chappie. L'audio non viene mai inviato.\n\nPer ringraziarti, il limite giornaliero Free passa da 5 a 15 utilizzi. Puoi disattivarlo quando vuoi.",
+    analyticsConsentModalOther:
+      "Vuoi aiutare a migliorare Chappie?\n\nLasciaci inviare in modo anonimo ciò che hai detto e gli strumenti che hai usato, per migliorare Chappie. L'audio non viene mai inviato. Puoi disattivarlo quando vuoi.",
+    analyticsConsentOk: "Aiuta",
+    analyticsConsentCancel: "Non ora",
     analyticsDelete: "Elimina dati inviati",
     analyticsDeleteConfirm:
       "Verranno eliminati tutti gli eventi per questo dispositivo e la condivisione sarà disattivata. Continuare?",
     analyticsRecentShow: "Mostra invii recenti",
     analyticsRecentHide: "Nascondi",
     analyticsRecentEmpty:
-      "Nulla inviato in questa sessione (con OFF non viene inviato nulla — questa lista mostra ciò che sarebbe inviato).",
+      "Niente inviato in questa sessione. Quando è disattivato, non viene inviato nulla e nulla appare qui.",
     proactiveLabel: "Notifiche proattive",
     proactiveMasterToggle: "Attiva",
     proactiveMorningBriefToggle: "Briefing mattutino",
