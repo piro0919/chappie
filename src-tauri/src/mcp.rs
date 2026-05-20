@@ -22,8 +22,10 @@ mod airquality;
 mod astro;
 mod aurora;
 mod fetch;
+mod flights;
 mod fx;
 mod holidays;
+mod iss;
 mod marine;
 mod mlb;
 mod news;
@@ -39,7 +41,9 @@ pub fn tools_openai_schema() -> Vec<Value> {
     let mut out = Vec::new();
     out.extend(airquality::tools());
     out.extend(aurora::tools());
+    out.extend(flights::tools());
     out.extend(holidays::tools());
+    out.extend(iss::tools());
     out.extend(marine::tools());
     out.extend(news::tools());
     out.extend(wiki::tools());
@@ -63,8 +67,14 @@ pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
     if let Some(rest) = name.strip_prefix("mcp_aurora_") {
         return Some(aurora::execute(rest, args).await);
     }
+    if let Some(rest) = name.strip_prefix("mcp_flights_") {
+        return Some(flights::execute(rest, args).await);
+    }
     if let Some(rest) = name.strip_prefix("mcp_holidays_") {
         return Some(holidays::execute(rest, args).await);
+    }
+    if let Some(rest) = name.strip_prefix("mcp_iss_") {
+        return Some(iss::execute(rest, args).await);
     }
     if let Some(rest) = name.strip_prefix("mcp_marine_") {
         return Some(marine::execute(rest, args).await);

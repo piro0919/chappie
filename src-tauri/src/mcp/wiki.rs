@@ -33,6 +33,31 @@ pub fn tools() -> Vec<Value> {
         json!({
             "type": "function",
             "function": {
+                "name": "mcp_wiki_nearby",
+                "description": "現在地の近くにある名所・施設・地物を Wikipedia から探す。「近くに何かある？」「この辺の名所教えて」「近くに見どころある？」。返り値の places（title と distance_m）を近い順に 2-3 件読み上げる。radius_m は検索半径（任意、既定 3000、最大 10000）、lang は言語コード（未指定 ja）。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "radius_m": {
+                            "type": "integer",
+                            "description": "検索半径（メートル、10〜10000）。未指定なら 3000。",
+                            "minimum": 10,
+                            "maximum": 10000
+                        },
+                        "lang": {
+                            "type": "string",
+                            "enum": ["ja", "en", "es", "fr", "de", "it", "pt", "ko", "zh"],
+                            "description": "Wikipedia の言語版。未指定なら ja。"
+                        }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                }
+            }
+        }),
+        json!({
+            "type": "function",
+            "function": {
                 "name": "mcp_wiki_onthisday",
                 "description": "「今日は何の日？」「N月N日は何があった日？」。指定日（未指定なら今日）の歴史上の主要な出来事を返す。返り値の events を 2-3 件、年号を添えて簡潔に読み上げる。month/day は任意（未指定なら今日）、lang は言語コード（未指定なら ja、その言語版にデータが無ければ自動で英語版にフォールバック）。",
                 "parameters": {
@@ -67,6 +92,7 @@ pub fn tools() -> Vec<Value> {
 pub async fn execute(tool: &str, args: &Value) -> String {
     match tool {
         "summary" => summary(args).await,
+        "nearby" => nearby(args).await,
         "onthisday" => onthisday(args).await,
         other => json!({ "error": format!("unknown wiki tool: {}", other) }).to_string(),
     }
@@ -95,6 +121,57 @@ async fn summary(args: &Value) -> String {
             None => json!({ "error": "not_found", "query": query }).to_string(),
         },
     }
+}
+
+/// Nearby Wikipedia articles via the GeoData `list=geosearch` API. Uses
+/// the user's cached location; returns the closest titled places with
+/// their distance in meters.
+async fn nearby(args: &Value) -> String {
+    let Some(here) = crate::location::cached() else {
+        return json!({
+            "error": "ユーザーの現在地が取得できていません。設定から位置情報を許可してもう一度試してください。"
+        })
+        .to_string();
+    };
+    let radius = args
+        .get("radius_m")
+        .and_then(|v| v.as_u64())
+        .map(|r| r.clamp(10, 10_000))
+        .unwrap_or(3000);
+    let lang = args.get("lang").and_then(|v| v.as_str()).unwrap_or("ja");
+
+    let url = format!(
+        "https://{}.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord={}%7C{}&gsradius={}&gslimit=10&format=json",
+        lang, here.latitude, here.longitude, radius
+    );
+    let res = match super::HTTP.get(&url).send().await {
+        Ok(r) => r,
+        Err(e) => return json!({ "error": format!("geosearch request: {e}") }).to_string(),
+    };
+    if !res.status().is_success() {
+        return json!({ "error": format!("http {}", res.status().as_u16()) }).to_string();
+    }
+    let v: Value = match res.json().await {
+        Ok(v) => v,
+        Err(e) => return json!({ "error": format!("geosearch decode: {e}") }).to_string(),
+    };
+    let places: Vec<Value> = v
+        .get("query")
+        .and_then(|q| q.get("geosearch"))
+        .and_then(|g| g.as_array())
+        .map(|arr| {
+            arr.iter()
+                .map(|p| {
+                    json!({
+                        "title": p.get("title").cloned().unwrap_or(Value::Null),
+                        "distance_m": p.get("dist").cloned().unwrap_or(Value::Null),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    json!({ "radius_m": radius, "lang": lang, "places": places }).to_string()
 }
 
 /// "On this day" — historical events for a given month/day from the

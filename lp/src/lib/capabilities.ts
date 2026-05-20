@@ -34,6 +34,9 @@ export const CAPABILITY_IDS = [
   "marine",
   "worldtime",
   "aurora",
+  "nearby",
+  "flights",
+  "iss",
   "goodbye",
 ] as const;
 
@@ -69,6 +72,8 @@ export const HERO_POOL: readonly CapabilityId[] = [
   "airquality",
   "marine",
   "aurora",
+  "nearby",
+  "flights",
 ];
 
 /**
@@ -142,6 +147,9 @@ export const CAPABILITY_ICONS: Record<CapabilityId, string> = {
   artwork: "🖼️",
   worldtime: "🌍",
   aurora: "🌌",
+  nearby: "📍",
+  flights: "✈️",
+  iss: "🛰️",
 };
 
 export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
@@ -181,4 +189,7 @@ export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
   artwork: ["example1", "example2", "example3"],
   worldtime: ["example1", "example2", "example3"],
   aurora: ["example1", "example2", "example3"],
+  nearby: ["example1", "example2", "example3"],
+  flights: ["example1", "example2", "example3"],
+  iss: ["example1", "example2", "example3"],
 };

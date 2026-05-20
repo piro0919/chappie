@@ -135,6 +135,27 @@ fn capabilities_pt() -> String {
             ],
         ),
         (
+            "Pontos próximos",
+            &[
+                "Tem algo interessante por perto?, o que tem aqui perto?",
+                "Artigos da Wikipédia perto de você, com distância (raio ajustável)",
+            ],
+        ),
+        (
+            "Aviões sobre você",
+            &[
+                "Que avião está passando?, tem avião lá em cima?",
+                "Aeronaves acima de você com prefixo, país de origem e altitude (OpenSky)",
+            ],
+        ),
+        (
+            "ISS (estação espacial)",
+            &[
+                "Onde está a estação espacial agora?, cadê a ISS?",
+                "Posição atual da ISS (oceano/região aproximada), altitude e velocidade",
+            ],
+        ),
+        (
             "Feriados",
             &[
                 "Quando é o próximo feriado?, tem feriado mês que vem?",
@@ -304,6 +325,27 @@ fn capabilities_ko() -> String {
             ],
         ),
         (
+            "근처 명소",
+            &[
+                "근처에 뭐 있어?, 이 근처 명소 알려줘",
+                "현재지 근처 위키백과 항목을 거리와 함께 (반경 지정 가능)",
+            ],
+        ),
+        (
+            "머리 위 비행기",
+            &[
+                "지금 위에 지나가는 비행기 뭐야?, 상공에 비행기 있어?",
+                "현재지 상공의 항공기를 편명·출발국·고도와 함께 (OpenSky)",
+            ],
+        ),
+        (
+            "ISS (우주정거장)",
+            &[
+                "우주정거장 지금 어디?, ISS 어디 있어?",
+                "ISS의 현재 위치(대략적 해역·지역)·고도·속도",
+            ],
+        ),
+        (
             "공휴일",
             &[
                 "다음 공휴일 언제?, 다음 달 공휴일 있어?",
@@ -467,6 +509,27 @@ fn capabilities_it() -> String {
             &[
                 "Stanotte si vede l'aurora?, c'è una tempesta geomagnetica?",
                 "Visibilità dall'indice Kp della NOAA e dalla tua latitudine (rara alle medie latitudini)",
+            ],
+        ),
+        (
+            "Luoghi vicini",
+            &[
+                "C'è qualcosa di interessante qui vicino?, cosa c'è qui intorno?",
+                "Articoli di Wikipedia vicino a te, con la distanza (raggio regolabile)",
+            ],
+        ),
+        (
+            "Aerei sopra di te",
+            &[
+                "Che aereo sta passando?, ci sono aerei sopra?",
+                "Aerei sopra di te con sigla, paese di origine e quota (OpenSky)",
+            ],
+        ),
+        (
+            "ISS (stazione spaziale)",
+            &[
+                "Dov'è la stazione spaziale adesso?, dov'è la ISS?",
+                "Posizione attuale della ISS (oceano/regione approssimativa), quota e velocità",
             ],
         ),
         (
@@ -642,6 +705,27 @@ fn capabilities_es() -> String {
             ],
         ),
         (
+            "Lugares cercanos",
+            &[
+                "¿Hay algo interesante cerca?, ¿qué hay por aquí?",
+                "Artículos de Wikipedia cerca de ti, con distancia (radio ajustable)",
+            ],
+        ),
+        (
+            "Aviones sobre ti",
+            &[
+                "¿Qué avión pasa por encima?, ¿hay aviones arriba?",
+                "Aviones sobre ti con indicativo, país de origen y altitud (OpenSky)",
+            ],
+        ),
+        (
+            "ISS (estación espacial)",
+            &[
+                "¿Dónde está la estación espacial ahora?, ¿dónde está la ISS?",
+                "Posición actual de la ISS (océano/región aproximada), altitud y velocidad",
+            ],
+        ),
+        (
             "Festivos",
             &[
                 "¿Cuándo es el próximo festivo?, ¿hay festivos el mes que viene?",
@@ -811,6 +895,27 @@ fn capabilities_fr() -> String {
             &[
                 "Peut-on voir une aurore ce soir ?, une tempête géomagnétique ?",
                 "Visibilité d'après l'indice Kp de la NOAA et ta latitude (rare aux latitudes moyennes)",
+            ],
+        ),
+        (
+            "Lieux à proximité",
+            &[
+                "Y a-t-il quelque chose d'intéressant à côté ?, qu'y a-t-il dans le coin ?",
+                "Articles Wikipédia près de toi, avec la distance (rayon réglable)",
+            ],
+        ),
+        (
+            "Avions au-dessus",
+            &[
+                "Quel avion passe au-dessus ?, des avions là-haut ?",
+                "Avions au-dessus de toi avec indicatif, pays d'origine et altitude (OpenSky)",
+            ],
+        ),
+        (
+            "ISS (station spatiale)",
+            &[
+                "Où est la station spatiale maintenant ?, où est l'ISS ?",
+                "Position actuelle de l'ISS (océan/région approximative), altitude et vitesse",
             ],
         ),
         (
@@ -986,6 +1091,27 @@ fn capabilities_de() -> String {
             ],
         ),
         (
+            "Sehenswertes in der Nähe",
+            &[
+                "Gibt's was Interessantes in der Nähe?, was ist hier in der Gegend?",
+                "Wikipedia-Artikel in deiner Nähe, mit Entfernung (Radius einstellbar)",
+            ],
+        ),
+        (
+            "Flugzeuge über dir",
+            &[
+                "Welches Flugzeug fliegt über mich?, sind Flugzeuge über mir?",
+                "Flugzeuge über dir mit Rufzeichen, Herkunftsland und Höhe (OpenSky)",
+            ],
+        ),
+        (
+            "ISS (Raumstation)",
+            &[
+                "Wo ist die Raumstation gerade?, wo ist die ISS?",
+                "Aktuelle ISS-Position (grobes Meer/Region), Höhe und Geschwindigkeit",
+            ],
+        ),
+        (
             "Feiertage",
             &[
                 "Wann ist der nächste Feiertag?, gibt's nächsten Monat Feiertage?",
@@ -1155,6 +1281,27 @@ fn capabilities_zh() -> String {
             &[
                 "今晚能看到极光吗?, 有地磁暴吗?",
                 "根据 NOAA 的 Kp 指数和你的纬度判断可见性(中纬度几乎看不到)",
+            ],
+        ),
+        (
+            "附近的地标",
+            &[
+                "附近有什么?, 这一带有什么看点?",
+                "你附近的维基百科条目,带距离(半径可调)",
+            ],
+        ),
+        (
+            "头顶的飞机",
+            &[
+                "头顶上飞的是什么飞机?, 上空有飞机吗?",
+                "你上空的飞机,带航班号、出发国和高度(OpenSky)",
+            ],
+        ),
+        (
+            "ISS(空间站)",
+            &[
+                "空间站现在在哪?, ISS 在哪?",
+                "ISS 当前位置(大致海域/地区)、高度和速度",
             ],
         ),
         (
@@ -1358,6 +1505,27 @@ fn capabilities_ja() -> String {
             &[
                 "今夜オーロラ見える？／磁気嵐きてる？",
                 "NOAA の Kp 指数と緯度から可視性を判断（中緯度はまず不可）",
+            ],
+        ),
+        (
+            "近くの名所",
+            &[
+                "近くに何かある？／この辺の名所教えて",
+                "現在地から近い Wikipedia 記事を距離つきで（半径指定可）",
+            ],
+        ),
+        (
+            "頭上の飛行機",
+            &[
+                "今頭の上飛んでる飛行機なに？／上空に飛行機いる？",
+                "現在地上空の航空機を便名・出発国・高度つきで（OpenSky）",
+            ],
+        ),
+        (
+            "ISS（宇宙ステーション）",
+            &[
+                "宇宙ステーション今どこ？／ISS どこ飛んでる？",
+                "ISS の現在地（おおまかな海域・地域）・高度・速度",
             ],
         ),
         (
@@ -1577,6 +1745,27 @@ fn capabilities_en() -> String {
             &[
                 "Can I see aurora tonight?, any geomagnetic storm?",
                 "Visibility from NOAA's Kp index and your latitude (rarely at mid-latitudes)",
+            ],
+        ),
+        (
+            "Nearby landmarks",
+            &[
+                "Anything interesting nearby?, what's around here?",
+                "Wikipedia articles near you, with distance (radius adjustable)",
+            ],
+        ),
+        (
+            "Planes overhead",
+            &[
+                "What plane is flying over me?, any planes overhead?",
+                "Aircraft above you with callsign, origin country and altitude (OpenSky)",
+            ],
+        ),
+        (
+            "ISS (space station)",
+            &[
+                "Where's the space station now?, where's the ISS?",
+                "The ISS's current position (rough ocean/region), altitude and speed",
             ],
         ),
         (

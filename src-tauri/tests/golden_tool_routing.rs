@@ -130,6 +130,11 @@ const CASES: &[Case] = &[
     Case { label: "artwork", utterance: "名画を壁紙にして", expected_first: "set_artwork_wallpaper" },
     Case { label: "worldtime", utterance: "ロンドンって今何時?", expected_first: "get_world_time" },
     Case { label: "mcp/aurora", utterance: "今夜オーロラ見える?", expected_first: "mcp_aurora_forecast" },
+    // 近く → nearby (NOT web_search). 頭上の飛行機 → flights. 宇宙ステーション
+    // → iss. All location-aware novelties that shouldn't fall back to search.
+    Case { label: "mcp/nearby", utterance: "近くに何かある?", expected_first: "mcp_wiki_nearby" },
+    Case { label: "mcp/flights", utterance: "今頭の上飛んでる飛行機なに?", expected_first: "mcp_flights_overhead" },
+    Case { label: "mcp/iss", utterance: "宇宙ステーション今どこ?", expected_first: "mcp_iss_location" },
     // Relative-volume / relative-date utterances kick off a multi-round
     // sequence in production (get_volume → set_volume; get_current_time
     // → add_reminder_at). We only assert the FIRST tool here because

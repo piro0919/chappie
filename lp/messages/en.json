@@ -277,6 +277,27 @@
         "example2": "\"Any geomagnetic storm?\"",
         "example3": "\"What's the aurora forecast?\"",
         "body": "From NOAA's space-weather data, an honest read on whether the aurora might be visible — based on geomagnetic activity (the Kp index) and your latitude."
+      },
+      "nearby": {
+        "title": "What's interesting nearby",
+        "example1": "\"Anything interesting nearby?\"",
+        "example2": "\"What's around here?\"",
+        "example3": "\"Any landmarks close by?\"",
+        "body": "Landmarks and places near you, with distance — by voice. Great in an unfamiliar town or on a walk when you wonder what's around."
+      },
+      "flights": {
+        "title": "What's that plane overhead?",
+        "example1": "\"What plane is flying over me?\"",
+        "example2": "\"Any planes overhead?\"",
+        "example3": "\"What's flying nearby?\"",
+        "body": "The aircraft flying above you right now — callsign, origin country, and altitude. Answers the little \"what is that?\" when you look up."
+      },
+      "iss": {
+        "title": "Where's the space station?",
+        "example1": "\"Where's the space station now?\"",
+        "example2": "\"Where's the ISS?\"",
+        "example3": "\"How high is the ISS?\"",
+        "body": "Where the International Space Station is right now, with its altitude and speed — a bit of space before you glance up at the sky."
       }
     }
   },
