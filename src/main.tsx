@@ -3,7 +3,6 @@ import ReactDOM from "react-dom/client";
 import { installLogBridge } from "./lib/log-bridge";
 import { ConversationWorker } from "./views/ConversationWorker";
 import { HudView } from "./views/HudView";
-import { MiniplayerView } from "./views/MiniplayerView";
 import { SettingsView } from "./views/SettingsView";
 
 const view = new URLSearchParams(window.location.search).get("view");
@@ -12,9 +11,7 @@ const Root =
     ? SettingsView
     : view === "hud"
       ? HudView
-      : view === "miniplayer"
-        ? MiniplayerView
-        : ConversationWorker;
+      : ConversationWorker;
 
 // Mirror Rust-side `log` events into this window's console so devtools
 // becomes the single source of truth for both Rust and JS logs.

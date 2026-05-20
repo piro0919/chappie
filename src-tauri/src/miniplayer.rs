@@ -25,30 +25,42 @@ const DEFAULT_W: f64 = 480.0;
 const DEFAULT_H: f64 = 300.0;
 const MARGIN_PX: f64 = 24.0;
 
-fn build_app_url(query: &str) -> String {
-    // Renderer route (handled in main.tsx). The query goes through as a
-    // URL param so the view can pick it up via window.location.search.
-    let q = urlencoding::encode(query);
-    format!("index.html?view=miniplayer&q={q}")
+fn build_player_url(video_id: &str) -> String {
+    // The miniplayer loads our own /player page served from an https
+    // origin (chappie.kkweb.io), which iframes the YouTube embed. We can't
+    // embed YouTube from our tauri://localhost app document — the player
+    // rejects it with "error 153" because there's no valid http(s) Referer.
+    // The https host page sends `Referer: https://chappie.kkweb.io/...`,
+    // which YouTube accepts. See lp/src/app/player/route.ts.
+    //
+    // Origin is derived from the chat-proxy URL so local dev
+    // (http://localhost:3000) and prod both work without a separate env
+    // var — `pnpm dev:local` sets CHAPPIE_PROXY_URL to the local LP.
+    let proxy = std::env::var("CHAPPIE_PROXY_URL")
+        .unwrap_or_else(|_| "https://chappie.kkweb.io/api/chat".to_string());
+    let origin = url::Url::parse(&proxy)
+        .map(|u| u.origin().ascii_serialization())
+        .unwrap_or_else(|_| "https://chappie.kkweb.io".to_string());
+    format!("{origin}/player?v={}", urlencoding::encode(video_id))
 }
 
-fn ensure_window(app: &AppHandle, query: &str) -> Option<WebviewWindow> {
-    let path = build_app_url(query);
+fn ensure_window(app: &AppHandle, video_id: &str) -> Option<WebviewWindow> {
+    let player_url = build_player_url(video_id);
     if let Some(win) = app.get_webview_window(MINIPLAYER_LABEL) {
-        // Reuse the existing window — just re-navigate so the new query
+        // Reuse the existing window — just re-navigate so the new video
         // takes effect. Hiding/destroying would lose the user's window
         // position if they'd dragged it.
-        let target = format!("/{path}"); // App URL is relative to the app:// root
         let _ = win.eval(format!(
             "window.location.replace({})",
-            serde_json::to_string(&target).unwrap_or_else(|_| "\"\"".into())
+            serde_json::to_string(&player_url).unwrap_or_else(|_| "\"\"".into())
         ));
         return Some(win);
     }
+    let url = url::Url::parse(&player_url).ok()?;
     let win = WebviewWindowBuilder::new(
         app,
         MINIPLAYER_LABEL,
-        WebviewUrl::App(path.into()),
+        WebviewUrl::External(url),
     )
     .title("Chappie Mini Player")
     .inner_size(DEFAULT_W, DEFAULT_H)
