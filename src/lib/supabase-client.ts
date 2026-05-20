@@ -63,7 +63,51 @@ export async function restoreSession(): Promise<Session | null> {
     });
     return null;
   }
+  // `setSession` silently rotates the tokens when the stored access
+  // token has already expired. Persist whatever came back so the chat
+  // path (which reads `subscriptionAccessToken` straight from
+  // settings.json) doesn't keep sending the dead token — that's what
+  // makes the proxy treat a Paid user as Free and burn the daily quota.
+  if (
+    data.session &&
+    data.session.access_token !== settings.subscriptionAccessToken
+  ) {
+    await saveSettings({
+      subscriptionAccessToken: data.session.access_token,
+      subscriptionRefreshToken: data.session.refresh_token,
+    });
+  }
   return data.session;
+}
+
+/**
+ * Proactively rotates the Supabase access token from the persisted
+ * refresh token and writes the new pair back to settings. We run this on
+ * a timer because the supabase-js client is configured with
+ * `autoRefreshToken: false` (the Tauri webview has no durable storage we
+ * trust), so without an explicit refresh a long-running tray session
+ * keeps sending a token that expires after ~1h — at which point the proxy
+ * downgrades a Paid user to the Free quota. Returns true when the token
+ * was rotated so callers can broadcast `settings:updated`.
+ */
+export async function refreshSessionTokens(): Promise<boolean> {
+  const settings = await loadSettings();
+  if (!settings.subscriptionRefreshToken) return false;
+  const client = await getClient();
+  const { data, error } = await client.auth.refreshSession({
+    refresh_token: settings.subscriptionRefreshToken,
+  });
+  if (error || !data.session) {
+    // Don't sign the user out here — a transient network blip shouldn't
+    // nuke the session. A genuinely dead refresh token surfaces on the
+    // next /api/me 401 in `refreshStatus`, which does sign out.
+    return false;
+  }
+  await saveSettings({
+    subscriptionAccessToken: data.session.access_token,
+    subscriptionRefreshToken: data.session.refresh_token,
+  });
+  return true;
 }
 
 export async function sendMagicLink(email: string): Promise<void> {

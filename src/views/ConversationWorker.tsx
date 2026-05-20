@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import {
   disable as disableAutostart,
   enable as enableAutostart,
@@ -12,7 +12,16 @@ import {
   loadSettings,
   saveSettings,
 } from "../lib/settings";
-import { installDeepLinkHandler, restoreSession } from "../lib/supabase-client";
+import {
+  installDeepLinkHandler,
+  refreshSessionTokens,
+  restoreSession,
+} from "../lib/supabase-client";
+
+// Supabase access tokens expire after ~1h. We rotate well before that so
+// a long-running tray session never sends a stale token to the proxy
+// (which would silently downgrade a Paid user to the Free quota).
+const TOKEN_REFRESH_INTERVAL_MS = 50 * 60 * 1000;
 
 /** Headless worker for the hidden main window. Mounts the conversation loop
  *  (mic capture init, wake-word handling, OpenAI streaming, TTS) and renders
@@ -95,12 +104,23 @@ export function ConversationWorker(): null {
     void (async () => {
       // Restore any persisted Supabase session into the in-memory
       // supabase-js client so /api/me + /api/billing/* calls work
-      // after a relaunch.
+      // after a relaunch. `restoreSession` also persists a rotated token
+      // when the stored one had already expired.
       void restoreSession().catch(() => {});
       unlisten = await installDeepLinkHandler();
     })();
+    // Keep the persisted access token fresh for the whole tray session.
+    const timer = setInterval(() => {
+      void (async () => {
+        const rotated = await refreshSessionTokens().catch(() => false);
+        // Broadcast so the conversation loop reloads the new token into
+        // `subscriptionTokenRef` (it re-reads settings on this event).
+        if (rotated) await emit("settings:updated", {}).catch(() => {});
+      })();
+    }, TOKEN_REFRESH_INTERVAL_MS);
     return () => {
       unlisten?.();
+      clearInterval(timer);
     };
   }, []);
 
