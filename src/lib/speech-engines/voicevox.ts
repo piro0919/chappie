@@ -45,16 +45,21 @@ async function showVoicevoxError(detail: string): Promise<void> {
 }
 
 function bytesToBlobUrl(bytes: number[] | Uint8Array | ArrayBuffer): string {
-  let buf: ArrayBuffer | Uint8Array;
+  let view: Uint8Array;
   if (bytes instanceof ArrayBuffer) {
-    buf = bytes;
+    view = new Uint8Array(bytes);
   } else if (bytes instanceof Uint8Array) {
-    buf = bytes;
+    view = bytes;
   } else if (Array.isArray(bytes)) {
-    buf = new Uint8Array(bytes);
+    view = new Uint8Array(bytes);
   } else {
     throw new Error("unexpected bytes shape");
   }
+  // Copy into a concrete ArrayBuffer: lib.dom now types Uint8Array over the
+  // generic ArrayBufferLike (which may be SharedArrayBuffer), and Blob's
+  // BlobPart only accepts an ArrayBuffer-backed view.
+  const buf = new ArrayBuffer(view.byteLength);
+  new Uint8Array(buf).set(view);
   return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
 }
 
