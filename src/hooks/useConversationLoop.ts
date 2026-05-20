@@ -416,8 +416,17 @@ export function useConversationLoop(): { state: State; error: string | null } {
       }
       // Distinct messaging for proxy quota exhaustion (Free mode): the
       // dispatch loop bubbles the upstream 429 body up as "proxy 429: …".
+      //
+      // Gate this on Free mode. The proxy only emits the device daily-quota
+      // 429 on the unpaid path; for a Paid user `paid=true` skips quota
+      // entirely, so any "quota"/"429" text reaching a paid/byok session is
+      // an *upstream* transient (e.g. Gemini rate limit surfaced as a 502
+      // whose detail contains "quota") — showing "free quota exhausted"
+      // there is just wrong and alarming. Treat it as a generic error.
       const raw = String(e);
-      const isQuota = /\b429\b/.test(raw) || /quota/i.test(raw);
+      const isQuota =
+        modeRef.current === "free" &&
+        (/\b429\b/.test(raw) || /quota/i.test(raw));
       const errMsg = isQuota
         ? tRaw(langRef.current, "conversation.quotaExceededShort")
         : tRaw(langRef.current, "conversation.fallbackError");
