@@ -19,7 +19,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
     "jose": "^6.2.3",
-    "lucide-react": "^0.577.0",
+    "lucide-react": "^1.16.0",
     "next": "^16.2.4",
     "next-intl": "^4.11.0",
     "react": "^19.2.5",
