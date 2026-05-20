@@ -171,13 +171,26 @@ pub async fn lookup_by_coords(
     Ok(format_forecast(place_label, &fc))
 }
 
-pub async fn lookup(location: &str) -> Result<String, String> {
-    if location.trim().is_empty() {
-        return Err("location is empty".into());
+/// Open-Meteo's geocoder doesn't match Japanese place names that carry an
+/// administrative suffix (`板橋区` finds nothing, `板橋` finds it). Strip a
+/// single trailing 区/市/町/村 (or 特別区) so we can retry. Returns `None` when
+/// there's nothing to strip — caller should not bother retrying then.
+fn strip_jp_admin_suffix(name: &str) -> Option<String> {
+    let trimmed = name.trim();
+    for suffix in ["特別区", "区", "市", "町", "村"] {
+        if let Some(base) = trimmed.strip_suffix(suffix) {
+            if !base.is_empty() {
+                return Some(base.to_string());
+            }
+        }
     }
+    None
+}
+
+async fn geocode_one(name: &str) -> Result<Option<GeoHit>, String> {
     let geo_url = format!(
         "https://geocoding-api.open-meteo.com/v1/search?name={}&count=1&language=ja&format=json",
-        urlencoding::encode(location)
+        urlencoding::encode(name)
     );
     let geo: GeoResp = HTTP
         .get(&geo_url)
@@ -187,10 +200,21 @@ pub async fn lookup(location: &str) -> Result<String, String> {
         .json()
         .await
         .map_err(|e| format!("geocoding decode: {e}"))?;
-    let hit = geo
-        .results
-        .and_then(|v| v.into_iter().next())
-        .ok_or_else(|| format!("no location matched \"{location}\""))?;
+    Ok(geo.results.and_then(|v| v.into_iter().next()))
+}
+
+pub async fn lookup(location: &str) -> Result<String, String> {
+    if location.trim().is_empty() {
+        return Err("location is empty".into());
+    }
+    let mut hit = geocode_one(location).await?;
+    // Fallback: retry once with the admin suffix stripped (板橋区 → 板橋).
+    if hit.is_none() {
+        if let Some(base) = strip_jp_admin_suffix(location) {
+            hit = geocode_one(&base).await?;
+        }
+    }
+    let hit = hit.ok_or_else(|| format!("no location matched \"{location}\""))?;
     let place = match &hit.country {
         Some(c) => format!("{} ({})", hit.name, c),
         None => hit.name.clone(),
@@ -202,4 +226,77 @@ pub async fn lookup(location: &str) -> Result<String, String> {
         hit.timezone.as_deref(),
     )
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn strips_single_admin_suffix() {
+        assert_eq!(strip_jp_admin_suffix("板橋区").as_deref(), Some("板橋"));
+        assert_eq!(strip_jp_admin_suffix("横浜市").as_deref(), Some("横浜"));
+        assert_eq!(strip_jp_admin_suffix("軽井沢町").as_deref(), Some("軽井沢"));
+        assert_eq!(strip_jp_admin_suffix("白川村").as_deref(), Some("白川"));
+    }
+
+    #[test]
+    fn prefers_tokubetsu_ku_over_bare_ku() {
+        // "特別区" is checked first, so the full token is removed in one pass
+        // rather than leaving a stray "特別".
+        assert_eq!(strip_jp_admin_suffix("名古屋特別区").as_deref(), Some("名古屋"));
+    }
+
+    #[test]
+    fn leaves_names_without_suffix_untouched() {
+        assert_eq!(strip_jp_admin_suffix("渋谷"), None);
+        assert_eq!(strip_jp_admin_suffix("Tokyo"), None);
+    }
+
+    #[test]
+    fn never_strips_to_empty() {
+        assert_eq!(strip_jp_admin_suffix("区"), None);
+        assert_eq!(strip_jp_admin_suffix("市"), None);
+    }
+
+    #[test]
+    fn formats_current_and_two_day_forecast() {
+        let fc = ForecastResp {
+            current: Some(Current {
+                temperature_2m: Some(17.34),
+                weather_code: Some(3),
+                wind_speed_10m: Some(2.5),
+            }),
+            daily: Some(Daily {
+                temperature_2m_max: vec![18.0, 20.0],
+                temperature_2m_min: vec![9.0, 11.0],
+                weather_code: vec![3, 61],
+                precipitation_probability_max: Some(vec![10, 80]),
+            }),
+        };
+        let out = format_forecast("板橋 (日本)", &fc);
+        assert_eq!(
+            out,
+            "[板橋 (日本)]\n\
+             現在: 曇り, 17.3℃, 風速 2.5m/s\n\
+             今日: 曇り, 最高 18.0℃ / 最低 9.0℃, 降水確率 10%\n\
+             明日: 弱い雨, 最高 20.0℃ / 最低 11.0℃, 降水確率 80%"
+        );
+    }
+
+    #[test]
+    fn formats_with_missing_optional_fields() {
+        // No current block, single forecast day, and no precipitation array.
+        let fc = ForecastResp {
+            current: None,
+            daily: Some(Daily {
+                temperature_2m_max: vec![15.0],
+                temperature_2m_min: vec![5.0],
+                weather_code: vec![0],
+                precipitation_probability_max: None,
+            }),
+        };
+        let out = format_forecast("渋谷", &fc);
+        assert_eq!(out, "[渋谷]\n今日: 快晴, 最高 15.0℃ / 最低 5.0℃");
+    }
 }
