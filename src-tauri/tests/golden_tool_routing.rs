@@ -124,6 +124,12 @@ const CASES: &[Case] = &[
     Case { label: "mcp/holidays", utterance: "次の祝日いつ?", expected_first: "mcp_holidays_next" },
     Case { label: "mcp/marine", utterance: "今日の波どう?", expected_first: "mcp_marine_current" },
     Case { label: "potd", utterance: "今日の一枚を壁紙にして", expected_first: "set_wallpaper_potd" },
+    // 名画 → the Art Institute tool, NOT set_wallpaper (Pixabay photos)
+    // / set_wallpaper_potd (today's featured shot). 世界時計 → world time,
+    // NOT get_current_time (local only). オーロラ → aurora forecast.
+    Case { label: "artwork", utterance: "名画を壁紙にして", expected_first: "set_artwork_wallpaper" },
+    Case { label: "worldtime", utterance: "ロンドンって今何時?", expected_first: "get_world_time" },
+    Case { label: "mcp/aurora", utterance: "今夜オーロラ見える?", expected_first: "mcp_aurora_forecast" },
     // Relative-volume / relative-date utterances kick off a multi-round
     // sequence in production (get_volume → set_volume; get_current_time
     // → add_reminder_at). We only assert the FIRST tool here because

@@ -117,6 +117,21 @@ fn capabilities_pt() -> String {
                 "Muda o papel de parede para floresta, estética, céu noturno",
                 "Cada monitor recebe uma foto diferente (via Pixabay)",
                 "Põe a imagem do dia da Wikipédia como papel de parede",
+                "Põe uma obra de arte como papel de parede (Art Institute of Chicago)",
+            ],
+        ),
+        (
+            "Relógio mundial",
+            &[
+                "Que horas são em Londres?, que horas são em Nova York?",
+                "Hora atual de qualquer cidade ou país (a local é só \"que horas são?\")",
+            ],
+        ),
+        (
+            "Aurora / clima espacial",
+            &[
+                "Dá pra ver aurora hoje?, tem tempestade geomagnética?",
+                "Visibilidade pelo índice Kp da NOAA e sua latitude (raro em latitudes médias)",
             ],
         ),
         (
@@ -271,6 +286,21 @@ fn capabilities_ko() -> String {
                 "배경화면을 숲으로, 밤하늘로, 감성적인 배경화면으로",
                 "모니터마다 다른 사진 (Pixabay 사용)",
                 "오늘의 위키백과 사진을 배경화면으로",
+                "명화를 배경화면으로 (시카고 미술관 소장품)",
+            ],
+        ),
+        (
+            "세계 시계",
+            &[
+                "런던 지금 몇 시?, 뉴욕은 몇 시?",
+                "도시·국가의 현재 시각 (현재지는 '지금 몇 시?')",
+            ],
+        ),
+        (
+            "오로라 · 우주날씨",
+            &[
+                "오늘 밤 오로라 볼 수 있어?, 자기폭풍 왔어?",
+                "NOAA Kp 지수와 위도로 가시성 판단 (중위도에선 거의 불가)",
             ],
         ),
         (
@@ -422,6 +452,21 @@ fn capabilities_it() -> String {
                 "Cambia lo sfondo in foresta, mettilo estetico, cielo stellato",
                 "Ogni monitor riceve una foto diversa (tramite Pixabay)",
                 "Metti la foto del giorno di Wikipedia come sfondo",
+                "Metti un'opera d'arte come sfondo (Art Institute of Chicago)",
+            ],
+        ),
+        (
+            "Orologio mondiale",
+            &[
+                "Che ore sono a Londra?, che ore sono a New York?",
+                "Ora attuale di qualsiasi città o paese (l'ora locale è solo \"che ore sono?\")",
+            ],
+        ),
+        (
+            "Aurora / meteo spaziale",
+            &[
+                "Stanotte si vede l'aurora?, c'è una tempesta geomagnetica?",
+                "Visibilità dall'indice Kp della NOAA e dalla tua latitudine (rara alle medie latitudini)",
             ],
         ),
         (
@@ -579,6 +624,21 @@ fn capabilities_es() -> String {
                 "Cambia el fondo de pantalla a un bosque, ponlo estético, cielo nocturno",
                 "Cada monitor recibe una foto distinta (vía Pixabay)",
                 "Pon la imagen del día de Wikipedia como fondo",
+                "Pon una obra de arte como fondo (Art Institute of Chicago)",
+            ],
+        ),
+        (
+            "Reloj mundial",
+            &[
+                "¿Qué hora es en Londres?, ¿qué hora es en Nueva York?",
+                "Hora actual de cualquier ciudad o país (la local es solo \"¿qué hora es?\")",
+            ],
+        ),
+        (
+            "Aurora / clima espacial",
+            &[
+                "¿Se puede ver la aurora esta noche?, ¿hay tormenta geomagnética?",
+                "Visibilidad según el índice Kp de la NOAA y tu latitud (rara en latitudes medias)",
             ],
         ),
         (
@@ -736,6 +796,21 @@ fn capabilities_fr() -> String {
                 "Change le fond d'écran en forêt, mets-le esthétique, ciel nocturne",
                 "Chaque écran reçoit une photo différente (via Pixabay)",
                 "Mets la photo du jour de Wikipédia en fond d'écran",
+                "Mets une œuvre d'art en fond d'écran (Art Institute of Chicago)",
+            ],
+        ),
+        (
+            "Horloge mondiale",
+            &[
+                "Quelle heure est-il à Londres ?, quelle heure à New York ?",
+                "Heure actuelle de n'importe quelle ville ou pays (l'heure locale, c'est juste « quelle heure est-il ? »)",
+            ],
+        ),
+        (
+            "Aurore / météo spatiale",
+            &[
+                "Peut-on voir une aurore ce soir ?, une tempête géomagnétique ?",
+                "Visibilité d'après l'indice Kp de la NOAA et ta latitude (rare aux latitudes moyennes)",
             ],
         ),
         (
@@ -893,6 +968,21 @@ fn capabilities_de() -> String {
                 "Mach das Hintergrundbild zum Wald, ästhetisch, Nachthimmel",
                 "Jeder Monitor bekommt ein eigenes Foto (über Pixabay)",
                 "Mach das Wikipedia-Bild des Tages zum Hintergrund",
+                "Mach ein Kunstwerk zum Hintergrund (Art Institute of Chicago)",
+            ],
+        ),
+        (
+            "Weltuhr",
+            &[
+                "Wie spät ist es in London?, wie spät in New York?",
+                "Aktuelle Uhrzeit in jeder Stadt oder jedem Land (lokal ist einfach \"wie spät ist es?\")",
+            ],
+        ),
+        (
+            "Polarlicht / Weltraumwetter",
+            &[
+                "Kann ich heute Nacht Polarlichter sehen?, gibt's einen geomagnetischen Sturm?",
+                "Sichtbarkeit aus NOAAs Kp-Index und deiner Breite (selten in mittleren Breiten)",
             ],
         ),
         (
@@ -1050,6 +1140,21 @@ fn capabilities_zh() -> String {
                 "把壁纸换成森林、夜空, 来个有质感的壁纸",
                 "多显示器每块屏配不同照片(来自 Pixabay)",
                 "把维基百科每日图片设为壁纸",
+                "把名画设为壁纸(芝加哥艺术博物馆藏品)",
+            ],
+        ),
+        (
+            "世界时钟",
+            &[
+                "伦敦现在几点?, 纽约几点?",
+                "任意城市或国家的当前时间(本地时间直接问'现在几点?')",
+            ],
+        ),
+        (
+            "极光 · 空间天气",
+            &[
+                "今晚能看到极光吗?, 有地磁暴吗?",
+                "根据 NOAA 的 Kp 指数和你的纬度判断可见性(中纬度几乎看不到)",
             ],
         ),
         (
@@ -1238,6 +1343,21 @@ fn capabilities_ja() -> String {
                 "壁紙を森に変えて、夜空の壁紙にして、おしゃれな壁紙にして",
                 "複数モニターには違う写真を 1 枚ずつ（Pixabay の写真を使用）",
                 "今日の一枚を壁紙に（ウィキペディアの今日の写真）",
+                "名画を壁紙に（シカゴ美術館の所蔵作品）",
+            ],
+        ),
+        (
+            "世界時計",
+            &[
+                "ロンドン今何時？／ニューヨークの時間は？",
+                "都市・国を言うとその土地の現在時刻（現在地は『今何時？』）",
+            ],
+        ),
+        (
+            "オーロラ・宇宙天気",
+            &[
+                "今夜オーロラ見える？／磁気嵐きてる？",
+                "NOAA の Kp 指数と緯度から可視性を判断（中緯度はまず不可）",
             ],
         ),
         (
@@ -1442,6 +1562,21 @@ fn capabilities_en() -> String {
                 "Change my wallpaper to a forest, set an aesthetic wallpaper, make it night sky",
                 "Each monitor gets its own photo (uses Pixabay)",
                 "Set today's Wikipedia picture of the day as wallpaper",
+                "Set a famous painting as wallpaper (Art Institute of Chicago)",
+            ],
+        ),
+        (
+            "World clock",
+            &[
+                "What time is it in London?, time in New York?",
+                "Current time in any city or country (local time is just \"what time is it?\")",
+            ],
+        ),
+        (
+            "Aurora / space weather",
+            &[
+                "Can I see aurora tonight?, any geomagnetic storm?",
+                "Visibility from NOAA's Kp index and your latitude (rarely at mid-latitudes)",
             ],
         ),
         (

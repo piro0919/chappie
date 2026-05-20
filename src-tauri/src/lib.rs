@@ -1,3 +1,8 @@
+// The native tool definitions in tools.rs are one large `json!([...])`
+// literal; each added tool deepens the macro expansion, so lift the
+// recursion limit above the default 128.
+#![recursion_limit = "512"]
+
 mod analytics;
 mod apm;
 mod audio;
@@ -48,6 +53,7 @@ mod voicevox;
 mod volume;
 mod wallpaper;
 mod weather;
+mod worldtime;
 
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;

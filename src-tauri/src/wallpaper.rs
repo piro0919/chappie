@@ -128,6 +128,140 @@ pub async fn set_wallpaper_potd(app: &AppHandle) -> Result<PotdResult, String> {
     })
 }
 
+#[derive(Debug, Serialize)]
+pub struct ArtworkResult {
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub monitors: usize,
+}
+
+/// Set every monitor's wallpaper to a public-domain artwork from the Art
+/// Institute of Chicago. No key. `query` filters by artist/keyword (e.g.
+/// "ゴッホ", "landscape"); empty picks from a day-rotated set of themes so
+/// "名画を壁紙に" still returns something fresh. Images come from the
+/// museum's IIIF endpoint (www.artic.edu), re-verified before download.
+pub async fn set_artwork_wallpaper(
+    app: &AppHandle,
+    query: &str,
+) -> Result<ArtworkResult, String> {
+    let monitor_count = count_monitors(app)?;
+    let art = fetch_artwork(query).await?;
+
+    let _ = sweep_stale_cache();
+
+    let dir = cache_dir()?;
+    let client = crate::http::build_client(Some(30), Some("chappie-wallpaper/1.0"));
+    let dest = dir.join(format!("artic-{}.jpg", art.image_id));
+    if !(dest.exists() && std::fs::metadata(&dest).map(|m| m.len() > 0).unwrap_or(false)) {
+        download_one(&client, &art.url, &dest).await?;
+    }
+
+    apply_wallpaper(&[dest], monitor_count)?;
+
+    Ok(ArtworkResult {
+        title: art.title,
+        artist: art.artist,
+        monitors: monitor_count,
+    })
+}
+
+struct Artwork {
+    url: String,
+    image_id: String,
+    title: Option<String>,
+    artist: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ArticSearch {
+    data: Vec<ArticArt>,
+    config: ArticConfig,
+}
+
+#[derive(Deserialize)]
+struct ArticArt {
+    title: Option<String>,
+    image_id: Option<String>,
+    artist_title: Option<String>,
+    is_public_domain: Option<bool>,
+}
+
+#[derive(Deserialize)]
+struct ArticConfig {
+    iiif_url: String,
+}
+
+async fn fetch_artwork(query: &str) -> Result<Artwork, String> {
+    let q = query.trim();
+    let q = if q.is_empty() { default_art_theme() } else { q };
+    let url = format!(
+        "https://api.artic.edu/api/v1/artworks/search?q={}&fields=id,title,image_id,artist_title,is_public_domain&limit=20",
+        urlencoding_minimal(q)
+    );
+    let body: ArticSearch = crate::mcp::HTTP
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("artic search: {e}"))?
+        .json()
+        .await
+        .map_err(|e| format!("artic json: {e}"))?;
+
+    // The IIIF base must be the museum's own host — defense in depth
+    // before we download and write the file.
+    let iiif = body.config.iiif_url.trim_end_matches('/').to_string();
+    if !iiif.to_lowercase().starts_with("https://www.artic.edu/") {
+        return Err("unexpected IIIF host".into());
+    }
+
+    // Keep only public-domain works that actually have an image, then
+    // pick one pseudo-randomly so repeat calls vary.
+    let mut candidates: Vec<ArticArt> = body
+        .data
+        .into_iter()
+        .filter(|a| a.is_public_domain == Some(true) && a.image_id.is_some())
+        .collect();
+    if candidates.is_empty() {
+        return Err("no public-domain artwork found".into());
+    }
+    let idx = (std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0) as usize)
+        % candidates.len();
+    let pick = candidates.swap_remove(idx);
+    let image_id = pick.image_id.unwrap();
+
+    // 1686px wide is a good wallpaper render; `full/{w},/0/default.jpg`
+    // is the cached IIIF size pattern the museum recommends.
+    let url = format!("{iiif}/{image_id}/full/1686,/0/default.jpg");
+    Ok(Artwork {
+        url,
+        image_id,
+        title: pick.title,
+        artist: pick.artist_title,
+    })
+}
+
+/// Day-rotated default search themes so "名画を壁紙に" (no specific artist)
+/// still feels fresh on repeat use.
+fn default_art_theme() -> &'static str {
+    const THEMES: &[&str] = &[
+        "impressionism landscape",
+        "ukiyo-e",
+        "still life",
+        "post-impressionism",
+        "japanese print",
+        "starry night sky painting",
+        "seascape",
+    ];
+    let day = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() / 86_400)
+        .unwrap_or(0) as usize;
+    THEMES[day % THEMES.len()]
+}
+
 struct Potd {
     /// Candidate image URLs, tried in order (best resolution first).
     urls: Vec<String>,

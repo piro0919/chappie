@@ -256,6 +256,27 @@
         "example2": "\"Is it surfable?\"",
         "example3": "\"What are the waves like in Malibu?\"",
         "body": "Wave height, period, and direction for where you are or any coast you name — all by voice. A quick check before you head out to surf or fish."
+      },
+      "artwork": {
+        "title": "A masterpiece as wallpaper",
+        "example1": "\"Set a famous painting as my wallpaper\"",
+        "example2": "\"Make a Van Gogh my wallpaper\"",
+        "example3": "\"Use a Japanese woodblock print\"",
+        "body": "A public-domain masterpiece from the Art Institute of Chicago becomes your desktop wallpaper. Name an artist or style, or leave it up to chance for a fresh piece — with a word on what it is."
+      },
+      "worldtime": {
+        "title": "The time anywhere",
+        "example1": "\"What time is it in London?\"",
+        "example2": "\"Time in New York?\"",
+        "example3": "\"What time is it in Hawaii?\"",
+        "body": "Current time for any city or country, by voice — handy before you call family abroad or catch a livestream."
+      },
+      "aurora": {
+        "title": "Aurora & space weather",
+        "example1": "\"Can I see the aurora tonight?\"",
+        "example2": "\"Any geomagnetic storm?\"",
+        "example3": "\"What's the aurora forecast?\"",
+        "body": "From NOAA's space-weather data, an honest read on whether the aurora might be visible — based on geomagnetic activity (the Kp index) and your latitude."
       }
     }
   },

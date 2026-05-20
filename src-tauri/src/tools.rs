@@ -71,6 +71,24 @@ fn native_tools() -> Value {
         {
             "type": "function",
             "function": {
+                "name": "get_world_time",
+                "description": "指定した都市・国の現在時刻を返す。「ロンドン今何時？」「ニューヨークの時間は？」「パリは今何時？」。現在地の時刻は get_current_time、他の地域はこちら。location=都市名や国名。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "時刻を知りたい都市名・国名。例: ロンドン, New York, パリ, ハワイ。"
+                        }
+                    },
+                    "required": ["location"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "set_timer",
                 "description": "指定秒数後に発火するタイマー。「3分タイマー」「10分後に教えて」「1時間半セットして」。分・時間は秒換算（3分=180）。label は用途名（任意）。",
                 "parameters": {
@@ -255,6 +273,24 @@ fn native_tools() -> Value {
                         }
                     },
                     "required": ["query"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "set_artwork_wallpaper",
+                "description": "シカゴ美術館（Art Institute of Chicago）の名画・所蔵作品をデスクトップの壁紙にする。「名画を壁紙にして」「ゴッホの絵を壁紙に」「浮世絵の壁紙にして」。query で画家名・作風・題材を指定（空なら日替わりの名作）。Pixabay の写真は set_wallpaper、今日の一枚は set_wallpaper_potd。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "画家名・作風・題材。例: ゴッホ, モネ, 浮世絵, landscape, impressionism。空でも可。"
+                        }
+                    },
+                    "required": [],
                     "additionalProperties": false
                 }
             }
@@ -748,6 +784,20 @@ pub(crate) async fn execute_tool(
             "ok".to_string()
         }
         "get_current_time" => format_current_time(),
+        "get_world_time" => {
+            let location = args
+                .get("location")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim();
+            if location.is_empty() {
+                return json!({ "error": "location is required" }).to_string();
+            }
+            match crate::worldtime::lookup(location).await {
+                Ok(text) => text,
+                Err(e) => json!({ "error": e }).to_string(),
+            }
+        }
         "get_weather" => {
             let location = args
                 .get("location")
@@ -1021,6 +1071,23 @@ pub(crate) async fn execute_tool(
             // failure paths via the existing pipeline.
             match crate::wallpaper::set_wallpaper(app, &q).await {
                 Ok(r) => json!({ "ok": true, "monitors": r.monitors }).to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "set_artwork_wallpaper" => {
+            let q = args
+                .get("query")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            match crate::wallpaper::set_artwork_wallpaper(app, &q).await {
+                Ok(r) => json!({
+                    "ok": true,
+                    "monitors": r.monitors,
+                    "title": r.title,
+                    "artist": r.artist
+                })
+                .to_string(),
                 Err(e) => json!({ "ok": false, "error": e }).to_string(),
             }
         }

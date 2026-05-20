@@ -20,6 +20,7 @@ use serde_json::Value;
 
 mod airquality;
 mod astro;
+mod aurora;
 mod fetch;
 mod fx;
 mod holidays;
@@ -37,6 +38,7 @@ mod wiki;
 pub fn tools_openai_schema() -> Vec<Value> {
     let mut out = Vec::new();
     out.extend(airquality::tools());
+    out.extend(aurora::tools());
     out.extend(holidays::tools());
     out.extend(marine::tools());
     out.extend(news::tools());
@@ -57,6 +59,9 @@ pub fn tools_openai_schema() -> Vec<Value> {
 pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
     if let Some(rest) = name.strip_prefix("mcp_airquality_") {
         return Some(airquality::execute(rest, args).await);
+    }
+    if let Some(rest) = name.strip_prefix("mcp_aurora_") {
+        return Some(aurora::execute(rest, args).await);
     }
     if let Some(rest) = name.strip_prefix("mcp_holidays_") {
         return Some(holidays::execute(rest, args).await);

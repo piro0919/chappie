@@ -27,10 +27,13 @@ export const CAPABILITY_IDS = [
   "units",
   "wallpaper",
   "potd",
+  "artwork",
   "airquality",
   "onthisday",
   "holidays",
   "marine",
+  "worldtime",
+  "aurora",
   "goodbye",
 ] as const;
 
@@ -62,8 +65,10 @@ export const HERO_POOL: readonly CapabilityId[] = [
   "units",
   "wallpaper",
   "potd",
+  "artwork",
   "airquality",
   "marine",
+  "aurora",
 ];
 
 /**
@@ -134,6 +139,9 @@ export const CAPABILITY_ICONS: Record<CapabilityId, string> = {
   potd: "🏞️",
   holidays: "🎌",
   marine: "🌊",
+  artwork: "🖼️",
+  worldtime: "🌍",
+  aurora: "🌌",
 };
 
 export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
@@ -170,4 +178,7 @@ export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
   potd: ["example1", "example2", "example3"],
   holidays: ["example1", "example2", "example3"],
   marine: ["example1", "example2", "example3"],
+  artwork: ["example1", "example2", "example3"],
+  worldtime: ["example1", "example2", "example3"],
+  aurora: ["example1", "example2", "example3"],
 };

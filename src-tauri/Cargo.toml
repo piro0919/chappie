@@ -54,6 +54,7 @@ kaldi-fbank-rust-kautism = "0.1"
 # file (BPE / WordPiece / Unigram all supported).
 tokenizers = { version = "0.20", default-features = false, features = ["onig"] }
 chrono = "0.4"
+chrono-tz = "0.10"
 urlencoding = "2"
 url = "2"
 arboard = "3"
