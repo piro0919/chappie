@@ -41,6 +41,20 @@ fn capabilities_pt() -> String {
         ),
         ("Clima", &["Clima aqui, vai chover amanhã?, clima em São Paulo"]),
         (
+            "Qualidade do ar / poeira",
+            &[
+                "Como está o ar hoje?, e o PM2.5?, tem poeira no ar?, o UV está forte?",
+                "PM2.5, PM10, poeira e índice UV, aqui ou em um lugar indicado (sem pólen)",
+            ],
+        ),
+        (
+            "O que aconteceu hoje",
+            &[
+                "O que aconteceu hoje?, o que houve em N de N?",
+                "Eventos históricos do dia, com o ano (Wikipedia; cai para inglês se faltar)",
+            ],
+        ),
+        (
             "Notícias",
             &[
                 "Últimas notícias (NHK principais)",
@@ -166,6 +180,20 @@ fn capabilities_ko() -> String {
         ),
         ("날씨", &["여기 날씨, 내일 우산 필요해?, 서울 날씨"]),
         (
+            "공기질 · 황사",
+            &[
+                "오늘 공기 어때?, PM2.5는?, 황사 왔어?, 자외선 강해?",
+                "PM2.5·PM10·황사·UV 지수를 현재지나 지정 지역으로 (꽃가루는 미지원)",
+            ],
+        ),
+        (
+            "오늘은 무슨 날",
+            &[
+                "오늘은 무슨 날?, N월 N일엔 무슨 일이 있었어?",
+                "그날의 역사적 사건을 연도와 함께 (위키백과, 없으면 영어로)",
+            ],
+        ),
+        (
             "뉴스",
             &[
                 "최신 뉴스 알려줘 (NHK 주요 뉴스)",
@@ -287,6 +315,20 @@ fn capabilities_it() -> String {
             ],
         ),
         ("Meteo", &["Meteo qui, devo prendere l'ombrello domani?, meteo a Roma"]),
+        (
+            "Qualità dell'aria / polvere",
+            &[
+                "Com'è l'aria oggi?, e il PM2.5?, c'è polvere?, l'UV è alto?",
+                "PM2.5, PM10, polvere e indice UV, qui o in un luogo indicato (no pollini)",
+            ],
+        ),
+        (
+            "Cosa è successo oggi",
+            &[
+                "Cosa è successo oggi?, cosa accadde il N/N?",
+                "Eventi storici del giorno, con l'anno (Wikipedia; ripiega sull'inglese)",
+            ],
+        ),
         (
             "Notizie",
             &[
@@ -414,6 +456,20 @@ fn capabilities_es() -> String {
         (
             "Clima",
             &["Tiempo aquí, ¿lloverá mañana?, tiempo en Madrid"],
+        ),
+        (
+            "Calidad del aire / polvo",
+            &[
+                "¿Cómo está el aire hoy?, ¿y el PM2.5?, ¿hay polvo?, ¿el UV es alto?",
+                "PM2.5, PM10, polvo e índice UV, aquí o en un lugar indicado (sin polen)",
+            ],
+        ),
+        (
+            "Qué pasó un día como hoy",
+            &[
+                "¿Qué pasó hoy?, ¿qué ocurrió el N de N?",
+                "Eventos históricos del día, con el año (Wikipedia; recurre al inglés)",
+            ],
         ),
         (
             "Noticias",
@@ -544,6 +600,20 @@ fn capabilities_fr() -> String {
             &["Météo ici, faut-il un parapluie demain ?, météo à Paris"],
         ),
         (
+            "Qualité de l'air / poussière",
+            &[
+                "Comment est l'air aujourd'hui ?, et le PM2.5 ?, y a-t-il de la poussière ?, l'UV est fort ?",
+                "PM2.5, PM10, poussière et indice UV, ici ou dans un lieu indiqué (pas de pollen)",
+            ],
+        ),
+        (
+            "Que s'est-il passé ce jour",
+            &[
+                "Que s'est-il passé aujourd'hui ?, qu'est-il arrivé le N/N ?",
+                "Événements historiques du jour, avec l'année (Wikipédia ; bascule en anglais)",
+            ],
+        ),
+        (
             "Actualités",
             &[
                 "Dernières actualités (NHK principales)",
@@ -670,6 +740,20 @@ fn capabilities_de() -> String {
         (
             "Wetter",
             &["Wetter hier, brauche ich morgen einen Regenschirm?, Wetter in Berlin"],
+        ),
+        (
+            "Luftqualität / Staub",
+            &[
+                "Wie ist die Luft heute?, und der PM2.5?, ist Staub in der Luft?, ist der UV hoch?",
+                "PM2.5, PM10, Staub und UV-Index, hier oder an einem genannten Ort (kein Pollen)",
+            ],
+        ),
+        (
+            "Was war heute",
+            &[
+                "Was war heute?, was geschah am N.N.?",
+                "Historische Ereignisse des Tages, mit Jahr (Wikipedia; weicht auf Englisch aus)",
+            ],
         ),
         (
             "Nachrichten",
@@ -800,6 +884,20 @@ fn capabilities_zh() -> String {
         ),
         ("天气", &["这里的天气, 明天要带伞吗?, 北京的天气"]),
         (
+            "空气质量 · 沙尘",
+            &[
+                "今天空气怎么样?, PM2.5 多少?, 有沙尘吗?, 紫外线强吗?",
+                "PM2.5、PM10、沙尘和紫外线指数,当前位置或指定地点(不支持花粉)",
+            ],
+        ),
+        (
+            "历史上的今天",
+            &[
+                "今天是什么日子?, N 月 N 日发生过什么?",
+                "当天的历史事件,附年份(维基百科,没有则用英文)",
+            ],
+        ),
+        (
             "新闻",
             &[
                 "最新新闻 (NHK 主要新闻)",
@@ -929,6 +1027,13 @@ fn capabilities_ja() -> String {
         ),
         ("天気", &["現在地の天気、明日の傘いる？、東京の天気"]),
         (
+            "空気の質・黄砂",
+            &[
+                "今日の空気どう？／PM2.5は？／黄砂きてる？／紫外線強い？",
+                "PM2.5・PM10・黄砂・UV 指数を現在地や指定地で（花粉は非対応）",
+            ],
+        ),
+        (
             "ニュース",
             &[
                 "最新ニュース教えて（NHK 主要ニュース）",
@@ -941,6 +1046,13 @@ fn capabilities_ja() -> String {
             &[
                 "○○ってなに？／○○について教えて",
                 "知識カットオフ後の人物・出来事も拾える",
+            ],
+        ),
+        (
+            "今日は何の日",
+            &[
+                "今日は何の日？／N月N日は何があった日？",
+                "その日の歴史上の出来事を年号付きで（Wikipedia、日本語が無ければ英語）",
             ],
         ),
         (
@@ -1092,6 +1204,20 @@ fn capabilities_en() -> String {
         (
             "Weather",
             &["Weather here, do I need an umbrella tomorrow?, weather in Tokyo"],
+        ),
+        (
+            "Air quality / dust",
+            &[
+                "How's the air today?, what's the PM2.5?, is there dust?, is UV high?",
+                "PM2.5, PM10, dust and UV index, here or for a named place (no pollen)",
+            ],
+        ),
+        (
+            "On this day",
+            &[
+                "What happened on this day?, what happened on N/N?",
+                "Historical events for the date, with the year (Wikipedia; falls back to English)",
+            ],
         ),
         (
             "News",

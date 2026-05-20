@@ -18,6 +18,7 @@
 
 use serde_json::Value;
 
+mod airquality;
 mod astro;
 mod fetch;
 mod fx;
@@ -33,6 +34,7 @@ mod wiki;
 /// them (anthropic / gemini translate from the OpenAI shape).
 pub fn tools_openai_schema() -> Vec<Value> {
     let mut out = Vec::new();
+    out.extend(airquality::tools());
     out.extend(news::tools());
     out.extend(wiki::tools());
     out.extend(quake::tools());
@@ -49,6 +51,9 @@ pub fn tools_openai_schema() -> Vec<Value> {
 /// tool result as a JSON-shaped string. Returns None for non-MCP tools
 /// so the caller can fall through to native dispatch.
 pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
+    if let Some(rest) = name.strip_prefix("mcp_airquality_") {
+        return Some(airquality::execute(rest, args).await);
+    }
     if let Some(rest) = name.strip_prefix("mcp_news_") {
         return Some(news::execute(rest, args).await);
     }

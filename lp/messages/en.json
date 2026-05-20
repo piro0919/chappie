@@ -221,6 +221,20 @@
         "example2": "\"Set a night sky wallpaper\"",
         "example3": "\"Make it aesthetic\"",
         "body": "Say a theme and your desktop picture swaps to a matching photo on the spot. Multi-monitor setups get a different photo per screen. Great for a quick vibe reset or a tidy desk before a call."
+      },
+      "airquality": {
+        "title": "Air quality and dust on the spot",
+        "example1": "\"How's the air today?\"",
+        "example2": "\"Is there any dust?\"",
+        "example3": "\"Is the UV strong?\"",
+        "body": "PM2.5, dust, and UV for where you are or any city you name — all by voice. Handy before you hang the laundry or step outside."
+      },
+      "onthisday": {
+        "title": "On this day",
+        "example1": "\"What happened on this day?\"",
+        "example2": "\"What happened on May 20th?\"",
+        "example3": "\"Tell me today's events\"",
+        "body": "Reads out historical events for the date, with the year — a nice little conversation starter for the morning. Name a date to hear any day in history."
       }
     }
   },
