@@ -510,7 +510,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::AppleScript,
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -588,6 +588,36 @@ pub fn run() {
                 let bundle_id = app.config().identifier.clone();
                 let current = info.version.to_string();
                 tcc_reset::reset_on_upgrade(&bundle_id, &current);
+            }
+
+            // One-time autostart migration: we used to register login via
+            // MacosLauncher::AppleScript, which adds a System Events login
+            // item that pops a Terminal/script window on every boot. We've
+            // since switched to MacosLauncher::LaunchAgent (silent launchd
+            // plist). The LaunchAgent self-heal in ConversationWorker.tsx
+            // recreates the new mechanism, but the stale AppleScript login
+            // item lingers and keeps showing the Terminal — so delete it
+            // once here. Guarded by a marker file so it runs a single time.
+            #[cfg(target_os = "macos")]
+            {
+                if let Some(home) = std::env::var_os("HOME") {
+                    let marker = std::path::Path::new(&home)
+                        .join(".chappie")
+                        .join(".autostart_launchagent_migrated");
+                    if !marker.exists() {
+                        let _ = std::process::Command::new("osascript")
+                            .arg("-e")
+                            .arg(
+                                "tell application \"System Events\" to \
+                                 delete login item \"Chappie\"",
+                            )
+                            .output();
+                        if let Some(dir) = marker.parent() {
+                            let _ = std::fs::create_dir_all(dir);
+                        }
+                        let _ = std::fs::write(&marker, b"1");
+                    }
+                }
             }
 
             // Deep-link handler: chappie://auth#access_token=…&refresh_token=…
