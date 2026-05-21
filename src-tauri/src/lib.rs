@@ -441,7 +441,55 @@ fn analytics_recent_events() -> Vec<analytics::RecentEvent> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// Persist every panic to `~/.chappie/panic.log` before the process aborts.
+///
+/// Release builds are stripped (`strip = true`) and ship no panic message
+/// anywhere, so a main-thread panic during AppKit event handling shows up in
+/// the macOS crash report as bare addresses with no cause. This hook captures
+/// the panic message, source location, thread name, and a backtrace so the
+/// next freeze is diagnosable without symbols. We chain to the default hook so
+/// stderr behavior in `tauri dev` is unchanged.
+fn install_panic_logger() {
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let location = info
+            .location()
+            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_else(|| "<unknown>".into());
+        let msg = info
+            .payload()
+            .downcast_ref::<&str>()
+            .map(|s| s.to_string())
+            .or_else(|| info.payload().downcast_ref::<String>().cloned())
+            .unwrap_or_else(|| "<non-string panic payload>".into());
+        let thread = std::thread::current();
+        let thread_name = thread.name().unwrap_or("<unnamed>").to_string();
+        let backtrace = std::backtrace::Backtrace::force_capture();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let entry = format!(
+            "\n===== PANIC {now} =====\nthread: {thread_name}\nlocation: {location}\nmessage: {msg}\nbacktrace:\n{backtrace}\n"
+        );
+        if let Some(home) = dirs::home_dir() {
+            let dir = home.join(".chappie");
+            let _ = std::fs::create_dir_all(&dir);
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(dir.join("panic.log"))
+            {
+                use std::io::Write;
+                let _ = f.write_all(entry.as_bytes());
+            }
+        }
+        default_hook(info);
+    }));
+}
+
 pub fn run() {
+    install_panic_logger();
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             // If a second instance launches, focus the existing settings window
