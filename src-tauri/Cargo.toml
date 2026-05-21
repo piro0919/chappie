@@ -95,5 +95,12 @@ panic = "unwind"
 codegen-units = 1
 lto = true
 opt-level = "s"
+# Ship a stripped binary, but split debug info into a local .dSYM so that
+# macOS crash reports (.ips) can be symbolicated after the fact with `atos`.
+# Without this, stripped release frames are bare addresses and a main-thread
+# panic is impossible to pin to a function. The .dSYM stays in target/release/
+# and is NOT bundled into the distributed .app.
 strip = true
+debug = "line-tables-only"
+split-debuginfo = "packed"
 
