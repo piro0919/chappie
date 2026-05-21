@@ -99,16 +99,28 @@ pub fn cancel_all() -> usize {
     n
 }
 
+// Braille spinner frames shown in the tray title while Chappie is thinking.
+// A static color icon doesn't convey "actively working", so the title carries
+// a one-glyph animated spinner during the Thinking state — the title is the
+// only menu-bar surface we can animate without multiplying per-character PNGs.
+const THINKING_SPINNER: [&str; 10] =
+    ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
 // Periodically refresh the menu-bar tray title with the shortest remaining
-// timer (format: "M:SS"). When no timers are running, clears the title so
-// only the icon shows. Runs forever — call once from app setup.
+// timer (format: "M:SS") and, while thinking, an animated spinner. When
+// nothing is active, clears the title so only the icon shows. The tick runs
+// at 100ms so the spinner is smooth; the unchanged-title guard means the
+// timer-only case still skips ~9/10 set_title calls. Runs forever — call
+// once from app setup.
 pub fn start_tray_title_ticker(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(1));
+        let mut interval = tokio::time::interval(Duration::from_millis(100));
         let mut last_title = String::new();
+        let mut frame: usize = 0;
         loop {
             interval.tick().await;
+            frame = frame.wrapping_add(1);
 
             let now_ms = chrono::Local::now().timestamp_millis();
             let next_remaining_secs = TIMERS
@@ -126,13 +138,29 @@ pub fn start_tray_title_ticker(app: &AppHandle) {
                 }
                 _ => String::new(),
             };
+            let thinking = matches!(
+                crate::tray::current_tray_state(&app),
+                Some(crate::tray::TrayState::Thinking)
+            );
+            let spinner_part = if thinking {
+                THINKING_SPINNER[frame % THINKING_SPINNER.len()]
+            } else {
+                ""
+            };
             let update_pending = crate::tray::UPDATE_AVAILABLE
                 .load(std::sync::atomic::Ordering::Relaxed);
-            let title = match (update_pending, timer_part.is_empty()) {
-                (true, true) => "🔔".to_string(),
-                (true, false) => format!("🔔 {timer_part}"),
-                (false, _) => timer_part,
-            };
+
+            // Compose "🔔 <spinner> M:SS", dropping any empty parts.
+            let title = [
+                if update_pending { "🔔" } else { "" },
+                spinner_part,
+                timer_part.as_str(),
+            ]
+            .iter()
+            .filter(|p| !p.is_empty())
+            .copied()
+            .collect::<Vec<_>>()
+            .join(" ");
 
             if title == last_title {
                 continue;
