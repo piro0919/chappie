@@ -79,6 +79,9 @@ export function ConversationWorker(): null {
         await invoke("set_speaker_threshold", { value: s.speakerThreshold });
         await invoke("set_vad_threshold", { value: s.vadThreshold });
         await invoke("set_vad_silence_frames", { frames: s.vadSilenceFrames });
+        await invoke("set_personalized_routing_cached", {
+          enabled: s.personalizedToolsEnabled,
+        });
       } catch (e) {
         console.warn("[conversation-worker] push audio config failed", e);
       }

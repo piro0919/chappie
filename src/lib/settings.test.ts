@@ -58,6 +58,7 @@ describe("settings", () => {
 
   const ANALYTICS_DEFAULTS = {
     analyticsConsent: false,
+    personalizedToolsEnabled: true,
   } as const;
 
   it("returns defaults when store is empty", async () => {

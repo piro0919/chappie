@@ -82,16 +82,28 @@ pub async fn chat_complete_generic<P: LlmProvider>(
 
     let mut state = provider.prepare_state(messages);
     let chitchat = crate::llm::chitchat::is_chitchat(&last_user_text, crate::i18n::current());
-    let tools = if chitchat {
-        crate::tools::minimal_tools()
+    // Routing mode (cache-prefix-affecting):
+    //   chitchat     → minimal_tools (just end_conversation)
+    //   personalized → per-user hot set + escape tool (when enabled & hot
+    //                  set is large enough; escape tool lets the model fall
+    //                  back to the full set on a miss — handled in the loop)
+    //   full         → all_tools (cold start / light user / toggle off)
+    let hot_set = if !chitchat && crate::tool_usage::personalized_enabled() {
+        crate::tool_usage::hot_tool_names()
     } else {
-        crate::tools::all_tools()
+        None
+    };
+    let (mut tools, route_mode) = if chitchat {
+        (crate::tools::minimal_tools(), "chitchat")
+    } else if let Some(ref hot) = hot_set {
+        (crate::tools::personalized_tools(hot), "personalized")
+    } else {
+        (crate::tools::all_tools(), "full")
     };
     crate::linfo!(
         app,
         label,
-        "chitchat_classifier mode={} tools_n={}",
-        if chitchat { "chitchat" } else { "full" },
+        "tool_routing mode={route_mode} tools_n={}",
         tools.as_array().map(|a| a.len()).unwrap_or(0),
     );
     let endpoint = provider.endpoint(&model, &api_key);
@@ -220,6 +232,28 @@ pub async fn chat_complete_generic<P: LlmProvider>(
         // back into the provider's state for the next round.
         let mut results: Vec<ToolResult> = Vec::new();
         for call in &round_output.tool_calls {
+            // Escape tool: the model signalled that the personalized
+            // (hot-set) payload couldn't satisfy the request. Swap in the
+            // full tool set for the next round and feed back a synthetic
+            // result instead of executing anything. Not counted as a real
+            // tool call (it's a routing signal, not a capability).
+            if call.name == crate::tools::NEED_MORE_TOOLS {
+                if route_mode == "personalized" {
+                    tools = crate::tools::all_tools();
+                }
+                crate::linfo!(
+                    app,
+                    label,
+                    "escape: need_more_tools fired (mode={route_mode}) -> full set, tools_n={}",
+                    tools.as_array().map(|a| a.len()).unwrap_or(0),
+                );
+                results.push(ToolResult {
+                    call_id: call.id.clone(),
+                    name: call.name.clone(),
+                    result: "{\"ok\":true,\"note\":\"All tools are now available. Pick the appropriate one.\"}".to_string(),
+                });
+                continue;
+            }
             called_tools.push(call.name.clone());
             let args: Value = serde_json::from_str(&call.arguments).unwrap_or(json!({}));
             let result =

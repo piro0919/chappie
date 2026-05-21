@@ -12,7 +12,7 @@ pub fn tools() -> Vec<Value> {
         "type": "function",
         "function": {
             "name": "mcp_pokemon_stats",
-            "description": "ポケモンの種族値・タイプ・特性を返す。「ピカチュウの種族値は？」「リザードンのタイプは？」「ミュウツーのステータス教えて」。name には英語名（小文字スラッグ）を渡す（例: ピカチュウ→pikachu、リザードン→charizard、ミュウツー→mewtwo）。返り値の stats（HP・こうげき・ぼうぎょ・とくこう・とくぼう・すばやさ）と types を読み上げる。",
+            "description": "ポケモンの種族値・タイプ・特性を返す。「ピカチュウの種族値は？」「リザードンのタイプは？」「ミュウツーのステータス教えて」。name には英語名（小文字スラッグ）を渡す（例: ピカチュウ→pikachu、リザードン→charizard、ミュウツー→mewtwo）。**変換は必ず自分で行い、ユーザーに英語名やスラッグを聞き返してはいけない**（ユーザーは日本語名しか言わない前提）。返り値の stats（HP・こうげき・ぼうぎょ・とくこう・とくぼう・すばやさ）と types を読み上げる。",
             "parameters": {
                 "type": "object",
                 "properties": {

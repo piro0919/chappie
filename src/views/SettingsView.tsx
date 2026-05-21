@@ -72,6 +72,8 @@ export function SettingsView() {
     useState("07:00");
   const [proactiveQuietHoursEnd, setProactiveQuietHoursEnd] = useState("22:00");
   const [analyticsConsent, setAnalyticsConsent] = useState(false);
+  const [personalizedToolsEnabled, setPersonalizedToolsEnabled] =
+    useState(true);
   const [analyticsBusy, setAnalyticsBusy] = useState(false);
   const [analyticsRecent, setAnalyticsRecent] = useState<
     Array<{
@@ -265,12 +267,18 @@ export function SettingsView() {
       setVadThreshold(s.vadThreshold);
       setVadSilenceFrames(s.vadSilenceFrames);
       setAnalyticsConsent(s.analyticsConsent);
+      setPersonalizedToolsEnabled(s.personalizedToolsEnabled);
       // Mirror the stored consent flag into the Rust process so the
       // dispatch hot path doesn't run with a stale default-false until
       // the first toggle. Cached-only invoke, no network round-trip.
       try {
         await invoke("analytics_set_consent_cached", {
           consent: s.analyticsConsent,
+        });
+      } catch {}
+      try {
+        await invoke("set_personalized_routing_cached", {
+          enabled: s.personalizedToolsEnabled,
         });
       } catch {}
       try {
@@ -651,6 +659,7 @@ export function SettingsView() {
             vadThreshold,
             vadSilenceFrames,
             analyticsConsent,
+            personalizedToolsEnabled,
           });
           await invoke("set_speaker_threshold", { value: speakerThreshold });
           await invoke("set_vad_threshold", { value: vadThreshold });
@@ -683,6 +692,7 @@ export function SettingsView() {
     vadThreshold,
     vadSilenceFrames,
     analyticsConsent,
+    personalizedToolsEnabled,
   ]);
 
   if (!loaded) {
@@ -1463,6 +1473,33 @@ export function SettingsView() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Personalized tool routing — advanced. Collapsed because it's an
+          internal optimization most users never need to touch; default
+          ON and degrades safely. The toggle is here as an escape hatch
+          if routing ever misbehaves. */}
+      <div className={styles.group}>
+        <details className={styles.groupBlock}>
+          <summary className={styles.groupRowLabel}>
+            {t("settings.personalizedToolsLabel")}
+          </summary>
+          <div style={{ marginTop: 8 }}>
+            <div className={styles.groupRow}>
+              <span className={styles.groupRowLabel}>
+                {t("settings.personalizedToolsToggle")}
+              </span>
+              <input
+                type="checkbox"
+                checked={personalizedToolsEnabled}
+                onChange={(e) => setPersonalizedToolsEnabled(e.target.checked)}
+              />
+            </div>
+            <p className={styles.note} style={{ marginTop: 8 }}>
+              {t("settings.personalizedToolsDescription")}
+            </p>
+          </div>
+        </details>
       </div>
 
       {/* Proactive notifications — Chappie speaks up on its own.

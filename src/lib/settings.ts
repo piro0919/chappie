@@ -145,6 +145,15 @@ export type Settings = {
    * daily quota as a thank-you. Default OFF.
    */
   analyticsConsent: boolean;
+  /**
+   * Personalized tool routing. When true, the dispatcher sends only the
+   * per-user "hot set" of frequently/recently used tools (plus an escape
+   * tool) instead of the full ~60-tool payload, falling back to the full
+   * set when the model signals a miss. Reduces tokens + routing confusion
+   * as the tool count grows. Degrades to the full set for new/light users.
+   * Default ON. Advanced toggle.
+   */
+  personalizedToolsEnabled: boolean;
 };
 
 const DEFAULTS: Settings = {
@@ -170,6 +179,7 @@ const DEFAULTS: Settings = {
   vadThreshold: 0.25,
   vadSilenceFrames: 22,
   analyticsConsent: false,
+  personalizedToolsEnabled: true,
 };
 const FILE = "settings.json";
 
@@ -272,6 +282,9 @@ export async function loadSettings(): Promise<Settings> {
     analyticsConsent:
       (await store.get<boolean>("analyticsConsent")) ??
       DEFAULTS.analyticsConsent,
+    personalizedToolsEnabled:
+      (await store.get<boolean>("personalizedToolsEnabled")) ??
+      DEFAULTS.personalizedToolsEnabled,
   };
 }
 
@@ -366,6 +379,9 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.analyticsConsent !== undefined) {
     await store.set("analyticsConsent", patch.analyticsConsent);
+  }
+  if (patch.personalizedToolsEnabled !== undefined) {
+    await store.set("personalizedToolsEnabled", patch.personalizedToolsEnabled);
   }
   await store.save();
 }

@@ -42,6 +42,90 @@ pub fn minimal_tools() -> Value {
     json!([end_conv])
 }
 
+/// Escape tool injected into the personalized (hot-set) payload. The model
+/// calls this when none of the trimmed tools can satisfy the request; the
+/// dispatcher then swaps in `all_tools()` on the next round. Never executed
+/// directly (handled specially in `llm::dispatch`).
+pub const NEED_MORE_TOOLS: &str = "need_more_tools";
+
+fn need_more_tools_def() -> Value {
+    json!({
+        "type": "function",
+        "function": {
+            "name": NEED_MORE_TOOLS,
+            "description": "リクエストを満たせる道具がこの一覧に**見当たらないとき**に呼ぶ。呼ぶと利用可能な全機能が解放され、続けて適切な道具を選べるようになる。一覧の中に使える道具があるなら呼ばない。",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        }
+    })
+}
+
+/// Generic "catch-all" search tools deliberately kept OUT of the
+/// personalized hot set even when frequently used. They accept a free-text
+/// query and can be applied to *anything*, so if they're in the trimmed
+/// payload the model reaches for them instead of calling `need_more_tools`
+/// — e.g. routing "ピカチュウのステータス" to news_search rather than
+/// escaping to the dedicated mcp_pokemon_stats. Excluding them forces a
+/// clean escape when no *specific* hot tool matches; they remain available
+/// in the full set (post-escape) for genuine free-text searches.
+const CATCH_ALL_TOOLS: &[&str] = &["web_search", "mcp_news_search"];
+
+/// Native tools that ARE safe to trim from the personalized payload when
+/// not in the hot set: visual novelties + meta + approximate-able lookups.
+/// If absent, the outcome degrades gracefully (the model answers from
+/// knowledge, approximates, or the escape tool kicks in) rather than
+/// failing. Everything else native operates on live device/system/local
+/// state the model cannot substitute, so it's always kept (see below).
+const TRIMMABLE_NATIVE_TOOLS: &[&str] = &[
+    "set_wallpaper",
+    "set_wallpaper_potd",
+    "set_artwork_wallpaper",
+    "get_world_time",
+    "list_capabilities",
+];
+
+/// True for tools that must stay in the personalized payload regardless of
+/// usage frequency. Rationale (validated by golden_personalized_routing):
+/// the escape tool fires unreliably on weaker models (Gemini Flash never
+/// called it in testing), so any tool that (a) the model can't answer from
+/// knowledge and (b) has no search/direct-answer fallback would become
+/// unreachable if trimmed. That's the native device/system/local-state
+/// core — battery, screenshot, volume, timers, notes, calendar, etc. We
+/// only trim the MCP info long-tail (the growth area) and a few native
+/// novelties; everything else native is always kept.
+fn is_always_keep(name: &str) -> bool {
+    !name.starts_with("mcp_") && !TRIMMABLE_NATIVE_TOOLS.contains(&name)
+}
+
+/// Personalized tool payload: the per-user hot set UNION the always-keep
+/// native core, minus the catch-all search tools, with the
+/// `need_more_tools` escape tool appended (best-effort fallback for the
+/// trimmed MCP long-tail on models that honor it).
+pub fn personalized_tools(hot: &std::collections::HashSet<String>) -> Value {
+    let mut arr: Vec<Value> = all_tools()
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter(|t| {
+                    t.pointer("/function/name")
+                        .and_then(|v| v.as_str())
+                        .map(|n| {
+                            !CATCH_ALL_TOOLS.contains(&n)
+                                && (hot.contains(n) || is_always_keep(n))
+                        })
+                        .unwrap_or(false)
+                })
+                .cloned()
+                .collect()
+        })
+        .unwrap_or_default();
+    arr.push(need_more_tools_def());
+    Value::Array(arr)
+}
+
 fn native_tools() -> Value {
     json!([
         {
@@ -1500,5 +1584,53 @@ pub(crate) async fn execute_tool(
             }
         }
         other => format!("unknown tool: {other}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    fn names(v: &Value) -> HashSet<String> {
+        v.as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|t| {
+                t.pointer("/function/name")
+                    .and_then(|n| n.as_str())
+                    .map(|s| s.to_string())
+            })
+            .collect()
+    }
+
+    #[test]
+    fn personalized_keeps_core_trims_mcp_tail() {
+        let hot: HashSet<String> =
+            ["mcp_news_latest".to_string(), "set_timer".to_string()].into_iter().collect();
+        let got = names(&personalized_tools(&hot));
+
+        // Always-keep native core present even though cold (not in hot).
+        assert!(got.contains("get_battery_status"));
+        assert!(got.contains("take_screenshot"));
+        assert!(got.contains("end_conversation"));
+        // Escape tool appended.
+        assert!(got.contains(NEED_MORE_TOOLS));
+        // Hot MCP tool kept.
+        assert!(got.contains("mcp_news_latest"));
+        // Cold MCP tool trimmed.
+        assert!(!got.contains("mcp_pokemon_stats"));
+        // Trimmable native novelty (cold) trimmed.
+        assert!(!got.contains("set_wallpaper"));
+        // Catch-all search dropped even though native.
+        assert!(!got.contains("web_search"));
+    }
+
+    #[test]
+    fn personalized_smaller_than_full() {
+        let hot: HashSet<String> = ["mcp_news_latest".to_string()].into_iter().collect();
+        let p = personalized_tools(&hot).as_array().unwrap().len();
+        let full = all_tools().as_array().unwrap().len();
+        assert!(p < full, "personalized {p} should be < full {full}");
     }
 }

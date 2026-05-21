@@ -129,6 +129,9 @@ type Messages = {
     ltmForget: string;
     ltmForgetConfirm: string;
     ltmForgetDone: string;
+    personalizedToolsLabel: string;
+    personalizedToolsToggle: string;
+    personalizedToolsDescription: string;
     analyticsLabel: string;
     analyticsStatusOn: string;
     analyticsStatusOff: string;
@@ -338,6 +341,10 @@ const ja: Messages = {
     ltmForgetConfirm:
       "本当に会話ログ・日次サマリ・トピックを全部削除しますか？モデルファイルと「私について」の記憶（save_memory のもの）は残ります。",
     ltmForgetDone: "削除しました",
+    personalizedToolsLabel: "機能の最適化",
+    personalizedToolsToggle: "よく使う機能を優先する",
+    personalizedToolsDescription:
+      "あなたがよく使う機能を覚えて優先的に判断するので、反応が速く・正確になります。通常はオンのままで問題ありません。",
     analyticsLabel: "使用データの匿名共有",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -565,6 +572,10 @@ const en: Messages = {
     ltmForgetConfirm:
       'Really delete all conversation logs, daily summaries, and topic snapshots? The model file and your saved "about me" facts (from save_memory) will stay.',
     ltmForgetDone: "Deleted",
+    personalizedToolsLabel: "Feature optimization",
+    personalizedToolsToggle: "Prioritize features you use most",
+    personalizedToolsDescription:
+      "Learns which features you use most and considers them first, making responses faster and more accurate. Best left on.",
     analyticsLabel: "Share anonymous usage data",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -793,6 +804,10 @@ const es: Messages = {
     ltmForgetConfirm:
       '¿Eliminar todos los registros de conversación, resúmenes diarios y temas? El archivo del modelo y los datos guardados de "sobre mí" (con save_memory) se mantienen.',
     ltmForgetDone: "Borrado",
+    personalizedToolsLabel: "Optimización de funciones",
+    personalizedToolsToggle: "Priorizar las funciones que más usas",
+    personalizedToolsDescription:
+      "Aprende qué funciones usas más y las considera primero, haciendo las respuestas más rápidas y precisas. Mejor dejarlo activado.",
     analyticsLabel: "Compartir datos de uso anónimos",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -1021,6 +1036,10 @@ const fr: Messages = {
     ltmForgetConfirm:
       "Vraiment supprimer tous les journaux de conversation, résumés quotidiens et sujets ? Le fichier du modèle et les faits enregistrés « à mon sujet » (via save_memory) restent.",
     ltmForgetDone: "Supprimé",
+    personalizedToolsLabel: "Optimisation des fonctions",
+    personalizedToolsToggle: "Prioriser les fonctions les plus utilisées",
+    personalizedToolsDescription:
+      "Apprend les fonctions que vous utilisez le plus et les privilégie, pour des réponses plus rapides et plus précises. À laisser activé.",
     analyticsLabel: "Partager les données d'usage anonymes",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -1249,6 +1268,10 @@ const de: Messages = {
     ltmForgetConfirm:
       "Wirklich alle Gesprächsprotokolle, Tageszusammenfassungen und Themen löschen? Die Modelldatei und die gespeicherten Profil-Fakten (via save_memory) bleiben erhalten.",
     ltmForgetDone: "Gelöscht",
+    personalizedToolsLabel: "Funktionsoptimierung",
+    personalizedToolsToggle: "Meistgenutzte Funktionen bevorzugen",
+    personalizedToolsDescription:
+      "Lernt, welche Funktionen du am häufigsten nutzt, und berücksichtigt sie zuerst – für schnellere und genauere Antworten. Am besten aktiviert lassen.",
     analyticsLabel: "Anonyme Nutzungsdaten teilen",
     analyticsStatusOn: "AN",
     analyticsStatusOff: "AUS",
@@ -1471,6 +1494,10 @@ const zh: Messages = {
     ltmForgetConfirm:
       "确定要删除所有对话日志、每日总结和话题快照吗？模型文件和保存的「关于我」的资料（通过 save_memory）会保留。",
     ltmForgetDone: "已删除",
+    personalizedToolsLabel: "功能优化",
+    personalizedToolsToggle: "优先使用常用功能",
+    personalizedToolsDescription:
+      "学习你最常用的功能并优先判断，让响应更快更准确。建议保持开启。",
     analyticsLabel: "匿名共享使用数据",
     analyticsStatusOn: "开启",
     analyticsStatusOff: "关闭",
@@ -1695,6 +1722,10 @@ const pt: Messages = {
     ltmForgetConfirm:
       "Excluir todos os registros de conversa, resumos diários e tópicos? O arquivo do modelo e os dados salvos sobre você (via save_memory) permanecem.",
     ltmForgetDone: "Apagado",
+    personalizedToolsLabel: "Otimização de funções",
+    personalizedToolsToggle: "Priorizar as funções que você mais usa",
+    personalizedToolsDescription:
+      "Aprende quais funções você mais usa e as considera primeiro, deixando as respostas mais rápidas e precisas. Melhor manter ativado.",
     analyticsLabel: "Compartilhar dados de uso anônimos",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -1921,6 +1952,10 @@ const ko: Messages = {
     ltmForgetConfirm:
       '정말로 모든 대화 로그, 일일 요약, 화제 스냅샷을 삭제할까요? 모델 파일과 저장된 "나에 대해" 정보(save_memory로 저장한 것)는 남습니다.',
     ltmForgetDone: "삭제됨",
+    personalizedToolsLabel: "기능 최적화",
+    personalizedToolsToggle: "자주 쓰는 기능 우선",
+    personalizedToolsDescription:
+      "자주 사용하는 기능을 학습해 먼저 고려하므로 응답이 더 빠르고 정확해집니다. 켜 두는 것을 권장합니다.",
     analyticsLabel: "익명 사용 데이터 공유",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -2149,6 +2184,10 @@ const it: Messages = {
     ltmForgetConfirm:
       "Davvero eliminare tutti i log delle conversazioni, i riassunti quotidiani e gli argomenti? Il file del modello e i fatti salvati su di te (tramite save_memory) restano.",
     ltmForgetDone: "Eliminato",
+    personalizedToolsLabel: "Ottimizzazione delle funzioni",
+    personalizedToolsToggle: "Dai priorità alle funzioni che usi di più",
+    personalizedToolsDescription:
+      "Impara quali funzioni usi di più e le considera per prime, rendendo le risposte più rapide e precise. Meglio lasciarlo attivo.",
     analyticsLabel: "Condivisione anonima dati di utilizzo",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",

@@ -38,9 +38,10 @@
 // - Param value correctness — only structural presence is checked.
 // - Conversation flow / TTS / UI.
 
-use chappie_lib::tools::all_tools;
+use chappie_lib::tools::{all_tools, personalized_tools};
 use futures_util::stream::{self, StreamExt};
 use serde_json::{json, Value};
+use std::collections::HashSet;
 use std::time::Duration;
 
 /// Concurrent in-flight requests per provider. Trade-off: too few wastes
@@ -167,9 +168,20 @@ impl Provider {
                 out.push((Provider::OpenAI, k));
             }
         }
-        if let Ok(k) = std::env::var("ANTHROPIC_API_KEY") {
-            if !k.trim().is_empty() {
-                out.push((Provider::Anthropic, k));
+        // Anthropic is OFF by default even when its key is present: its
+        // low-tier rate limit forces sequential runs with a 30s sleep
+        // between cases, which makes a full sweep painfully slow. Opt in
+        // explicitly with GOLDEN_INCLUDE_ANTHROPIC=1, and pair it with
+        // GOLDEN_ONLY=<labels> to run just the few cases you care about.
+        if std::env::var("GOLDEN_INCLUDE_ANTHROPIC")
+            .ok()
+            .filter(|v| !v.trim().is_empty() && v != "0" && v != "false")
+            .is_some()
+        {
+            if let Ok(k) = std::env::var("ANTHROPIC_API_KEY") {
+                if !k.trim().is_empty() {
+                    out.push((Provider::Anthropic, k));
+                }
             }
         }
         if let Ok(k) = std::env::var("GEMINI_API_KEY") {
@@ -229,6 +241,7 @@ async fn run_openai(
     client: &reqwest::Client,
     api_key: &str,
     utterance: &str,
+    tools: &Value,
     max_rounds: usize,
 ) -> Result<Vec<String>, String> {
     let mut messages: Vec<Value> = vec![
@@ -241,7 +254,7 @@ async fn run_openai(
         let body = json!({
             "model": "gpt-4o-mini",
             "messages": messages,
-            "tools": all_tools(),
+            "tools": tools,
             "tool_choice": "auto",
             "temperature": 0,
         });
@@ -289,6 +302,7 @@ async fn run_anthropic(
     client: &reqwest::Client,
     api_key: &str,
     utterance: &str,
+    tools_openai: &Value,
     max_rounds: usize,
 ) -> Result<Vec<String>, String> {
     fn translate_tools(openai_tools: &Value) -> Value {
@@ -313,7 +327,7 @@ async fn run_anthropic(
         Value::Array(arr)
     }
 
-    let tools = translate_tools(&all_tools());
+    let tools = translate_tools(tools_openai);
     let mut messages: Vec<Value> = vec![json!({ "role": "user", "content": utterance })];
     let mut called: Vec<String> = Vec::new();
 
@@ -371,6 +385,7 @@ async fn run_gemini(
     client: &reqwest::Client,
     api_key: &str,
     utterance: &str,
+    tools_openai: &Value,
     max_rounds: usize,
 ) -> Result<Vec<String>, String> {
     fn sanitize_schema(value: &mut Value) {
@@ -412,7 +427,7 @@ async fn run_gemini(
         json!([{ "function_declarations": decls }])
     }
 
-    let tools = translate_tools(&all_tools());
+    let tools = translate_tools(tools_openai);
     let mut contents: Vec<Value> =
         vec![json!({ "role": "user", "parts": [{ "text": utterance }] })];
     let mut called: Vec<String> = Vec::new();
@@ -493,16 +508,13 @@ async fn run_one(
     provider: &Provider,
     key: &str,
     case: &Case,
+    tools: &Value,
+    max_rounds: usize,
 ) -> Result<Vec<String>, String> {
-    // 3 rounds is enough for any case in the suite — the longest natural
-    // chain is 2 (get_volume → set_volume / get_current_time →
-    // add_reminder_at) and we only need one extra in case the LLM emits
-    // a redundant probe before settling.
-    let max_rounds = 3;
     let r = match provider {
-        Provider::OpenAI => run_openai(client, key, case.utterance, max_rounds).await,
-        Provider::Anthropic => run_anthropic(client, key, case.utterance, max_rounds).await,
-        Provider::Gemini => run_gemini(client, key, case.utterance, max_rounds).await,
+        Provider::OpenAI => run_openai(client, key, case.utterance, tools, max_rounds).await,
+        Provider::Anthropic => run_anthropic(client, key, case.utterance, tools, max_rounds).await,
+        Provider::Gemini => run_gemini(client, key, case.utterance, tools, max_rounds).await,
     };
     // Anthropic default tier is 50k input tokens/min; each case is ~9k
     // tokens AND multi-round cases fire 2-3 requests back-to-back from
@@ -550,6 +562,11 @@ async fn golden_tool_routing() {
 
     let mut total_failures: Vec<String> = Vec::new();
     let client = http();
+    // 3 rounds is enough for any case in the suite — the longest natural
+    // chain is 2 (get_volume → set_volume / get_current_time →
+    // add_reminder_at) and we only need one extra in case the LLM emits
+    // a redundant probe before settling.
+    let tools = all_tools();
     for (provider, key) in &providers {
         eprintln!("[golden] === {} ===", provider.label());
 
@@ -565,8 +582,9 @@ async fn golden_tool_routing() {
             stream::iter(case_indices.iter().copied().map(|i| (i, &CASES[i])))
                 .map(|(i, case)| {
                     let client = &client;
+                    let tools = &tools;
                     async move {
-                        let r = run_one(client, provider, key, case).await;
+                        let r = run_one(client, provider, key, case, tools, 3).await;
                         (i, r)
                     }
                 })
@@ -617,6 +635,157 @@ async fn golden_tool_routing() {
     assert!(
         total_failures.is_empty(),
         "{} golden case(s) failed:\n  {}",
+        total_failures.len(),
+        total_failures.join("\n  ")
+    );
+}
+
+// ---------------------------------------------------------- personalized
+//
+// Accuracy guard for personalized (hot-set) tool routing. It gates on the
+// two properties personalized_tools() actually guarantees:
+//
+//   1. in-hot: a tool in the user's hot set is picked directly (no
+//      degradation from trimming the rest).
+//   2. always-keep core: a native device/system/local-state tool the model
+//      can't substitute (battery, screenshot, lock, clipboard, …) stays
+//      reachable EVEN WHEN COLD, because is_always_keep() never trims it.
+//
+// We deliberately do NOT gate on the trimmed MCP long-tail escaping via
+// need_more_tools: testing showed Gemini Flash never calls the escape tool
+// (it answers from knowledge or declines), so escape is a best-effort
+// fallback, not a guarantee. That limitation is documented in memory, not
+// asserted here (a permanently-red test is noise). The always-keep core
+// (property 2) is exactly what makes escape's unreliability tolerable.
+//
+// Only the FIRST tool is asserted; max_rounds=1 keeps cost minimal.
+
+/// Fixed hot set for the test. 6 real tools (clears MIN_HOT_FLOOR) + the
+/// always-kept end_conversation. Mirrors a plausible "news + media" user.
+/// Note: get_weather/list_events here are also always-keep-core, but
+/// including them in the hot set keeps the in-hot assertions meaningful.
+const HOT_SET_NAMES: &[&str] = &[
+    "set_timer",
+    "get_weather",
+    "list_events",
+    "get_now_playing",
+    "open_youtube",
+    "mcp_news_latest",
+    "end_conversation",
+];
+
+const PERSONALIZED_CASES: &[Case] = &[
+    // Property 1 — in-hot: pick the tool directly.
+    Case { label: "p/in/timer", utterance: "3分タイマー", expected_first: "set_timer" },
+    Case { label: "p/in/youtube", utterance: "YouTube で猫の動画流して", expected_first: "open_youtube" },
+    Case { label: "p/in/news", utterance: "最新ニュース教えて", expected_first: "mcp_news_latest" },
+    Case { label: "p/in/nowplaying", utterance: "いま何の曲?", expected_first: "get_now_playing" },
+    // Property 2 — always-keep core, COLD (not in hot set) but still
+    // present because is_always_keep() protects native device/system tools.
+    // Pre-fix these mis-routed or returned nothing on Gemini; they must now
+    // route to the dedicated tool.
+    Case { label: "p/keep/battery", utterance: "バッテリー何%?", expected_first: "get_battery_status" },
+    Case { label: "p/keep/screenshot", utterance: "スクショ撮って", expected_first: "take_screenshot" },
+    Case { label: "p/keep/lock", utterance: "画面ロックして", expected_first: "lock_screen" },
+    Case { label: "p/keep/clipboard", utterance: "クリップボード読んで", expected_first: "read_clipboard" },
+    Case { label: "p/keep/volume", utterance: "音量30にして", expected_first: "get_volume|set_volume" },
+    Case { label: "p/keep/mute", utterance: "ミュート", expected_first: "set_mute" },
+];
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn golden_personalized_routing() {
+    let providers = Provider::from_env();
+    if providers.is_empty() {
+        eprintln!("[golden-p] skipped: set OPENAI_API_KEY / GEMINI_API_KEY to run");
+        return;
+    }
+
+    let hot: HashSet<String> = HOT_SET_NAMES.iter().map(|s| s.to_string()).collect();
+    let tools = personalized_tools(&hot);
+    eprintln!(
+        "[golden-p] hot set personalized tools_n={}",
+        tools.as_array().map(|a| a.len()).unwrap_or(0)
+    );
+
+    let only_filter = std::env::var("GOLDEN_ONLY").ok();
+    let case_indices: Vec<usize> = match &only_filter {
+        Some(s) => {
+            let needles: Vec<&str> =
+                s.split(',').map(|x| x.trim()).filter(|x| !x.is_empty()).collect();
+            PERSONALIZED_CASES
+                .iter()
+                .enumerate()
+                .filter(|(_, c)| needles.iter().any(|n| c.label.contains(n)))
+                .map(|(i, _)| i)
+                .collect()
+        }
+        None => (0..PERSONALIZED_CASES.len()).collect(),
+    };
+
+    let mut total_failures: Vec<String> = Vec::new();
+    let client = http();
+    for (provider, key) in &providers {
+        eprintln!("[golden-p] === {} ===", provider.label());
+        let concurrency = match provider {
+            Provider::Anthropic => CONCURRENCY_ANTHROPIC,
+            _ => CONCURRENCY_DEFAULT,
+        };
+        let results: Vec<(usize, Result<Vec<String>, String>)> =
+            stream::iter(case_indices.iter().copied().map(|i| (i, &PERSONALIZED_CASES[i])))
+                .map(|(i, case)| {
+                    let client = &client;
+                    let tools = &tools;
+                    async move {
+                        // max_rounds=1: we only assert the first tool, which
+                        // is the escape decision itself.
+                        let r = run_one(client, provider, key, case, tools, 1).await;
+                        (i, r)
+                    }
+                })
+                .buffer_unordered(concurrency)
+                .collect()
+                .await;
+        let mut sorted = results;
+        sorted.sort_by_key(|(i, _)| *i);
+        let mut failures = 0usize;
+        for (i, r) in sorted {
+            let case = &PERSONALIZED_CASES[i];
+            match r {
+                Ok(actual) => {
+                    if matches_expected(&actual, case.expected_first) {
+                        eprintln!("[golden-p]  ✓ {} -> {:?}", case.label, actual);
+                    } else {
+                        failures += 1;
+                        let line = format!(
+                            "[{}/{}] expected first={:?}, got {:?}",
+                            provider.label(),
+                            case.label,
+                            case.expected_first,
+                            actual
+                        );
+                        eprintln!("[golden-p]  ✗ {}", line);
+                        total_failures.push(line);
+                    }
+                }
+                Err(e) => {
+                    failures += 1;
+                    let line = format!("[{}/{}] error: {}", provider.label(), case.label, e);
+                    eprintln!("[golden-p]  ✗ {}", line);
+                    total_failures.push(line);
+                }
+            }
+        }
+        eprintln!(
+            "[golden-p] {} summary: {} pass / {} fail",
+            provider.label(),
+            case_indices.len() - failures,
+            failures
+        );
+    }
+
+    assert!(
+        total_failures.is_empty(),
+        "{} personalized routing case(s) failed:\n  {}",
         total_failures.len(),
         total_failures.join("\n  ")
     );

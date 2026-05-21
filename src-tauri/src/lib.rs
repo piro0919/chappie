@@ -567,6 +567,7 @@ pub fn run() {
             voicevox::voicevox_install,
             voicevox::voicevox_uninstall,
             tool_usage::list_tool_usage,
+            tool_usage::set_personalized_routing_cached,
             set_proactive_config,
             notify_idle_state,
             analytics_set_consent,
