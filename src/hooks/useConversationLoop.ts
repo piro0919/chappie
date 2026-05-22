@@ -176,6 +176,8 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const subscriptionEntitledRef = useRef<boolean>(false);
   const chatClientRef = useRef<ChatClient | null>(null);
   const langRef = useRef<Language>("auto");
+  const proactiveOutputChannelRef =
+    useRef<Settings["proactiveOutputChannel"]>("auto");
   const followupTimerRef = useRef<number | null>(null);
   const ttsActiveRef = useRef(false);
   // True while any external audio source (YouTube miniplayer today,
@@ -692,6 +694,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
           s.subscriptionStatus === "active" ||
           s.subscriptionStatus === "trialing";
         langRef.current = s.language;
+        proactiveOutputChannelRef.current = s.proactiveOutputChannel;
         historyRef.current = createHistory(buildSystemPrompt(s.language));
         const resolvedLang = resolveLanguage(s.language);
         void invoke("set_whisper_language", { lang: resolvedLang }).catch(
@@ -926,6 +929,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     subscriptionEntitledRef.current =
       s.subscriptionStatus === "active" || s.subscriptionStatus === "trialing";
     langRef.current = s.language;
+    proactiveOutputChannelRef.current = s.proactiveOutputChannel;
     if (langChanged) {
       historyRef.current = {
         ...historyRef.current,
@@ -1047,6 +1051,24 @@ export function useConversationLoop(): { state: State; error: string | null } {
     const p = e.payload;
     let speakText: string;
     let hudText: string;
+    // Resolve the output surface up front so we can skip the
+    // (sometimes LLM-backed) idle-chatter composition when it would
+    // never actually be heard.
+    const muted = await invoke<boolean>("is_muted").catch(() => false);
+    const micGranted =
+      (await invoke<string>("check_microphone_permission").catch(
+        () => "denied",
+      )) === "granted";
+    const channel = proactiveOutputChannelRef.current;
+    // HUD-only when the user picked "hud", the system is muted, or the
+    // channel is "auto" and the mic permission is missing — a one-way
+    // spoken nudge is odd when the user can't talk back.
+    const useHud =
+      channel === "hud" || muted || (channel === "auto" && !micGranted);
+    // Idle chatter is conversational filler that only ever speaks. Drop
+    // it before any compose work if it would land on the HUD, or if the
+    // mic is missing (nothing for the user to reply with).
+    if (p.kind === "idleChatter" && (useHud || !micGranted)) return;
     if (p.kind === "morningBrief") {
       const params: Record<string, string> = {
         weather: p.weather,
@@ -1173,11 +1195,10 @@ export function useConversationLoop(): { state: State; error: string | null } {
       );
     }
     console.info(`[proactive] fired: kind=${p.kind}`);
-    const muted = await invoke<boolean>("is_muted").catch(() => false);
-    if (muted) {
-      // Idle chatter is low-priority filler — when the user has
-      // muted the system they're clearly not in a chat mood, so we
-      // skip entirely (no HUD nudge). Other kinds surface on HUD.
+    if (useHud) {
+      // Idle chatter is low-priority filler and only ever speaks; it was
+      // already dropped above for every HUD case, so this only routes
+      // the notification kinds to the HUD.
       if (p.kind === "idleChatter") return;
       await invoke("hud_show", { text: hudText, durationMs: 10000 }).catch(
         () => {},

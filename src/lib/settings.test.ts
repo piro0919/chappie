@@ -45,6 +45,7 @@ describe("settings", () => {
     proactiveIdleChatterAfterMin: 60,
     proactiveQuietHoursStart: "07:00",
     proactiveQuietHoursEnd: "22:00",
+    proactiveOutputChannel: "auto",
   } as const;
 
   const SPEAKER_DEFAULTS = {

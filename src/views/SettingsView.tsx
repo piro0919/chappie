@@ -71,6 +71,8 @@ export function SettingsView() {
   const [proactiveQuietHoursStart, setProactiveQuietHoursStart] =
     useState("07:00");
   const [proactiveQuietHoursEnd, setProactiveQuietHoursEnd] = useState("22:00");
+  const [proactiveOutputChannel, setProactiveOutputChannel] =
+    useState<Settings["proactiveOutputChannel"]>("auto");
   const [analyticsConsent, setAnalyticsConsent] = useState(false);
   const [personalizedToolsEnabled, setPersonalizedToolsEnabled] =
     useState(true);
@@ -263,6 +265,7 @@ export function SettingsView() {
       setProactiveIdleChatterAfterMin(s.proactiveIdleChatterAfterMin);
       setProactiveQuietHoursStart(s.proactiveQuietHoursStart);
       setProactiveQuietHoursEnd(s.proactiveQuietHoursEnd);
+      setProactiveOutputChannel(s.proactiveOutputChannel);
       setSpeakerThreshold(s.speakerThreshold);
       setVadThreshold(s.vadThreshold);
       setVadSilenceFrames(s.vadSilenceFrames);
@@ -655,6 +658,7 @@ export function SettingsView() {
             proactiveIdleChatterAfterMin,
             proactiveQuietHoursStart,
             proactiveQuietHoursEnd,
+            proactiveOutputChannel,
             speakerThreshold,
             vadThreshold,
             vadSilenceFrames,
@@ -688,6 +692,7 @@ export function SettingsView() {
     proactiveIdleChatterAfterMin,
     proactiveQuietHoursStart,
     proactiveQuietHoursEnd,
+    proactiveOutputChannel,
     speakerThreshold,
     vadThreshold,
     vadSilenceFrames,
@@ -1527,6 +1532,29 @@ export function SettingsView() {
                 control type makes its purpose obvious and the toggle
                 label already says what it's for. */}
             <div className={styles.proactiveRow}>
+              <span>{t("settings.proactiveOutputChannelLabel")}</span>
+              <select
+                className={styles.select}
+                style={{ width: "auto" }}
+                value={proactiveOutputChannel}
+                onChange={(e) =>
+                  setProactiveOutputChannel(
+                    e.target.value as Settings["proactiveOutputChannel"],
+                  )
+                }
+              >
+                <option value="auto">
+                  {t("settings.proactiveOutputChannelAuto")}
+                </option>
+                <option value="voice">
+                  {t("settings.proactiveOutputChannelVoice")}
+                </option>
+                <option value="hud">
+                  {t("settings.proactiveOutputChannelHud")}
+                </option>
+              </select>
+            </div>
+            <div className={styles.proactiveRow}>
               <label className={styles.checkRow}>
                 <input
                   type="checkbox"
@@ -1592,12 +1620,20 @@ export function SettingsView() {
               <label className={styles.checkRow}>
                 <input
                   type="checkbox"
-                  checked={proactiveIdleChatterEnabled}
+                  checked={
+                    proactiveIdleChatterEnabled && mic.status === "granted"
+                  }
+                  disabled={mic.status !== "granted"}
                   onChange={(e) =>
                     setProactiveIdleChatterEnabled(e.target.checked)
                   }
                 />
                 {t("settings.proactiveIdleChatterToggle")}
+                {mic.status !== "granted" && (
+                  <span style={{ color: "#6e6e73", fontSize: 11 }}>
+                    {t("settings.proactiveIdleChatterMicHint")}
+                  </span>
+                )}
               </label>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <input

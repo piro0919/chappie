@@ -393,6 +393,10 @@
         "title": "Conversations that grow over time (experimental)",
         "body": "Remembers the flow of your everyday conversations and brings up things you mentioned a few days ago in a natural way."
       },
+      "proactive": {
+        "title": "Speaks up when it matters — no need to ask",
+        "body": "A morning heads-up, a nudge just before your next event, a sudden turn in the weather — Chappie can reach out on its own. You choose whether it speaks aloud or just shows on screen."
+      },
       "location": {
         "title": "Weather for your town, not the nearest big city",
         "body": "Uses macOS Location Services to ground weather and \"nearby\" questions in your actual area. If you decline the permission, Chappie falls back to a rough location estimate — so it works either way."

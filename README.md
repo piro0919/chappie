@@ -36,6 +36,7 @@ away.
 - 👤 **Only responds to your voice** — enroll once and Chappie ignores the TV, YouTube, and other people around you (on-device voiceprint, never uploaded)
 - 🔒 **Your voice stays on your Mac** — speech is transcribed locally with Whisper; the raw audio never leaves the device
 - 📍 **Locally-grounded replies** — weather and "nearby" questions pull from your actual area via macOS CoreLocation (with IP-based fallback if you decline the permission)
+- 🔔 **Speaks up when it matters** — opt-in morning heads-up, a nudge before your next event, and sudden weather changes, without being asked. Choose whether it speaks aloud or just shows on screen.
 - 🍎 **Menu bar resident, no Dock clutter** — shows up only when you need it
 - 🌍 **9 languages** — Japanese / English plus Spanish / French / German / Italian / Portuguese / Korean / Simplified Chinese (Beta). Picks a matching macOS voice automatically. (The landing page itself currently ships in English and Japanese only.)
 - 🆓 **No API key required** — Free mode works out of the box (5 chats/day via our hosted proxy). Bring your own OpenAI / Anthropic / Gemini key any time for unlimited use.

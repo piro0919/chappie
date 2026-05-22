@@ -117,6 +117,18 @@ export type Settings = {
   proactiveQuietHoursStart: string;
   proactiveQuietHoursEnd: string;
   /**
+   * How proactive announcements surface:
+   * - "auto": speak when the mic is granted (HUD when the system is
+   *   muted); fall back to HUD-only when the mic permission is missing,
+   *   since a one-way voice nudge is odd when the user can't talk back.
+   * - "voice": always prefer TTS (HUD only when the system is muted),
+   *   regardless of mic permission.
+   * - "hud": never speak — always show the cream-pill HUD.
+   * Idle chatter is conversational and is suppressed entirely when the
+   * mic permission is missing, independent of this channel choice.
+   */
+  proactiveOutputChannel: "auto" | "voice" | "hud";
+  /**
    * Cosine-similarity threshold for the speaker recognition gate.
    * Range / default are sourced from Rust (`speaker_threshold_range`)
    * so the slider stays in sync with what audio.rs actually compares
@@ -175,6 +187,7 @@ const DEFAULTS: Settings = {
   proactiveIdleChatterAfterMin: 60,
   proactiveQuietHoursStart: "07:00",
   proactiveQuietHoursEnd: "22:00",
+  proactiveOutputChannel: "auto",
   speakerThreshold: 0.4,
   vadThreshold: 0.25,
   vadSilenceFrames: 22,
@@ -271,6 +284,10 @@ export async function loadSettings(): Promise<Settings> {
     proactiveQuietHoursEnd:
       (await store.get<string>("proactiveQuietHoursEnd")) ??
       DEFAULTS.proactiveQuietHoursEnd,
+    proactiveOutputChannel:
+      (await store.get<Settings["proactiveOutputChannel"]>(
+        "proactiveOutputChannel",
+      )) ?? DEFAULTS.proactiveOutputChannel,
     speakerThreshold:
       (await store.get<number>("speakerThreshold")) ??
       DEFAULTS.speakerThreshold,
@@ -367,6 +384,9 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.proactiveQuietHoursEnd !== undefined) {
     await store.set("proactiveQuietHoursEnd", patch.proactiveQuietHoursEnd);
+  }
+  if (patch.proactiveOutputChannel !== undefined) {
+    await store.set("proactiveOutputChannel", patch.proactiveOutputChannel);
   }
   if (patch.speakerThreshold !== undefined) {
     await store.set("speakerThreshold", patch.speakerThreshold);

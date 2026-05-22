@@ -160,7 +160,12 @@ type Messages = {
     proactiveWeatherToggle: string;
     proactiveIdleChatterToggle: string;
     proactiveIdleChatterAfterUnit: string;
+    proactiveIdleChatterMicHint: string;
     proactiveQuietHoursLabel: string;
+    proactiveOutputChannelLabel: string;
+    proactiveOutputChannelAuto: string;
+    proactiveOutputChannelVoice: string;
+    proactiveOutputChannelHud: string;
   };
   conversation: {
     apiKeyMissingShort: string;
@@ -381,6 +386,11 @@ const ja: Messages = {
     proactiveIdleChatterToggle: "アイドル時の雑談",
     proactiveIdleChatterAfterUnit: "分",
     proactiveQuietHoursLabel: "通知する時間帯",
+    proactiveIdleChatterMicHint: "マイクを許可すると使えます",
+    proactiveOutputChannelLabel: "通知の方法",
+    proactiveOutputChannelAuto: "おまかせ（マイク許可時のみ音声）",
+    proactiveOutputChannelVoice: "音声で読み上げ",
+    proactiveOutputChannelHud: "画面に表示",
   },
   conversation: {
     apiKeyMissingShort:
@@ -612,6 +622,11 @@ const en: Messages = {
     proactiveIdleChatterToggle: "Idle chatter",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Active hours",
+    proactiveIdleChatterMicHint: "Available once microphone access is granted",
+    proactiveOutputChannelLabel: "Notification style",
+    proactiveOutputChannelAuto: "Automatic (voice only when mic is on)",
+    proactiveOutputChannelVoice: "Read aloud",
+    proactiveOutputChannelHud: "Show on screen",
   },
   conversation: {
     apiKeyMissingShort:
@@ -844,6 +859,11 @@ const es: Messages = {
     proactiveIdleChatterToggle: "Charla en inactivo",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Horas activas",
+    proactiveIdleChatterMicHint: "Disponible al conceder acceso al micrófono",
+    proactiveOutputChannelLabel: "Modo de notificación",
+    proactiveOutputChannelAuto: "Automático (voz solo con micrófono)",
+    proactiveOutputChannelVoice: "Leer en voz alta",
+    proactiveOutputChannelHud: "Mostrar en pantalla",
   },
   conversation: {
     apiKeyMissingShort:
@@ -1076,6 +1096,11 @@ const fr: Messages = {
     proactiveIdleChatterToggle: "Bavardage en idle",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Heures actives",
+    proactiveIdleChatterMicHint: "Disponible après autorisation du microphone",
+    proactiveOutputChannelLabel: "Mode de notification",
+    proactiveOutputChannelAuto: "Automatique (voix si micro activé)",
+    proactiveOutputChannelVoice: "Lecture vocale",
+    proactiveOutputChannelHud: "Afficher à l'écran",
   },
   conversation: {
     apiKeyMissingShort:
@@ -1308,6 +1333,12 @@ const de: Messages = {
     proactiveIdleChatterToggle: "Smalltalk im Leerlauf",
     proactiveIdleChatterAfterUnit: "Min",
     proactiveQuietHoursLabel: "Aktive Zeiten",
+    proactiveIdleChatterMicHint:
+      "Verfügbar, sobald Mikrofonzugriff erlaubt ist",
+    proactiveOutputChannelLabel: "Benachrichtigungsart",
+    proactiveOutputChannelAuto: "Automatisch (Stimme nur mit Mikrofon)",
+    proactiveOutputChannelVoice: "Vorlesen",
+    proactiveOutputChannelHud: "Auf dem Bildschirm anzeigen",
   },
   conversation: {
     apiKeyMissingShort:
@@ -1533,6 +1564,11 @@ const zh: Messages = {
     proactiveIdleChatterToggle: "空闲时闲聊",
     proactiveIdleChatterAfterUnit: "分钟",
     proactiveQuietHoursLabel: "通知时段",
+    proactiveIdleChatterMicHint: "授予麦克风权限后可用",
+    proactiveOutputChannelLabel: "通知方式",
+    proactiveOutputChannelAuto: "自动（仅在麦克风开启时朗读）",
+    proactiveOutputChannelVoice: "语音朗读",
+    proactiveOutputChannelHud: "屏幕显示",
   },
   conversation: {
     apiKeyMissingShort: "尚未设置 OpenAI API 密钥。请在设置中添加。",
@@ -1762,6 +1798,11 @@ const pt: Messages = {
     proactiveIdleChatterToggle: "Conversa em ocioso",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Horas ativas",
+    proactiveIdleChatterMicHint: "Disponível após permitir o microfone",
+    proactiveOutputChannelLabel: "Modo de notificação",
+    proactiveOutputChannelAuto: "Automático (voz só com microfone)",
+    proactiveOutputChannelVoice: "Ler em voz alta",
+    proactiveOutputChannelHud: "Mostrar na tela",
   },
   conversation: {
     apiKeyMissingShort:
@@ -1992,6 +2033,11 @@ const ko: Messages = {
     proactiveIdleChatterToggle: "유휴 시 잡담",
     proactiveIdleChatterAfterUnit: "분",
     proactiveQuietHoursLabel: "알림 시간대",
+    proactiveIdleChatterMicHint: "마이크를 허용하면 사용할 수 있어요",
+    proactiveOutputChannelLabel: "알림 방식",
+    proactiveOutputChannelAuto: "자동 (마이크 허용 시에만 음성)",
+    proactiveOutputChannelVoice: "음성으로 읽기",
+    proactiveOutputChannelHud: "화면에 표시",
   },
   conversation: {
     apiKeyMissingShort:
@@ -2224,6 +2270,12 @@ const it: Messages = {
     proactiveIdleChatterToggle: "Chiacchiere in idle",
     proactiveIdleChatterAfterUnit: "min",
     proactiveQuietHoursLabel: "Orari attivi",
+    proactiveIdleChatterMicHint:
+      "Disponibile dopo aver consentito il microfono",
+    proactiveOutputChannelLabel: "Modalità di notifica",
+    proactiveOutputChannelAuto: "Automatico (voce solo con microfono)",
+    proactiveOutputChannelVoice: "Lettura vocale",
+    proactiveOutputChannelHud: "Mostra a schermo",
   },
   conversation: {
     apiKeyMissingShort:
