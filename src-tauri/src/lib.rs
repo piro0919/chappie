@@ -22,6 +22,7 @@ mod i18n;
 mod llm;
 mod log_event;
 mod mcp;
+mod mic_activity;
 mod mic_permission;
 mod model;
 mod location;
@@ -559,6 +560,7 @@ pub fn run() {
             hud::hud_dismiss,
             hud::hud_show,
             volume::is_muted,
+            mic_activity::is_external_mic_active,
             tray::set_update_available,
             tray::set_tray_character,
             voicevox::voicevox_speakers_list,

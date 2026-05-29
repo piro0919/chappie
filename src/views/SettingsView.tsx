@@ -76,6 +76,8 @@ export function SettingsView() {
   const [analyticsConsent, setAnalyticsConsent] = useState(false);
   const [personalizedToolsEnabled, setPersonalizedToolsEnabled] =
     useState(true);
+  const [suppressWhileExternalMicActive, setSuppressWhileExternalMicActive] =
+    useState(false);
   const [analyticsBusy, setAnalyticsBusy] = useState(false);
   const [analyticsRecent, setAnalyticsRecent] = useState<
     Array<{
@@ -271,6 +273,7 @@ export function SettingsView() {
       setVadSilenceFrames(s.vadSilenceFrames);
       setAnalyticsConsent(s.analyticsConsent);
       setPersonalizedToolsEnabled(s.personalizedToolsEnabled);
+      setSuppressWhileExternalMicActive(s.suppressWhileExternalMicActive);
       // Mirror the stored consent flag into the Rust process so the
       // dispatch hot path doesn't run with a stale default-false until
       // the first toggle. Cached-only invoke, no network round-trip.
@@ -664,6 +667,7 @@ export function SettingsView() {
             vadSilenceFrames,
             analyticsConsent,
             personalizedToolsEnabled,
+            suppressWhileExternalMicActive,
           });
           await invoke("set_speaker_threshold", { value: speakerThreshold });
           await invoke("set_vad_threshold", { value: vadThreshold });
@@ -698,6 +702,7 @@ export function SettingsView() {
     vadSilenceFrames,
     analyticsConsent,
     personalizedToolsEnabled,
+    suppressWhileExternalMicActive,
   ]);
 
   if (!loaded) {
@@ -1505,6 +1510,27 @@ export function SettingsView() {
             </p>
           </div>
         </details>
+      </div>
+
+      {/* Mic etiquette: stay quiet while another app holds the mic (calls,
+          recordings). Off by default — opt-in, since an app that keeps the
+          mic open while idle would otherwise keep Chappie silent. */}
+      <div className={styles.group}>
+        <div className={styles.groupRow}>
+          <span className={styles.groupRowLabel}>
+            {t("settings.suppressOnExternalMicToggle")}
+          </span>
+          <input
+            type="checkbox"
+            checked={suppressWhileExternalMicActive}
+            onChange={(e) =>
+              setSuppressWhileExternalMicActive(e.target.checked)
+            }
+          />
+        </div>
+        <p className={styles.note} style={{ marginTop: 8 }}>
+          {t("settings.suppressOnExternalMicDescription")}
+        </p>
       </div>
 
       {/* Proactive notifications — Chappie speaks up on its own.

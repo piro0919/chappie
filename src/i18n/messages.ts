@@ -132,6 +132,8 @@ type Messages = {
     personalizedToolsLabel: string;
     personalizedToolsToggle: string;
     personalizedToolsDescription: string;
+    suppressOnExternalMicToggle: string;
+    suppressOnExternalMicDescription: string;
     analyticsLabel: string;
     analyticsStatusOn: string;
     analyticsStatusOff: string;
@@ -350,6 +352,9 @@ const ja: Messages = {
     personalizedToolsToggle: "よく使う機能を優先する",
     personalizedToolsDescription:
       "あなたがよく使う機能を覚えて優先的に判断するので、反応が速く・正確になります。通常はオンのままで問題ありません。",
+    suppressOnExternalMicToggle: "ほかのアプリがマイク使用中は話さない",
+    suppressOnExternalMicDescription:
+      "通話や録音などでほかのアプリがマイクを使っているあいだは、声を出さずに画面表示だけでお知らせします。会話に割り込みません。",
     analyticsLabel: "使用データの匿名共有",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -586,6 +591,9 @@ const en: Messages = {
     personalizedToolsToggle: "Prioritize features you use most",
     personalizedToolsDescription:
       "Learns which features you use most and considers them first, making responses faster and more accurate. Best left on.",
+    suppressOnExternalMicToggle: "Stay quiet while another app uses the mic",
+    suppressOnExternalMicDescription:
+      "While another app is using the microphone — a call or recording — Chappie won't speak. It shows the reply on screen instead, so it never talks over you.",
     analyticsLabel: "Share anonymous usage data",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -823,6 +831,9 @@ const es: Messages = {
     personalizedToolsToggle: "Priorizar las funciones que más usas",
     personalizedToolsDescription:
       "Aprende qué funciones usas más y las considera primero, haciendo las respuestas más rápidas y precisas. Mejor dejarlo activado.",
+    suppressOnExternalMicToggle: "Callar cuando otra app usa el micrófono",
+    suppressOnExternalMicDescription:
+      "Mientras otra app usa el micrófono —una llamada o una grabación— Chappie no hablará. En su lugar muestra la respuesta en pantalla, para no interrumpirte.",
     analyticsLabel: "Compartir datos de uso anónimos",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -1060,6 +1071,10 @@ const fr: Messages = {
     personalizedToolsToggle: "Prioriser les fonctions les plus utilisées",
     personalizedToolsDescription:
       "Apprend les fonctions que vous utilisez le plus et les privilégie, pour des réponses plus rapides et plus précises. À laisser activé.",
+    suppressOnExternalMicToggle:
+      "Rester silencieux quand une autre app utilise le micro",
+    suppressOnExternalMicDescription:
+      "Quand une autre application utilise le micro — un appel ou un enregistrement — Chappie ne parle pas. Il affiche la réponse à l'écran pour ne pas vous couper la parole.",
     analyticsLabel: "Partager les données d'usage anonymes",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -1297,6 +1312,10 @@ const de: Messages = {
     personalizedToolsToggle: "Meistgenutzte Funktionen bevorzugen",
     personalizedToolsDescription:
       "Lernt, welche Funktionen du am häufigsten nutzt, und berücksichtigt sie zuerst – für schnellere und genauere Antworten. Am besten aktiviert lassen.",
+    suppressOnExternalMicToggle:
+      "Still bleiben, wenn eine andere App das Mikrofon nutzt",
+    suppressOnExternalMicDescription:
+      "Während eine andere App das Mikrofon nutzt – ein Anruf oder eine Aufnahme – spricht Chappie nicht. Die Antwort erscheint stattdessen auf dem Bildschirm, damit es dich nie unterbricht.",
     analyticsLabel: "Anonyme Nutzungsdaten teilen",
     analyticsStatusOn: "AN",
     analyticsStatusOff: "AUS",
@@ -1529,6 +1548,9 @@ const zh: Messages = {
     personalizedToolsToggle: "优先使用常用功能",
     personalizedToolsDescription:
       "学习你最常用的功能并优先判断，让响应更快更准确。建议保持开启。",
+    suppressOnExternalMicToggle: "其他应用使用麦克风时保持安静",
+    suppressOnExternalMicDescription:
+      "当其他应用正在使用麦克风（通话或录音）时，Chappie 不会说话，而是在屏幕上显示回复，不会打断你。",
     analyticsLabel: "匿名共享使用数据",
     analyticsStatusOn: "开启",
     analyticsStatusOff: "关闭",
@@ -1762,6 +1784,10 @@ const pt: Messages = {
     personalizedToolsToggle: "Priorizar as funções que você mais usa",
     personalizedToolsDescription:
       "Aprende quais funções você mais usa e as considera primeiro, deixando as respostas mais rápidas e precisas. Melhor manter ativado.",
+    suppressOnExternalMicToggle:
+      "Ficar em silêncio quando outro app usar o microfone",
+    suppressOnExternalMicDescription:
+      "Enquanto outro app está usando o microfone — uma chamada ou gravação — o Chappie não fala. Em vez disso, mostra a resposta na tela, para não falar por cima de você.",
     analyticsLabel: "Compartilhar dados de uso anônimos",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -1997,6 +2023,9 @@ const ko: Messages = {
     personalizedToolsToggle: "자주 쓰는 기능 우선",
     personalizedToolsDescription:
       "자주 사용하는 기능을 학습해 먼저 고려하므로 응답이 더 빠르고 정확해집니다. 켜 두는 것을 권장합니다.",
+    suppressOnExternalMicToggle: "다른 앱이 마이크를 쓸 때 조용히 하기",
+    suppressOnExternalMicDescription:
+      "다른 앱이 마이크를 사용하는 동안(통화나 녹음 등)에는 Chappie가 말하지 않고 화면에만 답을 표시해 끼어들지 않습니다.",
     analyticsLabel: "익명 사용 데이터 공유",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",
@@ -2234,6 +2263,10 @@ const it: Messages = {
     personalizedToolsToggle: "Dai priorità alle funzioni che usi di più",
     personalizedToolsDescription:
       "Impara quali funzioni usi di più e le considera per prime, rendendo le risposte più rapide e precise. Meglio lasciarlo attivo.",
+    suppressOnExternalMicToggle:
+      "Resta in silenzio quando un'altra app usa il microfono",
+    suppressOnExternalMicDescription:
+      "Mentre un'altra app sta usando il microfono — una chiamata o una registrazione — Chappie non parla. Mostra invece la risposta a schermo, per non sovrapporsi a te.",
     analyticsLabel: "Condivisione anonima dati di utilizzo",
     analyticsStatusOn: "ON",
     analyticsStatusOff: "OFF",

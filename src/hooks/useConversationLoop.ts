@@ -36,7 +36,11 @@ import {
   type State,
   transition,
 } from "../lib/state-machine";
-import { isSystemMuted, showOnHud } from "../lib/tauri-bridge";
+import {
+  setSuppressOnExternalMic,
+  shouldSuppressAudioOutput,
+  showOnHud,
+} from "../lib/tauri-bridge";
 import { resolveVoiceForWake } from "../lib/voice-selection";
 import {
   isPaidSpeaker,
@@ -276,7 +280,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       console.warn("[loop] no api key — speaking error message");
       const msg = tRaw(langRef.current, "conversation.apiKeyMissingShort");
       try {
-        if (await isSystemMuted()) await showOnHud(msg);
+        if (await shouldSuppressAudioOutput()) await showOnHud(msg);
         else
           await withMutedCapture(() =>
             speak(msg, resolveLanguage(langRef.current)),
@@ -293,7 +297,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     // The mid-turn mute case (user says "ミュート" right now) won't be caught
     // here, but those replies are short ("ミュートしました") and rarely
     // contain numbers, so the cosmetic miss is acceptable.
-    const mutedAtTurnStart = await isSystemMuted();
+    const mutedAtTurnStart = await shouldSuppressAudioOutput();
     const requestMessages = messagesForRequest(historyRef.current);
     if (mutedAtTurnStart) {
       requestMessages.splice(1, 0, {
@@ -373,7 +377,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
             firstChunkSeen = true;
             // Decide routing once. Mid-turn toggling would strand us with
             // a half-spoken / half-written reply.
-            void isSystemMuted().then((muted) => {
+            void shouldSuppressAudioOutput().then((muted) => {
               routeToHud = muted;
               if (!muted) {
                 ensureSpeaker();
@@ -442,7 +446,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       const hudMsg = isQuota
         ? tRaw(langRef.current, "conversation.quotaExceededHud")
         : errMsg;
-      const errMuted = await isSystemMuted();
+      const errMuted = await shouldSuppressAudioOutput();
       try {
         if (errMuted) await showOnHud(hudMsg);
         else
@@ -459,7 +463,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     // If the routing decision never resolved (no chunks → no first-chunk
     // callback fired), check now so the non-streaming fallback also
     // respects mute state.
-    if (routeToHud === null) routeToHud = await isSystemMuted();
+    if (routeToHud === null) routeToHud = await shouldSuppressAudioOutput();
 
     if (routeToHud) {
       // Muted: surface the whole reply as text, no audio.
@@ -667,7 +671,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // pipeline for the cooldown duration.
       void (async () => {
         const ack = pickWakeAck(langRef.current, m.speakerId);
-        if (await isSystemMuted()) {
+        if (await shouldSuppressAudioOutput()) {
           await invoke("hud_show", {
             text: `👂 ${ack}`,
             durationMs: 2200,
@@ -702,6 +706,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
           s.subscriptionStatus === "trialing";
         langRef.current = s.language;
         proactiveOutputChannelRef.current = s.proactiveOutputChannel;
+        setSuppressOnExternalMic(s.suppressWhileExternalMicActive);
         historyRef.current = createHistory(buildSystemPrompt(s.language));
         const resolvedLang = resolveLanguage(s.language);
         void invoke("set_whisper_language", { lang: resolvedLang }).catch(
@@ -937,6 +942,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       s.subscriptionStatus === "active" || s.subscriptionStatus === "trialing";
     langRef.current = s.language;
     proactiveOutputChannelRef.current = s.proactiveOutputChannel;
+    setSuppressOnExternalMic(s.suppressWhileExternalMicActive);
     if (langChanged) {
       historyRef.current = {
         ...historyRef.current,
@@ -988,7 +994,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     console.info(`[timer] fired: id=${e.payload.id} label="${label}"`);
     // When muted, the spoken alarm would be silent — surface it on
     // the HUD instead so the user actually notices the timer fired.
-    const muted = await invoke<boolean>("is_muted").catch(() => false);
+    const muted = await shouldSuppressAudioOutput();
     if (muted) {
       const hudText = label
         ? tRaw(langRef.current, "conversation.timerHudWithLabel", { label })
@@ -1023,7 +1029,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
           })
         : tRaw(langRef.current, "conversation.reminderFiredNoLabel");
       console.info(`[reminder] fired: id=${e.payload.id} label="${label}"`);
-      const muted = await invoke<boolean>("is_muted").catch(() => false);
+      const muted = await shouldSuppressAudioOutput();
       if (muted) {
         const hudText = label
           ? tRaw(langRef.current, "conversation.reminderHudWithLabel", {
@@ -1061,7 +1067,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     // Resolve the output surface up front so we can skip the
     // (sometimes LLM-backed) idle-chatter composition when it would
     // never actually be heard.
-    const muted = await invoke<boolean>("is_muted").catch(() => false);
+    const muted = await shouldSuppressAudioOutput();
     const micGranted =
       (await invoke<string>("check_microphone_permission").catch(
         () => "denied",
