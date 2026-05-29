@@ -363,7 +363,7 @@ const ja: Messages = {
     switchbotLabel: "SwitchBot（家電操作）",
     switchbotStepsLabel: "トークンの取得方法",
     switchbotSteps:
-      "1. SwitchBot アプリを開く（ログイン済み）\n2. 「プロフィール」→「設定」\n3. 「アプリバージョン」を10回タップ\n4. 「開発者向けオプション」を開く\n5. 「トークンを取得」をタップ\n6. 表示された token と secret を上に貼り付け（secret は1回しか表示されないことがあるのでその場で控える）",
+      "1. SwitchBot アプリを開く（ログイン済み）\n2. 「プロフィール」→「設定」→「基本データ」\n3. 「アプリバージョン」を10回タップ\n4. 「開発者向けオプション」を開く\n5. 「トークンを取得」をタップ\n6. 表示された token と secret を上に貼り付け（secret は1回しか表示されないことがあるのでその場で控える）",
     switchbotTokenPlaceholder: "トークン",
     switchbotSecretPlaceholder: "シークレット",
     switchbotDescription:

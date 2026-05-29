@@ -53,20 +53,18 @@ export function SwitchbotPanel({
           <p className={styles.note} style={{ marginTop: 0 }}>
             {t("settings.switchbotDescription")}
           </p>
-          {/* The token is obtained inside the SwitchBot phone app; surface
-              the exact taps in a nested accordion so they're there when
-              needed without cluttering the panel. */}
-          <details>
-            <summary className={styles.note} style={{ cursor: "pointer" }}>
-              {t("settings.switchbotStepsLabel")}
-            </summary>
-            <p
-              className={styles.note}
-              style={{ marginTop: 4, whiteSpace: "pre-line" }}
-            >
-              {t("settings.switchbotSteps")}
-            </p>
-          </details>
+          {/* The token is obtained inside the SwitchBot phone app via a
+              non-obvious path, so the steps are shown inline (no extra
+              click) once the panel itself is expanded. */}
+          <p className={styles.note} style={{ marginTop: 0, fontWeight: 600 }}>
+            {t("settings.switchbotStepsLabel")}
+          </p>
+          <p
+            className={styles.note}
+            style={{ marginTop: 0, whiteSpace: "pre-line" }}
+          >
+            {t("settings.switchbotSteps")}
+          </p>
         </div>
       </details>
     </div>
