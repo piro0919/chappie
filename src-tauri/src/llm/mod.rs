@@ -15,6 +15,7 @@ pub mod events;
 pub mod gemini_impl;
 pub mod openai_impl;
 pub mod proxy_impl;
+pub mod tool_rescue;
 
 use reqwest::RequestBuilder;
 use serde_json::Value;

@@ -108,7 +108,33 @@ pub async fn chat_complete_generic<P: LlmProvider>(
     } else if chitchat {
         (crate::tools::minimal_tools(), "chitchat")
     } else if let Some(ref hot) = hot_set {
-        (crate::tools::personalized_tools(hot), "personalized")
+        // Keyword rescue: splice any trimmed tool whose domain keyword
+        // appears in this utterance back into the hot set for this turn,
+        // so weaker models (Gemini Flash never fires the escape tool)
+        // reach it directly instead of degrading to a knowledge answer.
+        let rescued =
+            crate::llm::tool_rescue::rescue_tool_names(&last_user_text, crate::i18n::current());
+        let merged = if rescued.is_empty() {
+            hot.clone()
+        } else {
+            let new: Vec<&String> = rescued.iter().filter(|n| !hot.contains(*n)).collect();
+            if !new.is_empty() {
+                crate::linfo!(
+                    app,
+                    label,
+                    "tool_rescue: +{names}",
+                    names = new
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(",")
+                );
+            }
+            let mut m = hot.clone();
+            m.extend(rescued);
+            m
+        };
+        (crate::tools::personalized_tools(&merged), "personalized")
     } else {
         (crate::tools::all_tools(), "full")
     };
