@@ -76,6 +76,16 @@ const CONTINUE_WINDOW_MS = 6000;
 // budget covers long utterances while still recovering to idle when no
 // segment ever materialises.
 const MAX_SPEECH_HOLD_MS = 15000;
+// Absolute ceiling on how long the renderer stays in `listening` (the
+// "聞いてます" tray state) after a window opens — bare wake or post-turn
+// continuation. Without it, every `speechActive` VAD event re-arms the
+// followup timer with MAX_SPEECH_HOLD_MS, so continuous background voice
+// (a TV, other people in the room — all rejected by the speaker gate but
+// still tripping VAD) keeps the window alive indefinitely and the status
+// never drops back to "待機中". A real long utterance is unaffected: the
+// `speech` event closes the window when the user actually finishes; this
+// only bounds the no-real-segment / ambient-voice case.
+const ABSOLUTE_LISTEN_MAX_MS = 12000;
 // Time the tray "error" state stays visible before auto-recovering.
 const ERROR_DISPLAY_MS = 1800;
 // Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
@@ -208,6 +218,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const proactiveOutputChannelRef =
     useRef<Settings["proactiveOutputChannel"]>("auto");
   const followupTimerRef = useRef<number | null>(null);
+  // Absolute wall-clock deadline (ms epoch) for the current listening
+  // window. armFollowupTimer never schedules past this, so VAD re-arms
+  // from ambient voice can't hold "聞いてます" open forever. Set when a
+  // window opens (bare wake / continuation); 0 = no active window.
+  const listenDeadlineRef = useRef<number>(0);
   const ttsActiveRef = useRef(false);
   // True while any external audio source (YouTube miniplayer today,
   // Spotify / Apple Music in the future) is actively producing sound
@@ -281,12 +296,20 @@ export function useConversationLoop(): { state: State; error: string | null } {
   // when VAD reports voice activity / when a segment gets filtered out.
   function armFollowupTimer(ms: number) {
     clearFollowupTimer();
+    // Never schedule past the window's absolute deadline. A re-arm that
+    // would (e.g. ambient voice tripping speechActive) is clamped to the
+    // time left, so the window always closes within ABSOLUTE_LISTEN_MAX_MS
+    // of opening even under continuous background speech.
+    const remaining = listenDeadlineRef.current - Date.now();
+    const effective =
+      listenDeadlineRef.current > 0 ? Math.min(ms, Math.max(0, remaining)) : ms;
     followupTimerRef.current = window.setTimeout(() => {
       followupTimerRef.current = null;
+      listenDeadlineRef.current = 0;
       // speechTimeout transitions listening → idle, which naturally
       // clears awaitingContinuation as part of the state change.
       dispatch({ type: "speechTimeout" });
-    }, ms);
+    }, effective);
   }
 
   async function runTurn(userText: string) {
@@ -620,6 +643,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     // — the machine now carries the "we're waiting for follow-up without
     // a fresh wake word" state directly.
     dispatch({ type: "continuationOpened" });
+    listenDeadlineRef.current = Date.now() + ABSOLUTE_LISTEN_MAX_MS;
     armFollowupTimer(CONTINUE_WINDOW_MS);
   }
 
@@ -736,6 +760,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // so the machine carries the "awaiting body" sub-flag instead of
       // tracking it in a separate ref.
       dispatch({ type: "continuationOpened" });
+      listenDeadlineRef.current = Date.now() + ABSOLUTE_LISTEN_MAX_MS;
       armFollowupTimer(FOLLOWUP_TIMEOUT_MS);
       // Quick "はい" acknowledgement so the user knows we're listening.
       // Fire-and-forget — we don't await it because the user may start
