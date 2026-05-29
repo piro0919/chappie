@@ -203,6 +203,8 @@ type Messages = {
     micStartFailed: string;
     quotaExceededShort: string;
     quotaExceededHud: string;
+    authExpiredShort: string;
+    authExpiredHud: string;
   };
   systemPrompt: {
     persona: string;
@@ -441,6 +443,10 @@ const ja: Messages = {
     quotaExceededShort: "今日の無料枠を使い切りました。",
     quotaExceededHud:
       "今日の無料枠を使い切りました。設定で「API キーを使う」に切り替えるか、明日 9 時までお待ちください。",
+    authExpiredShort:
+      "Pro の認証が切れているかもしれません。設定からサインインし直してください。",
+    authExpiredHud:
+      "⚠️ Pro の認証が切れているかもしれません。設定からサインインし直してください。",
   },
   systemPrompt: {
     persona:
@@ -683,6 +689,10 @@ const en: Messages = {
     quotaExceededShort: "Daily free quota reached.",
     quotaExceededHud:
       'Daily free quota reached. Switch to "Use my API key" in Settings, or wait until 9:00 JST tomorrow.',
+    authExpiredShort:
+      "Your Pro sign-in may have expired. Please sign in again from Settings.",
+    authExpiredHud:
+      "⚠️ Your Pro sign-in may have expired. Sign in again from Settings.",
   },
   systemPrompt: {
     persona:
@@ -926,6 +936,10 @@ const es: Messages = {
     quotaExceededShort: "Cuota gratuita diaria alcanzada.",
     quotaExceededHud:
       "Cuota gratuita diaria alcanzada. Cambia a «Usar mi clave de API» en Ajustes, o espera hasta mañana a las 9:00 JST.",
+    authExpiredShort:
+      "Tu sesión Pro pudo haber caducado. Vuelve a iniciar sesión desde Ajustes.",
+    authExpiredHud:
+      "⚠️ Tu sesión Pro pudo haber caducado. Vuelve a iniciar sesión desde Ajustes.",
   },
   systemPrompt: {
     persona:
@@ -1169,6 +1183,10 @@ const fr: Messages = {
     quotaExceededShort: "Quota gratuit quotidien atteint.",
     quotaExceededHud:
       "Quota gratuit quotidien atteint. Passez à « Utiliser ma clé API » dans Réglages, ou attendez 9 h JST demain.",
+    authExpiredShort:
+      "Votre connexion Pro a peut-être expiré. Reconnectez-vous depuis les Réglages.",
+    authExpiredHud:
+      "⚠️ Votre connexion Pro a peut-être expiré. Reconnectez-vous depuis les Réglages.",
   },
   systemPrompt: {
     persona:
@@ -1413,6 +1431,10 @@ const de: Messages = {
     quotaExceededShort: "Tageskontingent erreicht.",
     quotaExceededHud:
       "Tageskontingent erreicht. Wechsle in den Einstellungen zu „Eigenen API-Schlüssel nutzen“, oder warte bis morgen 9:00 JST.",
+    authExpiredShort:
+      "Deine Pro-Anmeldung ist vielleicht abgelaufen. Bitte melde dich in den Einstellungen erneut an.",
+    authExpiredHud:
+      "⚠️ Deine Pro-Anmeldung ist vielleicht abgelaufen. Melde dich in den Einstellungen erneut an.",
   },
   systemPrompt: {
     persona:
@@ -1646,6 +1668,8 @@ const zh: Messages = {
     quotaExceededShort: "今日免费额度已用完。",
     quotaExceededHud:
       "今日免费额度已用完。请在设置中切换到「使用我的 API 密钥」，或等到明天日本时间 9:00。",
+    authExpiredShort: "Pro 登录可能已过期。请在设置中重新登录。",
+    authExpiredHud: "⚠️ Pro 登录可能已过期。请在设置中重新登录。",
   },
   systemPrompt: {
     persona:
@@ -1888,6 +1912,10 @@ const pt: Messages = {
     quotaExceededShort: "Cota gratuita diária atingida.",
     quotaExceededHud:
       "Cota gratuita diária atingida. Mude para «Usar minha chave de API» nas Configurações, ou aguarde até amanhã às 9:00 JST.",
+    authExpiredShort:
+      "Seu login Pro pode ter expirado. Entre novamente nas Configurações.",
+    authExpiredHud:
+      "⚠️ Seu login Pro pode ter expirado. Entre novamente nas Configurações.",
   },
   systemPrompt: {
     persona:
@@ -2130,6 +2158,10 @@ const ko: Messages = {
     quotaExceededShort: "오늘의 무료 한도를 다 썼습니다.",
     quotaExceededHud:
       "오늘의 무료 한도를 다 썼습니다. 설정에서 「내 API 키 사용」으로 전환하거나, 내일 일본 시간 9시까지 기다려 주세요.",
+    authExpiredShort:
+      "Pro 로그인이 만료되었을 수 있어요. 설정에서 다시 로그인해 주세요.",
+    authExpiredHud:
+      "⚠️ Pro 로그인이 만료되었을 수 있어요. 설정에서 다시 로그인해 주세요.",
   },
   systemPrompt: {
     persona:
@@ -2373,6 +2405,10 @@ const it: Messages = {
     quotaExceededShort: "Quota gratuita giornaliera raggiunta.",
     quotaExceededHud:
       "Quota gratuita giornaliera raggiunta. Passa a «Usa la mia chiave API» nelle Impostazioni, o attendi fino alle 9:00 JST di domani.",
+    authExpiredShort:
+      "L'accesso Pro potrebbe essere scaduto. Accedi di nuovo dalle Impostazioni.",
+    authExpiredHud:
+      "⚠️ L'accesso Pro potrebbe essere scaduto. Accedi di nuovo dalle Impostazioni.",
   },
   systemPrompt: {
     persona:

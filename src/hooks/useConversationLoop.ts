@@ -476,12 +476,24 @@ export function useConversationLoop(): { state: State; error: string | null } {
       const isQuota =
         modeRef.current === "free" &&
         (/\b429\b/.test(raw) || /quota/i.test(raw));
-      const errMsg = isQuota
-        ? tRaw(langRef.current, "conversation.quotaExceededShort")
-        : tRaw(langRef.current, "conversation.fallbackError");
-      const hudMsg = isQuota
-        ? tRaw(langRef.current, "conversation.quotaExceededHud")
-        : errMsg;
+      // A paid/byok session hitting the proxy's device daily-quota means the
+      // subscription token wasn't honored — almost always expired/lapsed
+      // auth, not a transient. Match the specific device-quota signal so
+      // generic upstream 429s still fall through to the generic message.
+      const isAuthExpired =
+        modeRef.current !== "free" && /daily quota exceeded/i.test(raw);
+      let errMsg: string;
+      let hudMsg: string;
+      if (isQuota) {
+        errMsg = tRaw(langRef.current, "conversation.quotaExceededShort");
+        hudMsg = tRaw(langRef.current, "conversation.quotaExceededHud");
+      } else if (isAuthExpired) {
+        errMsg = tRaw(langRef.current, "conversation.authExpiredShort");
+        hudMsg = tRaw(langRef.current, "conversation.authExpiredHud");
+      } else {
+        errMsg = tRaw(langRef.current, "conversation.fallbackError");
+        hudMsg = errMsg;
+      }
       const errOut = await resolveOutputMode();
       try {
         if (errOut === "hud") await showOnHud(hudMsg);
