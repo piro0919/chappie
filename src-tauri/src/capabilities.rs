@@ -121,6 +121,14 @@ fn capabilities_pt() -> String {
             ],
         ),
         (
+            "Casa inteligente (SwitchBot)",
+            &[
+                "Liga a luz da sala, desliga o ar-condicionado, abre as cortinas",
+                "Quais dispositivos você controla? (lista os registrados)",
+                "Precisa do token e segredo do SwitchBot nas Configurações",
+            ],
+        ),
+        (
             "Relógio mundial",
             &[
                 "Que horas são em Londres?, que horas são em Nova York?",
@@ -332,6 +340,14 @@ fn capabilities_ko() -> String {
             ],
         ),
         (
+            "스마트홈 (SwitchBot)",
+            &[
+                "거실 불 켜줘, 에어컨 꺼줘, 커튼 열어줘",
+                "어떤 기기를 제어할 수 있어? (등록된 기기 목록)",
+                "설정에서 SwitchBot 토큰과 시크릿 입력이 필요",
+            ],
+        ),
+        (
             "세계 시계",
             &[
                 "런던 지금 몇 시?, 뉴욕은 몇 시?",
@@ -537,6 +553,14 @@ fn capabilities_it() -> String {
                 "Ogni monitor riceve una foto diversa (tramite Pixabay)",
                 "Metti la foto del giorno di Wikipedia come sfondo",
                 "Metti un'opera d'arte come sfondo (Art Institute of Chicago)",
+            ],
+        ),
+        (
+            "Casa intelligente (SwitchBot)",
+            &[
+                "Accendi la luce del salotto, spegni il condizionatore, apri le tende",
+                "Quali dispositivi puoi controllare? (elenca quelli registrati)",
+                "Servono token e secret di SwitchBot nelle Impostazioni",
             ],
         ),
         (
@@ -754,6 +778,14 @@ fn capabilities_es() -> String {
             ],
         ),
         (
+            "Hogar inteligente (SwitchBot)",
+            &[
+                "Enciende la luz del salón, apaga el aire, abre las cortinas",
+                "¿Qué dispositivos puedes controlar? (lista los registrados)",
+                "Necesita tu token y secreto de SwitchBot en Ajustes",
+            ],
+        ),
+        (
             "Reloj mundial",
             &[
                 "¿Qué hora es en Londres?, ¿qué hora es en Nueva York?",
@@ -965,6 +997,14 @@ fn capabilities_fr() -> String {
                 "Chaque écran reçoit une photo différente (via Pixabay)",
                 "Mets la photo du jour de Wikipédia en fond d'écran",
                 "Mets une œuvre d'art en fond d'écran (Art Institute of Chicago)",
+            ],
+        ),
+        (
+            "Maison connectée (SwitchBot)",
+            &[
+                "Allume la lumière du salon, éteins la clim, ouvre les rideaux",
+                "Quels appareils peux-tu contrôler ? (liste les enregistrés)",
+                "Nécessite ton jeton et secret SwitchBot dans les Réglages",
             ],
         ),
         (
@@ -1182,6 +1222,14 @@ fn capabilities_de() -> String {
             ],
         ),
         (
+            "Smart Home (SwitchBot)",
+            &[
+                "Mach das Wohnzimmerlicht an, schalt die Klimaanlage aus, öffne die Vorhänge",
+                "Welche Geräte kannst du steuern? (listet die registrierten)",
+                "Benötigt deinen SwitchBot-Token und das Secret in den Einstellungen",
+            ],
+        ),
+        (
             "Weltuhr",
             &[
                 "Wie spät ist es in London?, wie spät in New York?",
@@ -1393,6 +1441,14 @@ fn capabilities_zh() -> String {
                 "多显示器每块屏配不同照片(来自 Pixabay)",
                 "把维基百科每日图片设为壁纸",
                 "把名画设为壁纸(芝加哥艺术博物馆藏品)",
+            ],
+        ),
+        (
+            "智能家居 (SwitchBot)",
+            &[
+                "打开客厅的灯、关掉空调、拉开窗帘",
+                "你能控制哪些设备?(列出已注册的设备)",
+                "需要在设置里填入 SwitchBot 令牌和密钥",
             ],
         ),
         (

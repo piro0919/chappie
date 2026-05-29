@@ -40,6 +40,7 @@ export const CAPABILITY_IDS = [
   "pokemon",
   "f1",
   "anime",
+  "switchbot",
   "goodbye",
 ] as const;
 
@@ -156,6 +157,7 @@ export const CAPABILITY_ICONS: Record<CapabilityId, string> = {
   pokemon: "🔴",
   f1: "🏎️",
   anime: "🎬",
+  switchbot: "💡",
 };
 
 export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
@@ -201,4 +203,5 @@ export const CAPABILITY_EXAMPLE_KEYS: Record<CapabilityId, string[]> = {
   pokemon: ["example1", "example2", "example3"],
   f1: ["example1", "example2", "example3"],
   anime: ["example1", "example2", "example3"],
+  switchbot: ["example1", "example2", "example3"],
 };

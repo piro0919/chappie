@@ -187,6 +187,13 @@
         "example3": "\"Save a screenshot to my desktop\"",
         "body": "Selection or full screen, all by voice. The image goes straight to your clipboard so you can paste into the next app — or save it as a PNG on the Desktop."
       },
+      "switchbot": {
+        "title": "Control your home by voice",
+        "example1": "\"Turn on the living room light\"",
+        "example2": "\"Turn off the AC\"",
+        "example3": "\"Open the curtains\"",
+        "body": "Control your SwitchBot lights, AC, curtains and more, just by speaking. Register your SwitchBot token once in Settings and you're set."
+      },
       "goodbye": {
         "title": "Politely goes back to standby",
         "example1": "\"Thanks, see you later\"",
