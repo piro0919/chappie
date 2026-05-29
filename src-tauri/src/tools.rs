@@ -852,6 +852,26 @@ fn format_current_time() -> String {
         .to_string()
 }
 
+// --- argument extraction helpers ---
+// `args` is the untyped JSON object the LLM supplies. These collapse the
+// `.get(k).and_then(|v| v.as_str()).unwrap_or("")` chains that every tool
+// arm would otherwise hand-roll. `arg_str` returns "" for a missing /
+// wrong-type field (matching the previous `unwrap_or("")` default) and
+// `arg_trim` additionally trims; behavior is byte-identical to the inline
+// forms they replace.
+fn arg_str<'a>(args: &'a Value, key: &str) -> &'a str {
+    args.get(key).and_then(|v| v.as_str()).unwrap_or("")
+}
+fn arg_trim<'a>(args: &'a Value, key: &str) -> &'a str {
+    arg_str(args, key).trim()
+}
+fn arg_u64(args: &Value, key: &str) -> Option<u64> {
+    args.get(key).and_then(|v| v.as_u64())
+}
+fn arg_bool(args: &Value, key: &str) -> Option<bool> {
+    args.get(key).and_then(|v| v.as_bool())
+}
+
 pub(crate) async fn execute_tool(
     app: &tauri::AppHandle,
     name: &str,
@@ -868,63 +888,16 @@ pub(crate) async fn execute_tool(
             "ok".to_string()
         }
         "get_current_time" => format_current_time(),
-        "get_world_time" => {
-            let location = args
-                .get("location")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .trim();
-            if location.is_empty() {
-                return json!({ "error": "location is required" }).to_string();
-            }
-            match crate::worldtime::lookup(location).await {
-                Ok(text) => text,
-                Err(e) => json!({ "error": e }).to_string(),
-            }
-        }
-        "get_weather" => {
-            let location = args
-                .get("location")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .trim();
-            if location.is_empty() {
-                if let Some(here) = crate::location::cached() {
-                    let label = crate::location::format_for_prompt(&here);
-                    match crate::weather::lookup_by_coords(
-                        here.latitude,
-                        here.longitude,
-                        &label,
-                        here.timezone.as_deref(),
-                    )
-                    .await
-                    {
-                        Ok(text) => text,
-                        Err(e) => format!("error: {e}"),
-                    }
-                } else {
-                    "error: ユーザーの現在地が取得できていません。地名を指定してもう一度呼んでください。".to_string()
-                }
-            } else {
-                match crate::weather::lookup(location).await {
-                    Ok(text) => text,
-                    Err(e) => format!("error: {e}"),
-                }
-            }
-        }
+        "get_world_time" => tool_get_world_time(args).await,
+        "get_weather" => tool_get_weather(args).await,
         "set_timer" => {
-            let secs = args.get("duration_seconds").and_then(|v| v.as_u64());
-            let Some(secs) = secs else {
+            let Some(secs) = arg_u64(args, "duration_seconds") else {
                 return "error: duration_seconds is required".to_string();
             };
             if secs == 0 {
                 return "error: duration_seconds must be >= 1".to_string();
             }
-            let label = args
-                .get("label")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
+            let label = arg_str(args, "label").to_string();
             let info = crate::timer::set_timer(app, secs, label.clone());
             json!({
                 "id": info.id,
@@ -934,59 +907,7 @@ pub(crate) async fn execute_tool(
             })
             .to_string()
         }
-        "list_events" => {
-            let range = args
-                .get("range")
-                .and_then(|v| v.as_str())
-                .unwrap_or("today");
-            match crate::calendar::calendar_status_sync() {
-                Ok(s) if s == "granted" => {}
-                Ok(s) if s == "not_determined" => {
-                    // First in-context invocation: fire the prompt right
-                    // now so the user can grant inline. Returns once the
-                    // user decides (or after the 120s EventKit timeout).
-                    // Wrapped in spawn_blocking because the inner mpsc
-                    // recv would block this tokio worker otherwise.
-                    let granted = tokio::task::spawn_blocking(
-                        crate::calendar::request_access_sync,
-                    )
-                    .await
-                    .ok()
-                    .and_then(|r| r.ok())
-                    .unwrap_or(false);
-                    if !granted {
-                        return json!({
-                            "error": "permission_denied",
-                            "status": "denied",
-                            "hint": "カレンダーへのアクセスが必要です。設定から有効化するか、もう一度試してください。"
-                        })
-                        .to_string();
-                    }
-                }
-                Ok(s) => {
-                    return json!({
-                        "error": "permission_denied",
-                        "status": s,
-                        "hint": "設定からカレンダーへのアクセスを許可してください。"
-                    })
-                    .to_string();
-                }
-                Err(e) => {
-                    return json!({ "error": "calendar_unavailable", "detail": e })
-                        .to_string();
-                }
-            }
-            let parsed_range = match range {
-                "tomorrow" => crate::calendar::Range::Tomorrow,
-                "upcoming" => crate::calendar::Range::Upcoming,
-                _ => crate::calendar::Range::Today,
-            };
-            match crate::calendar::fetch_events(parsed_range) {
-                Ok(events) => json!({ "events": events }).to_string(),
-                Err(e) => json!({ "error": "calendar_unavailable", "detail": e })
-                    .to_string(),
-            }
-        }
+        "list_events" => tool_list_events(args).await,
         "list_timers" => {
             let timers = crate::timer::list_timers();
             let now_ms = chrono::Local::now().timestamp_millis();
@@ -1004,7 +925,7 @@ pub(crate) async fn execute_tool(
             json!({ "timers": entries }).to_string()
         }
         "open_url" => {
-            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or("");
+            let url = arg_str(args, "url");
             if !(url.starts_with("https://") || url.starts_with("http://")) {
                 return json!({ "ok": false, "error": "url must start with http:// or https://" }).to_string();
             }
@@ -1013,89 +934,13 @@ pub(crate) async fn execute_tool(
                 Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
             }
         }
-        "open_youtube" => {
-            let candidates: Vec<String> = args
-                .get("candidates")
-                .and_then(|v| v.as_array())
-                .map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                        .collect()
-                })
-                .unwrap_or_default();
-            let fallback = args
-                .get("fallback_search_query")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .trim()
-                .to_string();
-
-            if let Some(played_id) = crate::miniplayer::show_first_playable(app, &candidates).await
-            {
-                return json!({
-                    "ok": true,
-                    "mode": "miniplayer",
-                    "played_video_id": played_id,
-                    "tried": candidates.len()
-                })
-                .to_string();
-            }
-
-            // The LLM's candidates didn't pan out (typical for niche /
-            // Japanese channels the model doesn't know real IDs for, e.g.
-            // オモコロ). Before kicking the user out to the browser, do
-            // our own YouTube search and feed the top hits back through
-            // the same oEmbed-validate → miniplayer path. This keeps the
-            // UX promise of "say a thing, watch it in the small window"
-            // even when the LLM is guessing.
-            if !fallback.is_empty() {
-                if let Some(played_id) =
-                    crate::miniplayer::show_first_search_hit(app, &fallback).await
-                {
-                    return json!({
-                        "ok": true,
-                        "mode": "miniplayer",
-                        "played_video_id": played_id,
-                        "tried": candidates.len(),
-                        "via": "search"
-                    })
-                    .to_string();
-                }
-            }
-
-            // Everything failed — fall back to opening YouTube search
-            // results in the user's default browser. This preserves the
-            // intent ("user wanted to find something on YouTube") even
-            // when neither the LLM's candidates nor our scraper turned
-            // up anything embeddable.
-            if fallback.is_empty() {
-                return json!({
-                    "ok": false,
-                    "error": "no playable candidate and no fallback query"
-                })
-                .to_string();
-            }
-            let url = format!(
-                "https://www.youtube.com/results?search_query={}",
-                urlencoding::encode(&fallback)
-            );
-            match tauri_plugin_opener::OpenerExt::opener(app).open_url(&url, None::<&str>) {
-                Ok(()) => json!({
-                    "ok": true,
-                    "mode": "browser_search",
-                    "fallback_query": fallback,
-                    "tried": candidates.len()
-                })
-                .to_string(),
-                Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
-            }
-        }
+        "open_youtube" => tool_open_youtube(app, args).await,
         "close_youtube" => {
             let was_open = crate::miniplayer::hide(app);
             json!({ "ok": true, "was_open": was_open }).to_string()
         }
         "web_search" => {
-            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
+            let query = arg_str(args, "query");
             if query.trim().is_empty() {
                 return json!({ "ok": false, "error": "query is empty" }).to_string();
             }
@@ -1124,8 +969,7 @@ pub(crate) async fn execute_tool(
             }
         }
         "set_mute" => {
-            let muted = args.get("muted").and_then(|v| v.as_bool());
-            let Some(muted) = muted else {
+            let Some(muted) = arg_bool(args, "muted") else {
                 return json!({ "ok": false, "error": "muted is required" }).to_string();
             };
             match crate::volume::set_muted(muted) {
@@ -1141,11 +985,7 @@ pub(crate) async fn execute_tool(
             }
         }
         "set_wallpaper" => {
-            let q = args
-                .get("query")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
+            let q = arg_str(args, "query").to_string();
             if q.trim().is_empty() {
                 return json!({ "ok": false, "error": "query is required" }).to_string();
             }
@@ -1159,11 +999,7 @@ pub(crate) async fn execute_tool(
             }
         }
         "set_artwork_wallpaper" => {
-            let q = args
-                .get("query")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
+            let q = arg_str(args, "query").to_string();
             match crate::wallpaper::set_artwork_wallpaper(app, &q).await {
                 Ok(r) => json!({
                     "ok": true,
@@ -1191,11 +1027,7 @@ pub(crate) async fn execute_tool(
             }
         }
         "open_finder" => {
-            let target = args
-                .get("target")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
+            let target = arg_str(args, "target").to_string();
             if target.is_empty() {
                 return json!({ "ok": false, "error": "target is required" }).to_string();
             }
@@ -1210,11 +1042,7 @@ pub(crate) async fn execute_tool(
             }
         }
         "open_app" => {
-            let name = args
-                .get("name")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .trim();
+            let name = arg_trim(args, "name");
             if name.is_empty() {
                 return json!({ "ok": false, "error": "name is empty" }).to_string();
             }
@@ -1245,7 +1073,7 @@ pub(crate) async fn execute_tool(
             Err(e) => json!({ "ok": false, "error": e }).to_string(),
         },
         "write_clipboard" => {
-            let text = args.get("text").and_then(|v| v.as_str()).unwrap_or("");
+            let text = arg_str(args, "text");
             if text.is_empty() {
                 return json!({ "ok": false, "error": "text is empty" }).to_string();
             }
@@ -1268,13 +1096,11 @@ pub(crate) async fn execute_tool(
             None => json!({ "ok": true, "enabled": false }).to_string(),
         },
         "set_sleep_prevention" => {
-            let Some(enabled) = args.get("enabled").and_then(|v| v.as_bool()) else {
+            let Some(enabled) = arg_bool(args, "enabled") else {
                 return json!({ "ok": false, "error": "enabled is required" }).to_string();
             };
             if enabled {
-                let mins = args
-                    .get("duration_minutes")
-                    .and_then(|v| v.as_u64());
+                let mins = arg_u64(args, "duration_minutes");
                 match crate::caffeinate::start(mins) {
                     Ok(until_ms) => {
                         let until_local = until_ms.and_then(|ms| {
@@ -1299,7 +1125,7 @@ pub(crate) async fn execute_tool(
             }
         }
         "lock_screen" => {
-            let mode = args.get("mode").and_then(|v| v.as_str()).unwrap_or("");
+            let mode = arg_str(args, "mode");
             if mode.is_empty() {
                 return json!({ "ok": false, "error": "mode is required" }).to_string();
             }
@@ -1324,11 +1150,7 @@ pub(crate) async fn execute_tool(
             Err(e) => json!({ "ok": false, "error": e }).to_string(),
         },
         "add_note" => {
-            let text = args
-                .get("text")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
+            let text = arg_str(args, "text").to_string();
             match crate::notes::add(text) {
                 Ok(n) => json!({
                     "ok": true,
@@ -1366,7 +1188,7 @@ pub(crate) async fn execute_tool(
             json!({ "notes": entries }).to_string()
         }
         "delete_note" => {
-            let Some(id) = args.get("id").and_then(|v| v.as_u64()) else {
+            let Some(id) = arg_u64(args, "id") else {
                 return json!({ "ok": false, "error": "id is required" }).to_string();
             };
             let deleted = crate::notes::delete(id as u32);
@@ -1389,7 +1211,7 @@ pub(crate) async fn execute_tool(
             }
         }
         "recall_memory" => {
-            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
+            let query = arg_str(args, "query");
             if query.trim().is_empty() {
                 return json!({ "ok": false, "error": "query is required" }).to_string();
             }
@@ -1420,14 +1242,14 @@ pub(crate) async fn execute_tool(
             .to_string()
         }
         "forget_memory" => {
-            let Some(id) = args.get("id").and_then(|v| v.as_u64()) else {
+            let Some(id) = arg_u64(args, "id") else {
                 return json!({ "ok": false, "error": "id is required" }).to_string();
             };
             let deleted = crate::memory::forget(id as u32);
             json!({ "ok": deleted, "id": id }).to_string()
         }
         "control_music" => {
-            let action = args.get("action").and_then(|v| v.as_str()).unwrap_or("");
+            let action = arg_str(args, "action");
             let app_arg = args.get("app").and_then(|v| v.as_str());
             if action.is_empty() {
                 return json!({ "ok": false, "error": "action is required" }).to_string();
@@ -1457,49 +1279,7 @@ pub(crate) async fn execute_tool(
                 Err(e) => json!({ "ok": false, "error": e }).to_string(),
             }
         }
-        "add_reminder_at" => {
-            let at = args.get("at").and_then(|v| v.as_str()).unwrap_or("");
-            let label = args
-                .get("label")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-            if at.is_empty() {
-                return json!({ "ok": false, "error": "at is required" }).to_string();
-            }
-            let recurrence = match args.get("recurrence").and_then(|v| v.as_str()).unwrap_or("once")
-            {
-                "daily" => crate::reminder::Recurrence::Daily,
-                "weekly" => crate::reminder::Recurrence::Weekly,
-                "monthly" => crate::reminder::Recurrence::Monthly,
-                _ => crate::reminder::Recurrence::Once,
-            };
-            let fires_at_unix_ms = match crate::reminder::parse_local_at(at) {
-                Ok(v) => v,
-                Err(e) => return json!({ "ok": false, "error": e }).to_string(),
-            };
-            match crate::reminder::add(app, fires_at_unix_ms, label, recurrence) {
-                Ok(r) => json!({
-                    "ok": true,
-                    "id": r.id,
-                    "label": r.label,
-                    "recurrence": match r.recurrence {
-                        crate::reminder::Recurrence::Once => "once",
-                        crate::reminder::Recurrence::Daily => "daily",
-                        crate::reminder::Recurrence::Weekly => "weekly",
-                        crate::reminder::Recurrence::Monthly => "monthly",
-                    },
-                    "fires_at_unix_ms": r.fires_at_unix_ms,
-                    "fires_at_local": chrono::Local
-                        .timestamp_millis_opt(r.fires_at_unix_ms)
-                        .single()
-                        .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
-                        .unwrap_or_default()
-                })
-                .to_string(),
-                Err(e) => json!({ "ok": false, "error": e }).to_string(),
-            }
-        }
+        "add_reminder_at" => tool_add_reminder_at(app, args),
         "list_reminders" => {
             let entries: Vec<Value> = crate::reminder::list()
                 .into_iter()
@@ -1525,7 +1305,7 @@ pub(crate) async fn execute_tool(
             json!({ "reminders": entries }).to_string()
         }
         "cancel_reminder" => {
-            if let Some(id) = args.get("id").and_then(|v| v.as_u64()) {
+            if let Some(id) = arg_u64(args, "id") {
                 let ok = crate::reminder::cancel(id as u32);
                 json!({ "cancelled": ok, "id": id }).to_string()
             } else {
@@ -1533,49 +1313,9 @@ pub(crate) async fn execute_tool(
                 json!({ "cancelled_all": n }).to_string()
             }
         }
-        "take_screenshot" => {
-            let mode = args
-                .get("mode")
-                .and_then(|v| v.as_str())
-                .unwrap_or("selection");
-            let destination = args
-                .get("destination")
-                .and_then(|v| v.as_str())
-                .unwrap_or("clipboard");
-            // Fullscreen mode needs the Screen Recording permission;
-            // selection mode (`screencapture -i`) does not. Only ask
-            // when we actually need it. Selection still works without.
-            if mode == "fullscreen" {
-                let status = crate::screen_permission::check_screen_recording_permission().await;
-                if status != "granted" {
-                    let granted = crate::screen_permission::request_screen_recording_access()
-                        .await
-                        .unwrap_or(false);
-                    if !granted {
-                        return json!({
-                            "ok": false,
-                            "error": "permission_denied",
-                            "hint": "画面収録の権限が必要です。設定から有効化するか、もう一度試してください。"
-                        })
-                        .to_string();
-                    }
-                }
-            }
-            match crate::screenshot::capture(mode, destination).await {
-                Ok(r) => json!({
-                    "ok": true,
-                    "mode": mode,
-                    "destination": destination,
-                    "path": r.path,
-                    "copied_to_clipboard": r.copied_to_clipboard,
-                    "cancelled": r.cancelled
-                })
-                .to_string(),
-                Err(e) => json!({ "ok": false, "error": e }).to_string(),
-            }
-        }
+        "take_screenshot" => tool_take_screenshot(args).await,
         "cancel_timer" => {
-            if let Some(id) = args.get("id").and_then(|v| v.as_u64()) {
+            if let Some(id) = arg_u64(args, "id") {
                 let ok = crate::timer::cancel_timer(id as u32);
                 json!({ "cancelled": ok, "id": id }).to_string()
             } else {
@@ -1584,6 +1324,240 @@ pub(crate) async fn execute_tool(
             }
         }
         other => format!("unknown tool: {other}"),
+    }
+}
+
+// --- extracted tool bodies ---
+// The heavier `execute_tool` arms live here so the match above stays a
+// scannable routing table. Each fn owns exactly one tool and returns the
+// same JSON string the inline arm did.
+
+async fn tool_get_world_time(args: &Value) -> String {
+    let location = arg_trim(args, "location");
+    if location.is_empty() {
+        return json!({ "error": "location is required" }).to_string();
+    }
+    match crate::worldtime::lookup(location).await {
+        Ok(text) => text,
+        Err(e) => json!({ "error": e }).to_string(),
+    }
+}
+
+async fn tool_get_weather(args: &Value) -> String {
+    let location = arg_trim(args, "location");
+    if location.is_empty() {
+        if let Some(here) = crate::location::cached() {
+            let label = crate::location::format_for_prompt(&here);
+            match crate::weather::lookup_by_coords(
+                here.latitude,
+                here.longitude,
+                &label,
+                here.timezone.as_deref(),
+            )
+            .await
+            {
+                Ok(text) => text,
+                Err(e) => format!("error: {e}"),
+            }
+        } else {
+            "error: ユーザーの現在地が取得できていません。地名を指定してもう一度呼んでください。".to_string()
+        }
+    } else {
+        match crate::weather::lookup(location).await {
+            Ok(text) => text,
+            Err(e) => format!("error: {e}"),
+        }
+    }
+}
+
+async fn tool_list_events(args: &Value) -> String {
+    let range = args.get("range").and_then(|v| v.as_str()).unwrap_or("today");
+    match crate::calendar::calendar_status_sync() {
+        Ok(s) if s == "granted" => {}
+        Ok(s) if s == "not_determined" => {
+            // First in-context invocation: fire the prompt right now so the
+            // user can grant inline. Returns once the user decides (or after
+            // the 120s EventKit timeout). Wrapped in spawn_blocking because
+            // the inner mpsc recv would block this tokio worker otherwise.
+            let granted = tokio::task::spawn_blocking(crate::calendar::request_access_sync)
+                .await
+                .ok()
+                .and_then(|r| r.ok())
+                .unwrap_or(false);
+            if !granted {
+                return json!({
+                    "error": "permission_denied",
+                    "status": "denied",
+                    "hint": "カレンダーへのアクセスが必要です。設定から有効化するか、もう一度試してください。"
+                })
+                .to_string();
+            }
+        }
+        Ok(s) => {
+            return json!({
+                "error": "permission_denied",
+                "status": s,
+                "hint": "設定からカレンダーへのアクセスを許可してください。"
+            })
+            .to_string();
+        }
+        Err(e) => {
+            return json!({ "error": "calendar_unavailable", "detail": e }).to_string();
+        }
+    }
+    let parsed_range = match range {
+        "tomorrow" => crate::calendar::Range::Tomorrow,
+        "upcoming" => crate::calendar::Range::Upcoming,
+        _ => crate::calendar::Range::Today,
+    };
+    match crate::calendar::fetch_events(parsed_range) {
+        Ok(events) => json!({ "events": events }).to_string(),
+        Err(e) => json!({ "error": "calendar_unavailable", "detail": e }).to_string(),
+    }
+}
+
+async fn tool_open_youtube(app: &tauri::AppHandle, args: &Value) -> String {
+    let candidates: Vec<String> = args
+        .get("candidates")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let fallback = arg_trim(args, "fallback_search_query").to_string();
+
+    if let Some(played_id) = crate::miniplayer::show_first_playable(app, &candidates).await {
+        return json!({
+            "ok": true,
+            "mode": "miniplayer",
+            "played_video_id": played_id,
+            "tried": candidates.len()
+        })
+        .to_string();
+    }
+
+    // The LLM's candidates didn't pan out (typical for niche / Japanese
+    // channels the model doesn't know real IDs for, e.g. オモコロ). Before
+    // kicking the user out to the browser, do our own YouTube search and
+    // feed the top hits back through the same oEmbed-validate → miniplayer
+    // path. This keeps the UX promise of "say a thing, watch it in the
+    // small window" even when the LLM is guessing.
+    if !fallback.is_empty() {
+        if let Some(played_id) = crate::miniplayer::show_first_search_hit(app, &fallback).await {
+            return json!({
+                "ok": true,
+                "mode": "miniplayer",
+                "played_video_id": played_id,
+                "tried": candidates.len(),
+                "via": "search"
+            })
+            .to_string();
+        }
+    }
+
+    // Everything failed — fall back to opening YouTube search results in the
+    // user's default browser. This preserves the intent ("user wanted to
+    // find something on YouTube") even when neither the LLM's candidates nor
+    // our scraper turned up anything embeddable.
+    if fallback.is_empty() {
+        return json!({
+            "ok": false,
+            "error": "no playable candidate and no fallback query"
+        })
+        .to_string();
+    }
+    let url = format!(
+        "https://www.youtube.com/results?search_query={}",
+        urlencoding::encode(&fallback)
+    );
+    match tauri_plugin_opener::OpenerExt::opener(app).open_url(&url, None::<&str>) {
+        Ok(()) => json!({
+            "ok": true,
+            "mode": "browser_search",
+            "fallback_query": fallback,
+            "tried": candidates.len()
+        })
+        .to_string(),
+        Err(e) => json!({ "ok": false, "error": e.to_string() }).to_string(),
+    }
+}
+
+fn tool_add_reminder_at(app: &tauri::AppHandle, args: &Value) -> String {
+    let at = arg_str(args, "at");
+    let label = arg_str(args, "label").to_string();
+    if at.is_empty() {
+        return json!({ "ok": false, "error": "at is required" }).to_string();
+    }
+    let recurrence = match args.get("recurrence").and_then(|v| v.as_str()).unwrap_or("once") {
+        "daily" => crate::reminder::Recurrence::Daily,
+        "weekly" => crate::reminder::Recurrence::Weekly,
+        "monthly" => crate::reminder::Recurrence::Monthly,
+        _ => crate::reminder::Recurrence::Once,
+    };
+    let fires_at_unix_ms = match crate::reminder::parse_local_at(at) {
+        Ok(v) => v,
+        Err(e) => return json!({ "ok": false, "error": e }).to_string(),
+    };
+    match crate::reminder::add(app, fires_at_unix_ms, label, recurrence) {
+        Ok(r) => json!({
+            "ok": true,
+            "id": r.id,
+            "label": r.label,
+            "recurrence": match r.recurrence {
+                crate::reminder::Recurrence::Once => "once",
+                crate::reminder::Recurrence::Daily => "daily",
+                crate::reminder::Recurrence::Weekly => "weekly",
+                crate::reminder::Recurrence::Monthly => "monthly",
+            },
+            "fires_at_unix_ms": r.fires_at_unix_ms,
+            "fires_at_local": chrono::Local
+                .timestamp_millis_opt(r.fires_at_unix_ms)
+                .single()
+                .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
+                .unwrap_or_default()
+        })
+        .to_string(),
+        Err(e) => json!({ "ok": false, "error": e }).to_string(),
+    }
+}
+
+async fn tool_take_screenshot(args: &Value) -> String {
+    let mode = args.get("mode").and_then(|v| v.as_str()).unwrap_or("selection");
+    let destination = args
+        .get("destination")
+        .and_then(|v| v.as_str())
+        .unwrap_or("clipboard");
+    // Fullscreen mode needs the Screen Recording permission; selection mode
+    // (`screencapture -i`) does not. Only ask when we actually need it.
+    if mode == "fullscreen" {
+        let status = crate::screen_permission::check_screen_recording_permission().await;
+        if status != "granted" {
+            let granted = crate::screen_permission::request_screen_recording_access()
+                .await
+                .unwrap_or(false);
+            if !granted {
+                return json!({
+                    "ok": false,
+                    "error": "permission_denied",
+                    "hint": "画面収録の権限が必要です。設定から有効化するか、もう一度試してください。"
+                })
+                .to_string();
+            }
+        }
+    }
+    match crate::screenshot::capture(mode, destination).await {
+        Ok(r) => json!({
+            "ok": true,
+            "mode": mode,
+            "destination": destination,
+            "path": r.path,
+            "copied_to_clipboard": r.copied_to_clipboard,
+            "cancelled": r.cancelled
+        })
+        .to_string(),
+        Err(e) => json!({ "ok": false, "error": e }).to_string(),
     }
 }
 
