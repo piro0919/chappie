@@ -314,4 +314,39 @@ mod tests {
         // A weather question must not pull the marine tool.
         assert!(!rescue_tool_names("明日の天気は？", Lang::Ja).contains("mcp_marine_current"));
     }
+
+    // Reachability invariant: an utterance that should rescue a tool must
+    // NOT be classified as chitchat. Dispatch only runs rescue on the
+    // personalized path (`!chitchat`); if the chitchat classifier swallowed
+    // a rescue utterance it would send `minimal_tools` and the rescued tool
+    // would be unreachable. This guards against a future chitchat-dictionary
+    // edit silently breaking rescue. (See dispatch.rs: chitchat is checked
+    // before the personalized branch.)
+    #[test]
+    fn rescue_utterances_are_not_chitchat() {
+        use crate::llm::chitchat::is_chitchat;
+        let utterances = [
+            "地震あった？",
+            "今夜オーロラ見える？",
+            "トヨタの株価は？",
+            "近くの名所教えて",
+            "壁紙を森に変えて",
+            "次の祝日いつ？",
+            "最新ニュース教えて",
+            "何ができるの？",
+        ];
+        for utt in utterances {
+            assert!(
+                !is_chitchat(utt, Lang::Ja),
+                "{utt:?} rescues a tool but is_chitchat() flagged it — \
+                 dispatch would send minimal_tools and the tool would be unreachable"
+            );
+            // And it really does rescue something (sanity: the invariant is
+            // only meaningful for utterances that actually hit the map).
+            assert!(
+                !rescue_tool_names(utt, Lang::Ja).is_empty(),
+                "{utt:?} is in this guard list but rescues nothing"
+            );
+        }
+    }
 }
