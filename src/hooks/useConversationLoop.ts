@@ -22,6 +22,7 @@ import {
   messagesForRequest,
 } from "../lib/conversation-history";
 import { IpcEvent } from "../lib/ipc-events";
+import { ListeningWindow } from "../lib/listening-window";
 import { type ChatClient, createChatClient } from "../lib/openai-client";
 import { buildPerTurnPrompt } from "../lib/per-turn-prompt";
 import {
@@ -64,37 +65,6 @@ import { detectWake } from "../lib/wake-word";
 import { useTauriListener } from "./useTauriListener";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
-const FOLLOWUP_TIMEOUT_MS = 6000;
-// After Chappie finishes speaking, accept follow-up without requiring a fresh
-// "チャッピー" wake-word for this window. Lets a multi-turn conversation flow.
-const CONTINUE_WINDOW_MS = 6000;
-// Ceiling for a single in-flight utterance once VAD reports speech-active.
-// Replaces the previous "clear timer on speech-active" approach: that left
-// the renderer stranded in `listening` whenever Rust dropped the segment
-// silently (too-short / low-rms / speaker-gate reject / empty Whisper) —
-// the `speech` event never arrived to re-arm. Re-arming with this longer
-// budget covers long utterances while still recovering to idle when no
-// segment ever materialises.
-const MAX_SPEECH_HOLD_MS = 15000;
-// Absolute ceiling on how long the renderer stays in `listening` (the
-// "聞いてます" tray state) after a window opens — bare wake or post-turn
-// continuation. Without it, every `speechActive` VAD event re-arms the
-// followup timer with MAX_SPEECH_HOLD_MS, so continuous background voice
-// (a TV, other people in the room — all rejected by the speaker gate but
-// still tripping VAD) keeps the window alive indefinitely and the status
-// never drops back to "待機中". A real long utterance is unaffected: the
-// `speech` event closes the window when the user actually finishes; this
-// only bounds the no-real-segment / ambient-voice case.
-const ABSOLUTE_LISTEN_MAX_MS = 12000;
-// When a segment is rejected by the speaker gate as "other voice" (TV /
-// another person), the speech-active VAD event had already extended the
-// window — but now we know it wasn't the user, so collapse the window to
-// this short grace instead of waiting out the ceiling. Returns to 待機中
-// ~this long after ambient voice stops, while still leaving the user a
-// moment to start talking. Only applies when a voiceprint is enrolled (no
-// enrollment = no speaker gate = no drop event; the absolute cap covers
-// that case).
-const OTHER_VOICE_GRACE_MS = 3000;
 // Time the tray "error" state stays visible before auto-recovering.
 const ERROR_DISPLAY_MS = 1800;
 // Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
@@ -227,11 +197,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
   const proactiveOutputChannelRef =
     useRef<Settings["proactiveOutputChannel"]>("auto");
   const followupTimerRef = useRef<number | null>(null);
-  // Absolute wall-clock deadline (ms epoch) for the current listening
-  // window. armFollowupTimer never schedules past this, so VAD re-arms
-  // from ambient voice can't hold "聞いてます" open forever. Set when a
-  // window opens (bare wake / continuation); 0 = no active window.
-  const listenDeadlineRef = useRef<number>(0);
+  const listenWindowRef = useRef<ListeningWindow | null>(null);
   const ttsActiveRef = useRef(false);
   // True while any external audio source (YouTube miniplayer today,
   // Spotify / Apple Music in the future) is actively producing sound
@@ -299,27 +265,27 @@ export function useConversationLoop(): { state: State; error: string | null } {
     }
   }
 
-  // (Re-)arm the followup / continuation timer. After `ms` of inactivity
-  // (no speech-active event, no segment), drop back to idle. Called both
-  // when first entering "awaiting body" state and to extend the deadline
-  // when VAD reports voice activity / when a segment gets filtered out.
-  function armFollowupTimer(ms: number) {
-    clearFollowupTimer();
-    // Never schedule past the window's absolute deadline. A re-arm that
-    // would (e.g. ambient voice tripping speechActive) is clamped to the
-    // time left, so the window always closes within ABSOLUTE_LISTEN_MAX_MS
-    // of opening even under continuous background speech.
-    const remaining = listenDeadlineRef.current - Date.now();
-    const effective =
-      listenDeadlineRef.current > 0 ? Math.min(ms, Math.max(0, remaining)) : ms;
-    followupTimerRef.current = window.setTimeout(() => {
-      followupTimerRef.current = null;
-      listenDeadlineRef.current = 0;
+  // The listening-window timing (extend on user voice, collapse on other
+  // voice, absolute cap) lives in a pure controller so it can be unit
+  // tested; this hook only supplies the real timer + the idle transition.
+  // Created once — its deps touch only stable refs / setState / invoke.
+  if (!listenWindowRef.current) {
+    listenWindowRef.current = new ListeningWindow({
+      now: () => Date.now(),
+      setTimer: (delayMs, fire) => {
+        clearFollowupTimer();
+        followupTimerRef.current = window.setTimeout(() => {
+          followupTimerRef.current = null;
+          fire();
+        }, delayMs);
+      },
+      clearTimer: clearFollowupTimer,
       // speechTimeout transitions listening → idle, which naturally
       // clears awaitingContinuation as part of the state change.
-      dispatch({ type: "speechTimeout" });
-    }, effective);
+      onExpire: () => dispatch({ type: "speechTimeout" }),
+    });
   }
+  const listenWindow = listenWindowRef.current;
 
   async function runTurn(userText: string) {
     console.info(`[loop] runTurn: "${userText}"`);
@@ -652,8 +618,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     // — the machine now carries the "we're waiting for follow-up without
     // a fresh wake word" state directly.
     dispatch({ type: "continuationOpened" });
-    listenDeadlineRef.current = Date.now() + ABSOLUTE_LISTEN_MAX_MS;
-    armFollowupTimer(CONTINUE_WINDOW_MS);
+    listenWindow.openContinuation();
   }
 
   async function handleSpeech(text: string) {
@@ -715,7 +680,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // timer when VAD picked the segment up; re-arm it now so we keep
       // waiting instead of silently ticking down toward idle.
       if (isAwaitingContinuation()) {
-        armFollowupTimer(CONTINUE_WINDOW_MS);
+        listenWindow.onHallucination();
       }
       return;
     }
@@ -724,7 +689,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       console.info(`[loop] body received: "${text}"`);
       // speechCaptured below transitions listening → thinking which
       // naturally clears awaitingContinuation as the state changes.
-      clearFollowupTimer();
+      listenWindow.close();
       const body = text.trim();
       if (!body) {
         dispatch({ type: "speechTimeout" });
@@ -769,8 +734,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
       // so the machine carries the "awaiting body" sub-flag instead of
       // tracking it in a separate ref.
       dispatch({ type: "continuationOpened" });
-      listenDeadlineRef.current = Date.now() + ABSOLUTE_LISTEN_MAX_MS;
-      armFollowupTimer(FOLLOWUP_TIMEOUT_MS);
+      listenWindow.openBareWake();
       // Quick "はい" acknowledgement so the user knows we're listening.
       // Fire-and-forget — we don't await it because the user may start
       // speaking immediately, and `withMutedCapture` would block the
@@ -945,14 +909,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // The timer gets re-armed on hallucination drop or after the body
         // is consumed normally.
         const offActive = await listen(IpcEvent.speechActive, () => {
-          if (isAwaitingContinuation()) {
-            // Don't clear — re-arm with a longer ceiling. Rust can drop the
-            // segment silently (too-short / low-rms / speaker-gate reject /
-            // Whisper empty) which means no `speech` event would ever arrive
-            // to re-arm us back. The ceiling lets long utterances through
-            // while still falling back to idle when the segment evaporates.
-            armFollowupTimer(MAX_SPEECH_HOLD_MS);
-          }
+          // Extend the window while voice is active (before the speaker
+          // gate knows whose it is) so a long user utterance isn't cut.
+          // Bounded by the controller's absolute cap; other-voice segments
+          // get collapsed again by the speechDropped handler below.
+          if (isAwaitingContinuation()) listenWindow.onSpeechActive();
         });
         // Speaker gate rejected the segment as someone/something else. The
         // speech-active handler above had extended the window on VAD start
@@ -961,9 +922,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // "聞いてます" open. The user's own voice still extends normally via
         // speech-active + the `speech` event.
         const offDropped = await listen(IpcEvent.speechDropped, () => {
-          if (isAwaitingContinuation()) {
-            armFollowupTimer(OTHER_VOICE_GRACE_MS);
-          }
+          if (isAwaitingContinuation()) listenWindow.onOtherVoice();
         });
         // Miniplayer visibility: while the YouTube player window is up,
         // handleSpeech drops everything except cancel commands so the
