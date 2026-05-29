@@ -180,6 +180,16 @@ export type Settings = {
    * (e.g. Zoom muted in the background) would otherwise keep Chappie quiet.
    */
   externalMicOutputMode: "voice" | "hud" | "silent";
+  /**
+   * The last active VOICEVOX speaker (wake-character), or null for
+   * chappie's own voice. Persisted so a restart restores the SAME voice
+   * the tray icon restores to — otherwise the tray shows the last
+   * character while proactive speech falls back to chappie's default
+   * voice until the first wake. Restore is entitlement-gated (a paid
+   * speaker on a lapsed subscription falls back to chappie). Not exposed
+   * in the Settings UI — written by the conversation loop on each wake.
+   */
+  currentVoicevoxSpeakerId: number | null;
 };
 
 const DEFAULTS: Settings = {
@@ -208,6 +218,7 @@ const DEFAULTS: Settings = {
   analyticsConsent: false,
   personalizedToolsEnabled: true,
   externalMicOutputMode: "voice",
+  currentVoicevoxSpeakerId: null,
 };
 const FILE = "settings.json";
 
@@ -325,6 +336,9 @@ export async function loadSettings(): Promise<Settings> {
       ((await store.get<boolean>("suppressWhileExternalMicActive")) === true
         ? "hud"
         : DEFAULTS.externalMicOutputMode),
+    currentVoicevoxSpeakerId:
+      (await store.get<number | null>("currentVoicevoxSpeakerId")) ??
+      DEFAULTS.currentVoicevoxSpeakerId,
   };
 }
 
@@ -428,6 +442,9 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.externalMicOutputMode !== undefined) {
     await store.set("externalMicOutputMode", patch.externalMicOutputMode);
+  }
+  if (patch.currentVoicevoxSpeakerId !== undefined) {
+    await store.set("currentVoicevoxSpeakerId", patch.currentVoicevoxSpeakerId);
   }
   await store.save();
 }

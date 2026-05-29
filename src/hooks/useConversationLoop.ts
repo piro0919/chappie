@@ -16,7 +16,12 @@ import {
 } from "../lib/conversation-history";
 import { type ChatClient, createChatClient } from "../lib/openai-client";
 import { buildPerTurnPrompt } from "../lib/per-turn-prompt";
-import { type Language, loadSettings, type Settings } from "../lib/settings";
+import {
+  type Language,
+  loadSettings,
+  type Settings,
+  saveSettings,
+} from "../lib/settings";
 import {
   isBargeInCommand,
   isExternalAudioCancelCommand,
@@ -537,7 +542,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
     return false;
   }
 
-  function applyVoiceForWake(speakerId: number | undefined): void {
+  // `persist` defaults true (wake / mode-change should remember the
+  // choice). The startup entitlement-fallback passes false so a lapsed
+  // Pro user's saved paid character isn't clobbered to null — re-subscribing
+  // then restores it.
+  function applyVoiceForWake(
+    speakerId: number | undefined,
+    persist = true,
+  ): void {
     voicevoxSpeakerIdRef.current = speakerId;
     const { engineOpts, trayCharacter } = resolveVoiceForWake(speakerId);
     console.info(
@@ -551,6 +563,14 @@ export function useConversationLoop(): { state: State; error: string | null } {
     void invoke("set_tray_character", { character: trayCharacter }).catch(
       () => {},
     );
+    // Persist so a restart restores this same voice (the tray icon already
+    // restores from disk Rust-side; without this the two diverge until the
+    // next wake — see init restore below).
+    if (persist) {
+      void saveSettings({
+        currentVoicevoxSpeakerId: speakerId ?? null,
+      }).catch(() => {});
+    }
   }
 
   function startContinuationWindow() {
@@ -719,6 +739,22 @@ export function useConversationLoop(): { state: State; error: string | null } {
         langRef.current = s.language;
         proactiveOutputChannelRef.current = s.proactiveOutputChannel;
         setExternalMicMode(s.externalMicOutputMode);
+        // Restore the last wake-character so the VOICE matches the tray
+        // icon, which Rust restores from disk independently. Without this,
+        // after a restart proactive speech (morning brief / timer / idle
+        // chatter) uses chappie's default voice while the tray still shows
+        // the last character. Entitlement-gated: a paid speaker on a lapsed
+        // subscription falls back to chappie (and applyVoiceForWake also
+        // snaps the tray back, so the two stay in sync). No HUD nudge here —
+        // this is silent startup, not an explicit wake.
+        const persisted = s.currentVoicevoxSpeakerId ?? undefined;
+        const paidLocked =
+          persisted !== undefined &&
+          isPaidSpeaker(persisted) &&
+          !subscriptionEntitledRef.current;
+        // paidLocked → chappie voice+tray, but keep the saved id (persist
+        // false) so a later re-subscribe restores the character.
+        applyVoiceForWake(paidLocked ? undefined : persisted, !paidLocked);
         historyRef.current = createHistory(buildSystemPrompt(s.language));
         const resolvedLang = resolveLanguage(s.language);
         void invoke("set_whisper_language", { lang: resolvedLang }).catch(

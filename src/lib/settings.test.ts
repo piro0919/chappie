@@ -61,6 +61,7 @@ describe("settings", () => {
     analyticsConsent: false,
     personalizedToolsEnabled: true,
     externalMicOutputMode: "voice",
+    currentVoicevoxSpeakerId: null,
   } as const;
 
   it("returns defaults when store is empty", async () => {
