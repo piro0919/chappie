@@ -643,20 +643,27 @@ async fn golden_tool_routing() {
 // ---------------------------------------------------------- personalized
 //
 // Accuracy guard for personalized (hot-set) tool routing. It gates on the
-// two properties personalized_tools() actually guarantees:
+// three properties the personalized path actually guarantees:
 //
 //   1. in-hot: a tool in the user's hot set is picked directly (no
 //      degradation from trimming the rest).
 //   2. always-keep core: a native device/system/local-state tool the model
 //      can't substitute (battery, screenshot, lock, clipboard, …) stays
 //      reachable EVEN WHEN COLD, because is_always_keep() never trims it.
+//   3. keyword rescue: a trimmed tool whose distinctive domain keyword
+//      appears in the utterance (地震 → quake, 株価 → stocks, …) is spliced
+//      back into the payload by llm::tool_rescue and picked directly — the
+//      tools array here is built per-case as hot ∪ rescue_tool_names(),
+//      mirroring dispatch. This is exactly the MCP long-tail that escape
+//      could NOT reliably reach.
 //
-// We deliberately do NOT gate on the trimmed MCP long-tail escaping via
+// We still do NOT gate on the trimmed MCP long-tail escaping via
 // need_more_tools: testing showed Gemini Flash never calls the escape tool
 // (it answers from knowledge or declines), so escape is a best-effort
 // fallback, not a guarantee. That limitation is documented in memory, not
-// asserted here (a permanently-red test is noise). The always-keep core
-// (property 2) is exactly what makes escape's unreliability tolerable.
+// asserted here (a permanently-red test is noise). Keyword rescue (property
+// 3) is what turns the keyword-able slice of that tail into a guarantee;
+// the always-keep core (property 2) covers the non-MCP native tools.
 //
 // Only the FIRST tool is asserted; max_rounds=1 keeps cost minimal.
 
@@ -690,6 +697,15 @@ const PERSONALIZED_CASES: &[Case] = &[
     Case { label: "p/keep/clipboard", utterance: "クリップボード読んで", expected_first: "read_clipboard" },
     Case { label: "p/keep/volume", utterance: "音量30にして", expected_first: "get_volume|set_volume" },
     Case { label: "p/keep/mute", utterance: "ミュート", expected_first: "set_mute" },
+    // Property 3 — keyword rescue: trimmed MCP/native-novelty tools NOT in
+    // the hot set, whose distinctive keyword spliced them back in. These are
+    // precisely the cases escape failed to reach on Gemini Flash.
+    Case { label: "p/rescue/quake", utterance: "地震あった?", expected_first: "mcp_quake_recent" },
+    Case { label: "p/rescue/aurora", utterance: "今夜オーロラ見える?", expected_first: "mcp_aurora_forecast" },
+    Case { label: "p/rescue/stocks", utterance: "トヨタの株価は?", expected_first: "mcp_stocks_quote" },
+    Case { label: "p/rescue/holidays", utterance: "次の祝日いつ?", expected_first: "mcp_holidays_next" },
+    Case { label: "p/rescue/wallpaper", utterance: "壁紙を森に変えて", expected_first: "set_wallpaper" },
+    Case { label: "p/rescue/pokemon", utterance: "ポケモンのフシギダネのステータス教えて", expected_first: "mcp_pokemon_stats" },
 ];
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -701,10 +717,12 @@ async fn golden_personalized_routing() {
     }
 
     let hot: HashSet<String> = HOT_SET_NAMES.iter().map(|s| s.to_string()).collect();
-    let tools = personalized_tools(&hot);
     eprintln!(
-        "[golden-p] hot set personalized tools_n={}",
-        tools.as_array().map(|a| a.len()).unwrap_or(0)
+        "[golden-p] hot set personalized tools_n={} (per-case rescue merged on top)",
+        personalized_tools(&hot)
+            .as_array()
+            .map(|a| a.len())
+            .unwrap_or(0)
     );
 
     let only_filter = std::env::var("GOLDEN_ONLY").ok();
@@ -734,11 +752,19 @@ async fn golden_personalized_routing() {
             stream::iter(case_indices.iter().copied().map(|i| (i, &PERSONALIZED_CASES[i])))
                 .map(|(i, case)| {
                     let client = &client;
-                    let tools = &tools;
+                    let hot = &hot;
                     async move {
-                        // max_rounds=1: we only assert the first tool, which
-                        // is the escape decision itself.
-                        let r = run_one(client, provider, key, case, tools, 1).await;
+                        // Per-case payload = hot ∪ keyword rescue, exactly as
+                        // dispatch builds it. Non-rescue utterances yield an
+                        // empty rescue set, so they see the plain hot payload.
+                        let mut merged = hot.clone();
+                        merged.extend(chappie_lib::llm::tool_rescue::rescue_tool_names(
+                            case.utterance,
+                            chappie_lib::i18n::Lang::Ja,
+                        ));
+                        let tools = personalized_tools(&merged);
+                        // max_rounds=1: we only assert the first tool.
+                        let r = run_one(client, provider, key, case, &tools, 1).await;
                         (i, r)
                     }
                 })
