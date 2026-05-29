@@ -134,6 +134,8 @@ type Messages = {
     switchbotTokenPlaceholder: string;
     switchbotSecretPlaceholder: string;
     switchbotDescription: string;
+    switchbotStepsLabel: string;
+    switchbotSteps: string;
     personalizedToolsToggle: string;
     personalizedToolsDescription: string;
     externalMicModeLabel: string;
@@ -359,6 +361,9 @@ const ja: Messages = {
     ltmForgetDone: "削除しました",
     personalizedToolsLabel: "機能の最適化",
     switchbotLabel: "SwitchBot（家電操作）",
+    switchbotStepsLabel: "トークンの取得方法",
+    switchbotSteps:
+      "1. SwitchBot アプリを開く（ログイン済み）\n2. 「プロフィール」→「設定」\n3. 「アプリバージョン」を10回タップ\n4. 「開発者向けオプション」を開く\n5. 「トークンを取得」をタップ\n6. 表示された token と secret を上に貼り付け（secret は1回しか表示されないことがあるのでその場で控える）",
     switchbotTokenPlaceholder: "トークン",
     switchbotSecretPlaceholder: "シークレット",
     switchbotDescription:
@@ -610,6 +615,9 @@ const en: Messages = {
     ltmForgetDone: "Deleted",
     personalizedToolsLabel: "Feature optimization",
     switchbotLabel: "SwitchBot (smart home)",
+    switchbotStepsLabel: "How to get your token",
+    switchbotSteps:
+      "1. Open the SwitchBot app (signed in)\n2. Profile → Preferences\n3. Tap App Version 10 times\n4. Open Developer Options\n5. Tap Get Token\n6. Paste the token & secret above (the secret may be shown only once — copy it now)",
     switchbotTokenPlaceholder: "Token",
     switchbotSecretPlaceholder: "Secret",
     switchbotDescription:
@@ -862,6 +870,9 @@ const es: Messages = {
     ltmForgetDone: "Borrado",
     personalizedToolsLabel: "Optimización de funciones",
     switchbotLabel: "SwitchBot (hogar inteligente)",
+    switchbotStepsLabel: "Cómo obtener tu token",
+    switchbotSteps:
+      "1. Abre la app SwitchBot (con sesión iniciada)\n2. Perfil → Preferencias\n3. Toca Versión de la app 10 veces\n4. Abre Opciones de desarrollador\n5. Toca Obtener token\n6. Pega el token y el secreto arriba (el secreto puede mostrarse solo una vez: cópialo ahora)",
     switchbotTokenPlaceholder: "Token",
     switchbotSecretPlaceholder: "Secreto",
     switchbotDescription:
@@ -1114,6 +1125,9 @@ const fr: Messages = {
     ltmForgetDone: "Supprimé",
     personalizedToolsLabel: "Optimisation des fonctions",
     switchbotLabel: "SwitchBot (maison connectée)",
+    switchbotStepsLabel: "Comment obtenir votre jeton",
+    switchbotSteps:
+      "1. Ouvrez l'app SwitchBot (connecté)\n2. Profil → Préférences\n3. Touchez Version de l'app 10 fois\n4. Ouvrez Options développeur\n5. Touchez Obtenir le jeton\n6. Collez le jeton et le secret ci-dessus (le secret peut n'apparaître qu'une fois : copiez-le maintenant)",
     switchbotTokenPlaceholder: "Jeton",
     switchbotSecretPlaceholder: "Secret",
     switchbotDescription:
@@ -1366,6 +1380,9 @@ const de: Messages = {
     ltmForgetDone: "Gelöscht",
     personalizedToolsLabel: "Funktionsoptimierung",
     switchbotLabel: "SwitchBot (Smart Home)",
+    switchbotStepsLabel: "So erhältst du deinen Token",
+    switchbotSteps:
+      "1. SwitchBot-App öffnen (angemeldet)\n2. Profil → Einstellungen\n3. App-Version 10-mal antippen\n4. Entwickleroptionen öffnen\n5. Token abrufen antippen\n6. Token und Secret oben einfügen (das Secret wird evtl. nur einmal angezeigt – jetzt kopieren)",
     switchbotTokenPlaceholder: "Token",
     switchbotSecretPlaceholder: "Secret",
     switchbotDescription:
@@ -1613,6 +1630,9 @@ const zh: Messages = {
     ltmForgetDone: "已删除",
     personalizedToolsLabel: "功能优化",
     switchbotLabel: "SwitchBot（智能家居）",
+    switchbotStepsLabel: "如何获取令牌",
+    switchbotSteps:
+      "1. 打开 SwitchBot 应用（已登录）\n2. 个人 → 设置\n3. 连续点击「应用版本」10 次\n4. 打开「开发者选项」\n5. 点击「获取令牌」\n6. 把令牌和密钥粘贴到上方（密钥可能只显示一次，请当场记下）",
     switchbotTokenPlaceholder: "令牌",
     switchbotSecretPlaceholder: "密钥",
     switchbotDescription:
@@ -1859,6 +1879,9 @@ const pt: Messages = {
     ltmForgetDone: "Apagado",
     personalizedToolsLabel: "Otimização de funções",
     switchbotLabel: "SwitchBot (casa inteligente)",
+    switchbotStepsLabel: "Como obter seu token",
+    switchbotSteps:
+      "1. Abra o app SwitchBot (com login)\n2. Perfil → Preferências\n3. Toque em Versão do app 10 vezes\n4. Abra Opções de desenvolvedor\n5. Toque em Obter token\n6. Cole o token e o segredo acima (o segredo pode aparecer só uma vez: copie agora)",
     switchbotTokenPlaceholder: "Token",
     switchbotSecretPlaceholder: "Segredo",
     switchbotDescription:
@@ -2109,6 +2132,9 @@ const ko: Messages = {
     ltmForgetDone: "삭제됨",
     personalizedToolsLabel: "기능 최적화",
     switchbotLabel: "SwitchBot (스마트홈)",
+    switchbotStepsLabel: "토큰 받는 방법",
+    switchbotSteps:
+      "1. SwitchBot 앱 열기 (로그인 상태)\n2. 프로필 → 설정\n3. 앱 버전을 10번 탭\n4. 개발자 옵션 열기\n5. 토큰 받기 탭\n6. 토큰과 시크릿을 위에 붙여넣기 (시크릿은 한 번만 표시될 수 있으니 바로 복사)",
     switchbotTokenPlaceholder: "토큰",
     switchbotSecretPlaceholder: "시크릿",
     switchbotDescription:
@@ -2361,6 +2387,9 @@ const it: Messages = {
     ltmForgetDone: "Eliminato",
     personalizedToolsLabel: "Ottimizzazione delle funzioni",
     switchbotLabel: "SwitchBot (casa intelligente)",
+    switchbotStepsLabel: "Come ottenere il token",
+    switchbotSteps:
+      "1. Apri l'app SwitchBot (con accesso)\n2. Profilo → Preferenze\n3. Tocca Versione app 10 volte\n4. Apri Opzioni sviluppatore\n5. Tocca Ottieni token\n6. Incolla il token e il secret sopra (il secret potrebbe comparire solo una volta: copialo subito)",
     switchbotTokenPlaceholder: "Token",
     switchbotSecretPlaceholder: "Secret",
     switchbotDescription:
