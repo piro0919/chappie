@@ -167,18 +167,19 @@ export type Settings = {
    */
   personalizedToolsEnabled: boolean;
   /**
-   * Suppress all of Chappie's spoken output (TTS) while another app is
-   * actively using the microphone — e.g. during a Zoom/Meet call or a
-   * recording — so it doesn't talk over the user. When suppressed the
-   * reply still surfaces on the HUD (same as the system-muted path), so
-   * no information is lost. Detection is per-process on the Rust side
-   * (`is_external_mic_active`); Chappie's own capture is excluded.
-   * macOS 14+ only; on older systems detection always reports "clear" so
-   * the toggle is a harmless no-op. Default OFF — opt-in because an app
-   * holding the mic open while idle (e.g. Zoom muted in the background)
-   * would otherwise keep Chappie silent.
+   * What Chappie does while ANOTHER app is capturing mic input — a call
+   * or recording — so it doesn't talk over the user:
+   * - "voice": behave normally (speak). Effectively the feature off.
+   * - "hud":   stay silent but show the reply on the HUD (no info lost).
+   * - "silent": fully quiet — no voice and no HUD.
+   * System-mute routing is independent: a muted system always goes to the
+   * HUD regardless of this. Detection is per-process on the Rust side
+   * (`is_external_mic_active`, macOS 14+, Chappie's own capture excluded);
+   * older systems report "clear" so this is a harmless no-op. Default
+   * "voice" — opt-in, because an app holding the mic open while idle
+   * (e.g. Zoom muted in the background) would otherwise keep Chappie quiet.
    */
-  suppressWhileExternalMicActive: boolean;
+  externalMicOutputMode: "voice" | "hud" | "silent";
 };
 
 const DEFAULTS: Settings = {
@@ -206,7 +207,7 @@ const DEFAULTS: Settings = {
   vadSilenceFrames: 22,
   analyticsConsent: false,
   personalizedToolsEnabled: true,
-  suppressWhileExternalMicActive: false,
+  externalMicOutputMode: "voice",
 };
 const FILE = "settings.json";
 
@@ -316,9 +317,14 @@ export async function loadSettings(): Promise<Settings> {
     personalizedToolsEnabled:
       (await store.get<boolean>("personalizedToolsEnabled")) ??
       DEFAULTS.personalizedToolsEnabled,
-    suppressWhileExternalMicActive:
-      (await store.get<boolean>("suppressWhileExternalMicActive")) ??
-      DEFAULTS.suppressWhileExternalMicActive,
+    externalMicOutputMode:
+      (await store.get<Settings["externalMicOutputMode"]>(
+        "externalMicOutputMode",
+      )) ??
+      // Migrate the v0.18.0 boolean: true (suppress→HUD) → "hud".
+      ((await store.get<boolean>("suppressWhileExternalMicActive")) === true
+        ? "hud"
+        : DEFAULTS.externalMicOutputMode),
   };
 }
 
@@ -420,11 +426,8 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   if (patch.personalizedToolsEnabled !== undefined) {
     await store.set("personalizedToolsEnabled", patch.personalizedToolsEnabled);
   }
-  if (patch.suppressWhileExternalMicActive !== undefined) {
-    await store.set(
-      "suppressWhileExternalMicActive",
-      patch.suppressWhileExternalMicActive,
-    );
+  if (patch.externalMicOutputMode !== undefined) {
+    await store.set("externalMicOutputMode", patch.externalMicOutputMode);
   }
   await store.save();
 }

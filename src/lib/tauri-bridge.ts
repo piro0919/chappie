@@ -35,24 +35,29 @@ export async function isSystemMuted(): Promise<boolean> {
   }
 }
 
-// When true, Chappie routes all spoken output to the HUD while another app
-// is using the mic (a call / recording). Mirrored from the
-// `suppressWhileExternalMicActive` setting on load + settings:updated; off
-// by default so detection is never even queried unless the user opted in.
-let suppressOnExternalMic = false;
+// Where a turn's output should go:
+//   "voice"  → speak (normal)
+//   "hud"    → no voice, show text on the HUD
+//   "silent" → no voice, no HUD (drop)
+export type OutputMode = "voice" | "hud" | "silent";
 
-export function setSuppressOnExternalMic(enabled: boolean): void {
-  suppressOnExternalMic = enabled;
+// What to do while another app is capturing the mic. Mirrored from the
+// `externalMicOutputMode` setting on load + settings:updated. "voice" (the
+// default) means the feature is off, so detection is never even queried.
+let externalMicMode: OutputMode = "voice";
+
+export function setExternalMicMode(mode: OutputMode): void {
+  externalMicMode = mode;
 }
 
-// True when another app is currently capturing mic input (and the feature
-// is enabled). Cheap CoreAudio per-process query; false on any error or on
-// macOS < 14 so a failure never wrongly silences the assistant.
+// True when another app is currently capturing mic input. Cheap CoreAudio
+// per-process query; false on any error or on macOS < 14 so a failure never
+// wrongly silences the assistant.
 async function isExternalMicActive(): Promise<boolean> {
-  if (!suppressOnExternalMic) return false;
   try {
     const active = (await invoke<boolean>("is_external_mic_active")) === true;
-    if (active) console.info("[loop] external mic active -> suppressing TTS");
+    if (active)
+      console.info(`[loop] external mic active -> ${externalMicMode}`);
     return active;
   } catch (e) {
     console.warn("[loop] is_external_mic_active failed", e);
@@ -60,11 +65,13 @@ async function isExternalMicActive(): Promise<boolean> {
   }
 }
 
-// Single gate for "should this turn's audio be suppressed and shown on the
-// HUD instead?". True when the system is muted OR (opt-in) another app holds
-// the mic. Every TTS-routing decision in the conversation loop funnels
-// through here so the two suppression reasons share one code path.
-export async function shouldSuppressAudioOutput(): Promise<boolean> {
-  if (await isSystemMuted()) return true;
-  return isExternalMicActive();
+// Single resolver every TTS-routing decision funnels through. System mute
+// always routes to the HUD (unchanged behavior). Otherwise, when the user
+// opted in and another app holds the mic, apply their chosen mode.
+export async function resolveOutputMode(): Promise<OutputMode> {
+  if (await isSystemMuted()) return "hud";
+  if (externalMicMode !== "voice" && (await isExternalMicActive())) {
+    return externalMicMode;
+  }
+  return "voice";
 }

@@ -76,8 +76,8 @@ export function SettingsView() {
   const [analyticsConsent, setAnalyticsConsent] = useState(false);
   const [personalizedToolsEnabled, setPersonalizedToolsEnabled] =
     useState(true);
-  const [suppressWhileExternalMicActive, setSuppressWhileExternalMicActive] =
-    useState(false);
+  const [externalMicOutputMode, setExternalMicOutputMode] =
+    useState<Settings["externalMicOutputMode"]>("voice");
   const [analyticsBusy, setAnalyticsBusy] = useState(false);
   const [analyticsRecent, setAnalyticsRecent] = useState<
     Array<{
@@ -273,7 +273,7 @@ export function SettingsView() {
       setVadSilenceFrames(s.vadSilenceFrames);
       setAnalyticsConsent(s.analyticsConsent);
       setPersonalizedToolsEnabled(s.personalizedToolsEnabled);
-      setSuppressWhileExternalMicActive(s.suppressWhileExternalMicActive);
+      setExternalMicOutputMode(s.externalMicOutputMode);
       // Mirror the stored consent flag into the Rust process so the
       // dispatch hot path doesn't run with a stale default-false until
       // the first toggle. Cached-only invoke, no network round-trip.
@@ -667,7 +667,7 @@ export function SettingsView() {
             vadSilenceFrames,
             analyticsConsent,
             personalizedToolsEnabled,
-            suppressWhileExternalMicActive,
+            externalMicOutputMode,
           });
           await invoke("set_speaker_threshold", { value: speakerThreshold });
           await invoke("set_vad_threshold", { value: vadThreshold });
@@ -702,7 +702,7 @@ export function SettingsView() {
     vadSilenceFrames,
     analyticsConsent,
     personalizedToolsEnabled,
-    suppressWhileExternalMicActive,
+    externalMicOutputMode,
   ]);
 
   if (!loaded) {
@@ -1512,25 +1512,36 @@ export function SettingsView() {
         </details>
       </div>
 
-      {/* Mic etiquette: stay quiet while another app holds the mic (calls,
-          recordings). Off by default — opt-in, since an app that keeps the
-          mic open while idle would otherwise keep Chappie silent. */}
+      {/* Mic etiquette: what to do while another app holds the mic (calls,
+          recordings). Defaults to "voice" (off) — opt-in, since an app that
+          keeps the mic open while idle would otherwise keep Chappie quiet. */}
       <div className={styles.group}>
         <div className={styles.groupRow}>
           <span className={styles.groupRowLabel}>
-            {t("settings.suppressOnExternalMicToggle")}
+            {t("settings.externalMicModeLabel")}
           </span>
-          <input
-            type="checkbox"
-            checked={suppressWhileExternalMicActive}
+          <select
+            className={`${styles.select} ${styles.groupRowControl}`}
+            style={{ width: "auto" }}
+            value={externalMicOutputMode}
             onChange={(e) =>
-              setSuppressWhileExternalMicActive(e.target.checked)
+              setExternalMicOutputMode(
+                e.target.value as Settings["externalMicOutputMode"],
+              )
             }
-          />
+          >
+            <option value="voice">{t("settings.externalMicModeVoice")}</option>
+            <option value="hud">{t("settings.externalMicModeHud")}</option>
+            <option value="silent">
+              {t("settings.externalMicModeSilent")}
+            </option>
+          </select>
         </div>
-        <p className={styles.note} style={{ marginTop: 8 }}>
-          {t("settings.suppressOnExternalMicDescription")}
-        </p>
+        <div className={styles.groupBlock}>
+          <p className={styles.note} style={{ margin: 0 }}>
+            {t("settings.externalMicModeDescription")}
+          </p>
+        </div>
       </div>
 
       {/* Proactive notifications — Chappie speaks up on its own.

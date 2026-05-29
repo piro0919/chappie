@@ -60,7 +60,7 @@ describe("settings", () => {
   const ANALYTICS_DEFAULTS = {
     analyticsConsent: false,
     personalizedToolsEnabled: true,
-    suppressWhileExternalMicActive: false,
+    externalMicOutputMode: "voice",
   } as const;
 
   it("returns defaults when store is empty", async () => {
