@@ -654,6 +654,15 @@ fn run_segmenter(
                                         "speaker",
                                         "drop: cos={score:.3} < {threshold:.2} (other voice)"
                                     );
+                                    // Tell the renderer this segment was
+                                    // someone/something else (TV, another
+                                    // person). It uses this to STOP holding
+                                    // the continuation window open: speech-active
+                                    // (VAD start, pre-gate) had extended it, but
+                                    // now that we know it wasn't the user we want
+                                    // to fall back toward 待機中 promptly instead
+                                    // of waiting out the full ceiling.
+                                    let _ = app2.emit("speech-dropped", ());
                                     return;
                                 }
                                 crate::linfo!(

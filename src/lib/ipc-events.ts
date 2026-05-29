@@ -12,6 +12,10 @@ export const IpcEvent = {
   speech: "speech",
   speechActive: "speech-active",
   speechBargein: "speech-bargein",
+  // Emitted when a captured segment was rejected by the speaker gate as
+  // "other voice" (TV / another person). The loop uses it to stop holding
+  // the listening window open for non-user audio.
+  speechDropped: "speech-dropped",
   // App-wide
   settingsUpdated: "settings:updated",
   deepLink: "deep-link",

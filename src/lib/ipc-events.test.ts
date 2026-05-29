@@ -11,6 +11,7 @@ describe("IpcEvent", () => {
       speech: "speech",
       speechActive: "speech-active",
       speechBargein: "speech-bargein",
+      speechDropped: "speech-dropped",
       settingsUpdated: "settings:updated",
       deepLink: "deep-link",
       log: "log",

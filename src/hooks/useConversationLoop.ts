@@ -86,6 +86,15 @@ const MAX_SPEECH_HOLD_MS = 15000;
 // `speech` event closes the window when the user actually finishes; this
 // only bounds the no-real-segment / ambient-voice case.
 const ABSOLUTE_LISTEN_MAX_MS = 12000;
+// When a segment is rejected by the speaker gate as "other voice" (TV /
+// another person), the speech-active VAD event had already extended the
+// window — but now we know it wasn't the user, so collapse the window to
+// this short grace instead of waiting out the ceiling. Returns to 待機中
+// ~this long after ambient voice stops, while still leaving the user a
+// moment to start talking. Only applies when a voiceprint is enrolled (no
+// enrollment = no speaker gate = no drop event; the absolute cap covers
+// that case).
+const OTHER_VOICE_GRACE_MS = 3000;
 // Time the tray "error" state stays visible before auto-recovering.
 const ERROR_DISPLAY_MS = 1800;
 // Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
@@ -945,6 +954,17 @@ export function useConversationLoop(): { state: State; error: string | null } {
             armFollowupTimer(MAX_SPEECH_HOLD_MS);
           }
         });
+        // Speaker gate rejected the segment as someone/something else. The
+        // speech-active handler above had extended the window on VAD start
+        // (before the speaker was known); now that we know it wasn't the
+        // user, collapse to a short grace so background voice can't hold
+        // "聞いてます" open. The user's own voice still extends normally via
+        // speech-active + the `speech` event.
+        const offDropped = await listen(IpcEvent.speechDropped, () => {
+          if (isAwaitingContinuation()) {
+            armFollowupTimer(OTHER_VOICE_GRACE_MS);
+          }
+        });
         // Miniplayer visibility: while the YouTube player window is up,
         // handleSpeech drops everything except cancel commands so the
         // player's own audio leaking into the mic doesn't loop back into
@@ -978,6 +998,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
           off();
           offBargeIn();
           offActive();
+          offDropped();
           offMiniplayer();
           offTrayStop();
           return;
@@ -986,6 +1007,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
           off();
           offBargeIn();
           offActive();
+          offDropped();
           offMiniplayer();
           offTrayStop();
         };
