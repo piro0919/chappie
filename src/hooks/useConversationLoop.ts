@@ -21,6 +21,7 @@ import {
   type History,
   messagesForRequest,
 } from "../lib/conversation-history";
+import { IpcEvent } from "../lib/ipc-events";
 import { type ChatClient, createChatClient } from "../lib/openai-client";
 import { buildPerTurnPrompt } from "../lib/per-turn-prompt";
 import {
@@ -744,10 +745,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         const ack = pickWakeAck(langRef.current, m.speakerId);
         const out = await resolveOutputMode();
         if (out === "hud") {
-          await invoke("hud_show", {
-            text: `👂 ${ack}`,
-            durationMs: 2200,
-          }).catch(() => {});
+          await showOnHud(`👂 ${ack}`, 2200);
         } else if (out === "voice") {
           await withMutedCapture(() =>
             speak(ack, resolveLanguage(langRef.current)),
@@ -829,7 +827,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         );
         void pushProactiveConfig(s);
         progressOff = await listen<{ received: number; total: number }>(
-          "model:progress",
+          IpcEvent.modelProgress,
           (e) => {
             const pct = e.payload.total
               ? Math.floor((e.payload.received / e.payload.total) * 100)
@@ -879,7 +877,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         }
         setError(null);
 
-        const off = await listen<string>("speech", (e) => {
+        const off = await listen<string>(IpcEvent.speech, (e) => {
           void handleSpeech(e.payload);
         });
         // Segments captured while Chappie's own TTS was playing arrive on
@@ -890,7 +888,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // a barge-in command ("stop / やめて") matching the same
         // whitelist `handleSpeech` uses during active TTS. Everything
         // else is dropped silently — it's Chappie's voice echoing back.
-        const offBargeIn = await listen<string>("speech-bargein", (e) => {
+        const offBargeIn = await listen<string>(IpcEvent.speechBargein, (e) => {
           const text = e.payload;
           if (isBargeInActive() && isBargeInCommand(text)) {
             console.info(`[loop] BARGE-IN (echo-path) matched: "${text}"`);
@@ -912,7 +910,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // and drop state to idle before the segment is even transcribed.
         // The timer gets re-armed on hallucination drop or after the body
         // is consumed normally.
-        const offActive = await listen("speech-active", () => {
+        const offActive = await listen(IpcEvent.speechActive, () => {
           if (isAwaitingContinuation()) {
             // Don't clear — re-arm with a longer ceiling. Rust can drop the
             // segment silently (too-short / low-rms / speaker-gate reject /
@@ -928,7 +926,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // the LLM. Rust emits true on show, false on hide (including
         // when the user closes the window via the OS X button).
         const offMiniplayer = await listen<boolean>(
-          "miniplayer:visible",
+          IpcEvent.miniplayerVisible,
           (e) => {
             externalAudioActiveRef.current = !!e.payload;
             console.info(
@@ -939,7 +937,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
         // Manual TTS interrupt from the tray menu. Same teardown as the
         // voice barge-in path so the user can stop Chappie when speaking
         // out loud isn't an option (meeting / quiet room / etc.).
-        const offTrayStop = await listen("tray:stop_speaking", () => {
+        const offTrayStop = await listen(IpcEvent.trayStopSpeaking, () => {
           if (!ttsActiveRef.current) {
             return;
           }
@@ -1016,7 +1014,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
     };
   }, []);
 
-  useTauriListener("settings:updated", async () => {
+  useTauriListener(IpcEvent.settingsUpdated, async () => {
     const s = await loadSettings();
     const wasBlocked = modeRef.current === "byok" && !apiKeyRef.current;
     const langChanged = langRef.current !== s.language;
@@ -1078,44 +1076,45 @@ export function useConversationLoop(): { state: State; error: string | null } {
   // ongoing TTS turn — the announcement appends after whatever is currently
   // being spoken. Mic capture is paused while we speak so the announcement
   // doesn't loop back into Whisper.
-  useTauriListener<{ id: number; label: string }>("timer:fired", async (e) => {
-    const { label } = e.payload;
-    const message = label
-      ? tRaw(langRef.current, "conversation.timerFiredWithLabel", { label })
-      : tRaw(langRef.current, "conversation.timerFiredNoLabel");
-    console.info(`[timer] fired: id=${e.payload.id} label="${label}"`);
-    // When the spoken alarm would be silent (muted or external-mic mode),
-    // surface it on the HUD instead so the user still notices — unless they
-    // picked "silent", in which case the timer fires quietly.
-    const out = await resolveOutputMode();
-    if (out !== "voice") {
-      if (out === "hud") {
-        const hudText = label
-          ? tRaw(langRef.current, "conversation.timerHudWithLabel", { label })
-          : tRaw(langRef.current, "conversation.timerHudNoLabel");
-        await invoke("hud_show", { text: hudText, durationMs: 8000 }).catch(
-          () => {},
-        );
+  useTauriListener<{ id: number; label: string }>(
+    IpcEvent.timerFired,
+    async (e) => {
+      const { label } = e.payload;
+      const message = label
+        ? tRaw(langRef.current, "conversation.timerFiredWithLabel", { label })
+        : tRaw(langRef.current, "conversation.timerFiredNoLabel");
+      console.info(`[timer] fired: id=${e.payload.id} label="${label}"`);
+      // When the spoken alarm would be silent (muted or external-mic mode),
+      // surface it on the HUD instead so the user still notices — unless they
+      // picked "silent", in which case the timer fires quietly.
+      const out = await resolveOutputMode();
+      if (out !== "voice") {
+        if (out === "hud") {
+          const hudText = label
+            ? tRaw(langRef.current, "conversation.timerHudWithLabel", { label })
+            : tRaw(langRef.current, "conversation.timerHudNoLabel");
+          await showOnHud(hudText, 8000);
+        }
+        return;
       }
-      return;
-    }
-    ttsActiveRef.current = true;
-    await invoke("pause_listening").catch(() => {});
-    try {
-      await speakQueued(message, resolveLanguage(langRef.current));
-    } catch (err) {
-      console.error("[timer] tts failed", err);
-    } finally {
-      await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
-      await invoke("resume_listening").catch(() => {});
-      ttsActiveRef.current = false;
-    }
-  });
+      ttsActiveRef.current = true;
+      await invoke("pause_listening").catch(() => {});
+      try {
+        await speakQueued(message, resolveLanguage(langRef.current));
+      } catch (err) {
+        console.error("[timer] tts failed", err);
+      } finally {
+        await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
+        await invoke("resume_listening").catch(() => {});
+        ttsActiveRef.current = false;
+      }
+    },
+  );
 
   // reminder:fired (absolute-time reminders, persisted across restart).
   // Phrased as "○○の時間です" instead of timer's "○○のタイマーです".
   useTauriListener<{ id: number; label: string }>(
-    "reminder:fired",
+    IpcEvent.reminderFired,
     async (e) => {
       const { label } = e.payload;
       const message = label
@@ -1132,9 +1131,7 @@ export function useConversationLoop(): { state: State; error: string | null } {
                 label,
               })
             : tRaw(langRef.current, "conversation.reminderHudNoLabel");
-          await invoke("hud_show", { text: hudText, durationMs: 8000 }).catch(
-            () => {},
-          );
+          await showOnHud(hudText, 8000);
         }
         return;
       }
@@ -1157,208 +1154,207 @@ export function useConversationLoop(): { state: State; error: string | null } {
   // the renderer composes the user-facing text from the i18n catalog
   // and routes to TTS or HUD via the same mute-aware path as the
   // other fire-and-forget announcements.
-  useTauriListener<ProactiveFiredPayload>("proactive:fired", async (e) => {
-    const p = e.payload;
-    let speakText: string;
-    let hudText: string;
-    // Resolve the output surface up front so we can skip the
-    // (sometimes LLM-backed) idle-chatter composition when it would
-    // never actually be heard.
-    const out = await resolveOutputMode();
-    // External-mic "silent" (or muted-while-silent) → drop the proactive
-    // nudge entirely: no voice, no HUD.
-    if (out === "silent") return;
-    const muted = out === "hud";
-    const micGranted =
-      (await invoke<string>("check_microphone_permission").catch(
-        () => "denied",
-      )) === "granted";
-    const channel = proactiveOutputChannelRef.current;
-    // HUD-only when the user picked "hud", output is suppressed-to-HUD, or
-    // the channel is "auto" and the mic permission is missing — a one-way
-    // spoken nudge is odd when the user can't talk back.
-    const useHud =
-      channel === "hud" || muted || (channel === "auto" && !micGranted);
-    // Idle chatter is conversational filler that only ever speaks. Drop
-    // it before any compose work if it would land on the HUD, or if the
-    // mic is missing (nothing for the user to reply with).
-    if (p.kind === "idleChatter" && (useHud || !micGranted)) return;
-    if (p.kind === "morningBrief") {
-      const params: Record<string, string> = {
-        weather: p.weather,
-        temp: String(p.temp),
-        count: String(p.eventCount),
-      };
-      if (p.firstTime && p.firstTitle) {
-        params.firstTime = p.firstTime;
-        params.firstTitle = p.firstTitle;
-        speakText = tRaw(
+  useTauriListener<ProactiveFiredPayload>(
+    IpcEvent.proactiveFired,
+    async (e) => {
+      const p = e.payload;
+      let speakText: string;
+      let hudText: string;
+      // Resolve the output surface up front so we can skip the
+      // (sometimes LLM-backed) idle-chatter composition when it would
+      // never actually be heard.
+      const out = await resolveOutputMode();
+      // External-mic "silent" (or muted-while-silent) → drop the proactive
+      // nudge entirely: no voice, no HUD.
+      if (out === "silent") return;
+      const muted = out === "hud";
+      const micGranted =
+        (await invoke<string>("check_microphone_permission").catch(
+          () => "denied",
+        )) === "granted";
+      const channel = proactiveOutputChannelRef.current;
+      // HUD-only when the user picked "hud", output is suppressed-to-HUD, or
+      // the channel is "auto" and the mic permission is missing — a one-way
+      // spoken nudge is odd when the user can't talk back.
+      const useHud =
+        channel === "hud" || muted || (channel === "auto" && !micGranted);
+      // Idle chatter is conversational filler that only ever speaks. Drop
+      // it before any compose work if it would land on the HUD, or if the
+      // mic is missing (nothing for the user to reply with).
+      if (p.kind === "idleChatter" && (useHud || !micGranted)) return;
+      if (p.kind === "morningBrief") {
+        const params: Record<string, string> = {
+          weather: p.weather,
+          temp: String(p.temp),
+          count: String(p.eventCount),
+        };
+        if (p.firstTime && p.firstTitle) {
+          params.firstTime = p.firstTime;
+          params.firstTitle = p.firstTitle;
+          speakText = tRaw(
+            langRef.current,
+            "conversation.proactiveMorningBriefWithEvents",
+            params,
+          );
+        } else if (p.eventCount === 0) {
+          speakText = tRaw(
+            langRef.current,
+            "conversation.proactiveMorningBriefNoEvents",
+            params,
+          );
+        } else {
+          speakText = tRaw(
+            langRef.current,
+            "conversation.proactiveMorningBriefWeatherOnly",
+            params,
+          );
+        }
+        hudText = tRaw(
           langRef.current,
-          "conversation.proactiveMorningBriefWithEvents",
+          "conversation.proactiveMorningBriefHud",
           params,
         );
-      } else if (p.eventCount === 0) {
+      } else if (p.kind === "calendarWarning") {
+        const params = {
+          leadMin: String(p.leadMin),
+          title: p.title,
+        };
         speakText = tRaw(
           langRef.current,
-          "conversation.proactiveMorningBriefNoEvents",
+          "conversation.proactiveCalendarWarning",
+          params,
+        );
+        hudText = tRaw(
+          langRef.current,
+          "conversation.proactiveCalendarHud",
+          params,
+        );
+      } else if (p.kind === "weatherAlert") {
+        const params = { detail: p.detail };
+        speakText = tRaw(
+          langRef.current,
+          "conversation.proactiveWeatherAlert",
+          params,
+        );
+        hudText = tRaw(
+          langRef.current,
+          "conversation.proactiveWeatherAlertHud",
           params,
         );
       } else {
-        speakText = tRaw(
+        const slot = Math.min(Math.max(p.phraseIndex, 0), 4);
+        // Static key list keeps t()'s string-literal union happy; the
+        // Rust side bounds phrase_index to 0..IDLE_CHATTER_PHRASE_COUNT
+        // which is wired to match this array length.
+        const phraseKeys = [
+          "conversation.proactiveIdleChatterPhrase1",
+          "conversation.proactiveIdleChatterPhrase2",
+          "conversation.proactiveIdleChatterPhrase3",
+          "conversation.proactiveIdleChatterPhrase4",
+          "conversation.proactiveIdleChatterPhrase5",
+        ] as const;
+        const fallback = tRaw(langRef.current, phraseKeys[slot]);
+        // Free mode shares its 5/day quota with this — burning daily
+        // calls on unsolicited chatter is anti-feature, so Free always
+        // uses the static phrase. BYOK/Paid pay their own bill so
+        // they can afford LLM-generated variety.
+        let chatter = fallback;
+        if (modeRef.current !== "free" && chatClientRef.current) {
+          try {
+            const basePrompt = buildIdleChatterPrompt(langRef.current);
+            // If a VOICEVOX character is the current voice, prepend its
+            // persona so the chatter matches the speaker's 口調 (e.g.
+            // ずんだもん's "〜なのだ"). Default chappie voice = no
+            // persona injection (chappie's neutral tone is the default).
+            const speakerId = voicevoxSpeakerIdRef.current;
+            const persona =
+              speakerId !== undefined
+                ? (VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId)
+                    ?.persona ?? "")
+                : "";
+            // Affinity (育成) stance, so idle chatter matches the closeness
+            // built with this character. Milestone is left to the conversation
+            // path only, so drop it here.
+            const affinityStance = buildAffinityStance({
+              ...getAffinity(speakerId),
+              milestone: null,
+            });
+            const systemContent = [
+              basePrompt,
+              `\n\n${affinityStance}`,
+              persona ? `\n\n--- character ---\n${persona}` : "",
+              p.context
+                ? `\n\n--- context ---\n${p.context}\n--- end context ---\nUse the context naturally if relevant; do not list it back verbatim. Skip mentioning context that doesn't fit a casual remark.`
+                : "",
+            ].join("");
+            const result = await chatClientRef.current.complete(
+              [
+                { role: "system", content: systemContent },
+                { role: "user", content: "[idle]" },
+              ],
+              undefined,
+              // Pure chatter generation — no tools, so an idle remark can't
+              // spawn timers/reminders or other side effects.
+              { noTools: true },
+            );
+            const trimmed = result.text.trim();
+            if (trimmed) chatter = trimmed;
+          } catch (err) {
+            console.warn(
+              "[proactive] idle chatter LLM call failed, using fallback",
+              err,
+            );
+          }
+        }
+        speakText = chatter;
+        hudText = chatter;
+      }
+      // Template-based fires (morning/calendar/weather) get rewritten
+      // through the active character's 口調. Idle chatter already runs
+      // through an LLM path with persona injected, so it skips this.
+      if (p.kind !== "idleChatter") {
+        speakText = await rewriteInPersona(
+          speakText,
           langRef.current,
-          "conversation.proactiveMorningBriefWeatherOnly",
-          params,
+          voicevoxSpeakerIdRef.current,
+          modeRef.current,
+          chatClientRef.current,
+          // Affinity stance (milestone reserved for the conversation path).
+          buildAffinityStance({
+            ...getAffinity(voicevoxSpeakerIdRef.current),
+            milestone: null,
+          }),
         );
       }
-      hudText = tRaw(
-        langRef.current,
-        "conversation.proactiveMorningBriefHud",
-        params,
-      );
-    } else if (p.kind === "calendarWarning") {
-      const params = {
-        leadMin: String(p.leadMin),
-        title: p.title,
-      };
-      speakText = tRaw(
-        langRef.current,
-        "conversation.proactiveCalendarWarning",
-        params,
-      );
-      hudText = tRaw(
-        langRef.current,
-        "conversation.proactiveCalendarHud",
-        params,
-      );
-    } else if (p.kind === "weatherAlert") {
-      const params = { detail: p.detail };
-      speakText = tRaw(
-        langRef.current,
-        "conversation.proactiveWeatherAlert",
-        params,
-      );
-      hudText = tRaw(
-        langRef.current,
-        "conversation.proactiveWeatherAlertHud",
-        params,
-      );
-    } else {
-      const slot = Math.min(Math.max(p.phraseIndex, 0), 4);
-      // Static key list keeps t()'s string-literal union happy; the
-      // Rust side bounds phrase_index to 0..IDLE_CHATTER_PHRASE_COUNT
-      // which is wired to match this array length.
-      const phraseKeys = [
-        "conversation.proactiveIdleChatterPhrase1",
-        "conversation.proactiveIdleChatterPhrase2",
-        "conversation.proactiveIdleChatterPhrase3",
-        "conversation.proactiveIdleChatterPhrase4",
-        "conversation.proactiveIdleChatterPhrase5",
-      ] as const;
-      const fallback = tRaw(langRef.current, phraseKeys[slot]);
-      // Free mode shares its 5/day quota with this — burning daily
-      // calls on unsolicited chatter is anti-feature, so Free always
-      // uses the static phrase. BYOK/Paid pay their own bill so
-      // they can afford LLM-generated variety.
-      let chatter = fallback;
-      if (modeRef.current !== "free" && chatClientRef.current) {
-        try {
-          const basePrompt = buildIdleChatterPrompt(langRef.current);
-          // If a VOICEVOX character is the current voice, prepend its
-          // persona so the chatter matches the speaker's 口調 (e.g.
-          // ずんだもん's "〜なのだ"). Default chappie voice = no
-          // persona injection (chappie's neutral tone is the default).
-          const speakerId = voicevoxSpeakerIdRef.current;
-          const persona =
-            speakerId !== undefined
-              ? (VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId)
-                  ?.persona ?? "")
-              : "";
-          // Affinity (育成) stance, so idle chatter matches the closeness
-          // built with this character. Milestone is left to the conversation
-          // path only, so drop it here.
-          const affinityStance = buildAffinityStance({
-            ...getAffinity(speakerId),
-            milestone: null,
-          });
-          const systemContent = [
-            basePrompt,
-            `\n\n${affinityStance}`,
-            persona ? `\n\n--- character ---\n${persona}` : "",
-            p.context
-              ? `\n\n--- context ---\n${p.context}\n--- end context ---\nUse the context naturally if relevant; do not list it back verbatim. Skip mentioning context that doesn't fit a casual remark.`
-              : "",
-          ].join("");
-          const result = await chatClientRef.current.complete(
-            [
-              { role: "system", content: systemContent },
-              { role: "user", content: "[idle]" },
-            ],
-            undefined,
-            // Pure chatter generation — no tools, so an idle remark can't
-            // spawn timers/reminders or other side effects.
-            { noTools: true },
-          );
-          const trimmed = result.text.trim();
-          if (trimmed) chatter = trimmed;
-        } catch (err) {
-          console.warn(
-            "[proactive] idle chatter LLM call failed, using fallback",
-            err,
-          );
-        }
+      console.info(`[proactive] fired: kind=${p.kind}`);
+      if (useHud) {
+        // Idle chatter is low-priority filler and only ever speaks; it was
+        // already dropped above for every HUD case, so this only routes
+        // the notification kinds to the HUD.
+        if (p.kind === "idleChatter") return;
+        await showOnHud(hudText, 10000);
+        return;
       }
-      speakText = chatter;
-      hudText = chatter;
-    }
-    // Template-based fires (morning/calendar/weather) get rewritten
-    // through the active character's 口調. Idle chatter already runs
-    // through an LLM path with persona injected, so it skips this.
-    if (p.kind !== "idleChatter") {
-      speakText = await rewriteInPersona(
-        speakText,
-        langRef.current,
-        voicevoxSpeakerIdRef.current,
-        modeRef.current,
-        chatClientRef.current,
-        // Affinity stance (milestone reserved for the conversation path).
-        buildAffinityStance({
-          ...getAffinity(voicevoxSpeakerIdRef.current),
-          milestone: null,
-        }),
-      );
-    }
-    console.info(`[proactive] fired: kind=${p.kind}`);
-    if (useHud) {
-      // Idle chatter is low-priority filler and only ever speaks; it was
-      // already dropped above for every HUD case, so this only routes
-      // the notification kinds to the HUD.
-      if (p.kind === "idleChatter") return;
-      await invoke("hud_show", { text: hudText, durationMs: 10000 }).catch(
-        () => {},
-      );
-      return;
-    }
-    // Calendar warnings + weather alerts also surface on the HUD even
-    // when audible — the cue is time-critical and missing the spoken
-    // form (e.g. user away from the desk) would defeat the feature.
-    // Morning brief skips the HUD when audible to avoid double-clutter.
-    if (p.kind === "calendarWarning" || p.kind === "weatherAlert") {
-      void invoke("hud_show", { text: hudText, durationMs: 10000 }).catch(
-        () => {},
-      );
-    }
-    ttsActiveRef.current = true;
-    await invoke("pause_listening").catch(() => {});
-    try {
-      await speakQueued(speakText, resolveLanguage(langRef.current));
-    } catch (err) {
-      console.error("[proactive] tts failed", err);
-    } finally {
-      await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
-      await invoke("resume_listening").catch(() => {});
-      ttsActiveRef.current = false;
-    }
-  });
+      // Calendar warnings + weather alerts also surface on the HUD even
+      // when audible — the cue is time-critical and missing the spoken
+      // form (e.g. user away from the desk) would defeat the feature.
+      // Morning brief skips the HUD when audible to avoid double-clutter.
+      if (p.kind === "calendarWarning" || p.kind === "weatherAlert") {
+        void showOnHud(hudText, 10000);
+      }
+      ttsActiveRef.current = true;
+      await invoke("pause_listening").catch(() => {});
+      try {
+        await speakQueued(speakText, resolveLanguage(langRef.current));
+      } catch (err) {
+        console.error("[proactive] tts failed", err);
+      } finally {
+        await new Promise((r) => setTimeout(r, POST_TTS_COOLDOWN_MS));
+        await invoke("resume_listening").catch(() => {});
+        ttsActiveRef.current = false;
+      }
+    },
+  );
 
   return { state, error };
 }

@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
+import { IpcEvent } from "../lib/ipc-events";
 import styles from "./HudView.module.css";
 
 // HUD-only global resets. Applied imperatively (instead of via a global CSS
@@ -83,7 +84,7 @@ export function HudView() {
     let hideTimer: number | undefined;
     let dismissTimer: number | undefined;
 
-    const unlistenPromise = listen<HudPayload>("hud:show", (e) => {
+    const unlistenPromise = listen<HudPayload>(IpcEvent.hudShow, (e) => {
       console.info(
         `[hud] event received chars=${e.payload.text.length} dur=${e.payload.durationMs}`,
       );

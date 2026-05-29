@@ -1,5 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
+import { IpcEvent } from "../lib/ipc-events";
 import { type Language, loadSettings } from "../lib/settings";
 import { type MessageKey, t as tRaw } from "./messages";
 
@@ -11,7 +12,7 @@ export function useT(): {
 
   useEffect(() => {
     void loadSettings().then((s) => setLanguage(s.language));
-    const unlistenPromise = listen("settings:updated", () => {
+    const unlistenPromise = listen(IpcEvent.settingsUpdated, () => {
       void loadSettings().then((s) => setLanguage(s.language));
     });
     return () => {

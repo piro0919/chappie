@@ -4,6 +4,7 @@ import {
   type SupabaseClient,
 } from "@supabase/supabase-js";
 import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { IpcEvent } from "./ipc-events";
 import {
   loadSettings,
   type SubscriptionStatus,
@@ -248,7 +249,7 @@ export async function signOut(): Promise<void> {
  * mount; the listener self-deduplicates on cleanup.
  */
 export async function installDeepLinkHandler(): Promise<UnlistenFn> {
-  return listen<string>("deep-link", async (event) => {
+  return listen<string>(IpcEvent.deepLink, async (event) => {
     const raw = event.payload;
     if (!raw) return;
     try {
@@ -266,14 +267,14 @@ export async function installDeepLinkHandler(): Promise<UnlistenFn> {
         if (access && refresh) {
           await applyAuthCallback(access, refresh);
           await refreshStatus().catch(() => {});
-          await emit("settings:updated", {});
+          await emit(IpcEvent.settingsUpdated, {});
         }
       } else if (
         url.hostname === "refresh" ||
         url.pathname.replace(/^\//, "") === "refresh"
       ) {
         await refreshStatus().catch(() => {});
-        await emit("settings:updated", {});
+        await emit(IpcEvent.settingsUpdated, {});
       }
     } catch {
       // Ignore malformed URLs.

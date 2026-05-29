@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { installLogBridge } from "./lib/log-bridge";
 import { ConversationWorker } from "./views/ConversationWorker";
 import { HudView } from "./views/HudView";
@@ -19,6 +20,8 @@ installLogBridge();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <Root />
+    <ErrorBoundary>
+      <Root />
+    </ErrorBoundary>
   </React.StrictMode>,
 );

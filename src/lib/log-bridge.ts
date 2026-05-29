@@ -3,6 +3,7 @@
 // with [tag] and routed to console.info / console.warn / console.error.
 
 import { listen } from "@tauri-apps/api/event";
+import { IpcEvent } from "./ipc-events";
 
 type LogPayload = {
   level: "info" | "warn" | "error";
@@ -15,7 +16,7 @@ let installed = false;
 export function installLogBridge(): void {
   if (installed) return;
   installed = true;
-  void listen<LogPayload>("log", (e) => {
+  void listen<LogPayload>(IpcEvent.log, (e) => {
     const { level, tag, message } = e.payload;
     const line = `[${tag}] ${message}`;
     if (level === "error") console.error(line);

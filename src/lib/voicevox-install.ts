@@ -8,6 +8,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { IpcEvent } from "./ipc-events";
 
 export type InstallKind = "managed" | "bundled_app" | "missing";
 
@@ -48,7 +49,7 @@ export async function uninstall(): Promise<void> {
 export async function onInstallProgress(
   cb: (p: InstallProgress) => void,
 ): Promise<UnlistenFn> {
-  return listen<InstallProgress>("voicevox:install_progress", (e) =>
+  return listen<InstallProgress>(IpcEvent.voicevoxInstallProgress, (e) =>
     cb(e.payload),
   );
 }

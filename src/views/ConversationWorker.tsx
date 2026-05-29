@@ -7,6 +7,7 @@ import {
 } from "@tauri-apps/plugin-autostart";
 import { useEffect } from "react";
 import { useConversationLoop } from "../hooks/useConversationLoop";
+import { IpcEvent } from "../lib/ipc-events";
 import {
   hasPersistedAutostart,
   loadSettings,
@@ -87,7 +88,7 @@ export function ConversationWorker(): null {
       }
     };
     void push();
-    void listen("settings:updated", () => {
+    void listen(IpcEvent.settingsUpdated, () => {
       void push();
     }).then((u) => {
       unlisten = u;
@@ -118,7 +119,7 @@ export function ConversationWorker(): null {
         const rotated = await refreshSessionTokens().catch(() => false);
         // Broadcast so the conversation loop reloads the new token into
         // `subscriptionTokenRef` (it re-reads settings on this event).
-        if (rotated) await emit("settings:updated", {}).catch(() => {});
+        if (rotated) await emit(IpcEvent.settingsUpdated, {}).catch(() => {});
       })();
     }, TOKEN_REFRESH_INTERVAL_MS);
     return () => {
