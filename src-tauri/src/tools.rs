@@ -1607,4 +1607,42 @@ mod tests {
         let full = all_tools().as_array().unwrap().len();
         assert!(p < full, "personalized {p} should be < full {full}");
     }
+
+    // Lock the argument-extraction helpers so the boilerplate they replaced
+    // across the tool arms stays byte-identical: missing / wrong-type →
+    // default, present → value, and arg_trim trims.
+    #[test]
+    fn arg_helpers_match_inline_semantics() {
+        let v = json!({ "s": "  hi  ", "n": 7, "b": true, "wrong": 1 });
+        // arg_str: present → value, missing → "", wrong type → ""
+        assert_eq!(arg_str(&v, "s"), "  hi  ");
+        assert_eq!(arg_str(&v, "missing"), "");
+        assert_eq!(arg_str(&v, "n"), "");
+        // arg_trim trims the same value
+        assert_eq!(arg_trim(&v, "s"), "hi");
+        assert_eq!(arg_trim(&v, "missing"), "");
+        // arg_u64: present number → Some, missing / wrong type → None
+        assert_eq!(arg_u64(&v, "n"), Some(7));
+        assert_eq!(arg_u64(&v, "missing"), None);
+        assert_eq!(arg_u64(&v, "s"), None);
+        // arg_bool: present bool → Some, missing / wrong type → None
+        assert_eq!(arg_bool(&v, "b"), Some(true));
+        assert_eq!(arg_bool(&v, "missing"), None);
+        assert_eq!(arg_bool(&v, "wrong"), None);
+    }
+
+    // The one extracted tool body whose validation branch needs neither an
+    // AppHandle nor network: empty/missing location must short-circuit to
+    // the same error envelope the inline arm returned.
+    #[tokio::test]
+    async fn world_time_requires_location() {
+        assert_eq!(
+            tool_get_world_time(&json!({})).await,
+            json!({ "error": "location is required" }).to_string()
+        );
+        assert_eq!(
+            tool_get_world_time(&json!({ "location": "   " })).await,
+            json!({ "error": "location is required" }).to_string()
+        );
+    }
 }
