@@ -705,6 +705,9 @@ const PERSONALIZED_CASES: &[Case] = &[
     Case { label: "p/rescue/stocks", utterance: "トヨタの株価は?", expected_first: "mcp_stocks_quote" },
     Case { label: "p/rescue/holidays", utterance: "次の祝日いつ?", expected_first: "mcp_holidays_next" },
     Case { label: "p/rescue/wallpaper", utterance: "壁紙を森に変えて", expected_first: "set_wallpaper" },
+    Case { label: "p/rescue/wp_potd", utterance: "今日の一枚を壁紙にして", expected_first: "set_wallpaper_potd" },
+    Case { label: "p/rescue/wp_art", utterance: "ゴッホの名画を壁紙にして", expected_first: "set_artwork_wallpaper" },
+    Case { label: "p/rescue/nearby", utterance: "近くの名所教えて", expected_first: "mcp_wiki_nearby" },
     Case { label: "p/rescue/pokemon", utterance: "ポケモンのフシギダネのステータス教えて", expected_first: "mcp_pokemon_stats" },
 ];
 

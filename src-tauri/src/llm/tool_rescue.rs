@@ -157,9 +157,45 @@ const RESCUE_MAP: &[RescueEntry] = &[
         universal: &[],
     },
     RescueEntry {
+        tool: "mcp_wiki_nearby",
+        ja: &[
+            "近くの名所",
+            "この辺の名所",
+            "周辺の名所",
+            "近くの見どころ",
+            "近くの観光",
+        ],
+        en: &["nearby landmarks", "places near me", "what's nearby"],
+        universal: &[],
+    },
+    // Three wallpaper variants share the generic 壁紙 keyword (→ the
+    // default Pixabay tool) but each also gets a distinctive keyword so the
+    // POTD / artwork variants are reachable on weak models too — without
+    // them, "今日の一枚を壁紙に" / "名画を壁紙に" only ever saw set_wallpaper
+    // and degraded. On an ambiguous phrase ("今日の一枚を壁紙にして") both the
+    // generic and the specific tool are spliced in and the model picks the
+    // more specific match.
+    RescueEntry {
         tool: "set_wallpaper",
         ja: &["壁紙", "背景画像", "デスクトップの画像"],
         en: &["wallpaper", "desktop background"],
+        universal: &[],
+    },
+    RescueEntry {
+        tool: "set_wallpaper_potd",
+        ja: &[
+            "今日の一枚",
+            "今日の写真",
+            "今日のおすすめ写真",
+            "日替わりの写真",
+        ],
+        en: &["picture of the day"],
+        universal: &["potd"],
+    },
+    RescueEntry {
+        tool: "set_artwork_wallpaper",
+        ja: &["名画", "絵画の壁紙", "浮世絵", "アート壁紙"],
+        en: &["artwork wallpaper", "famous painting"],
         universal: &[],
     },
     RescueEntry {
@@ -219,6 +255,9 @@ mod tests {
             ),
             ("大谷の試合どうだった？", "mcp_mlb_games"),
             ("壁紙を森に変えて", "set_wallpaper"),
+            ("今日の一枚を壁紙にして", "set_wallpaper_potd"),
+            ("名画を壁紙にして", "set_artwork_wallpaper"),
+            ("近くの名所教えて", "mcp_wiki_nearby"),
             ("次の祝日いつ？", "mcp_holidays_next"),
             ("最新ニュース教えて", "mcp_news_latest"),
             ("何ができるの？", "list_capabilities"),
@@ -230,6 +269,16 @@ mod tests {
                 "{utt:?} should rescue {want}, got {got:?}"
             );
         }
+    }
+
+    #[test]
+    fn ambiguous_wallpaper_phrase_offers_both_variants() {
+        // "今日の一枚を壁紙にして" contains both the generic 壁紙 keyword and
+        // the POTD-specific 今日の一枚, so both tools are offered and the
+        // model can pick the more specific one.
+        let got = rescue_tool_names("今日の一枚を壁紙にして", Lang::Ja);
+        assert!(got.contains("set_wallpaper_potd"));
+        assert!(got.contains("set_wallpaper"));
     }
 
     #[test]
