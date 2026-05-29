@@ -36,6 +36,10 @@ pub async fn chat_complete(
     subscription_token: Option<String>,
     messages: Vec<ChatMessage>,
     on_chunk: Channel<String>,
+    // Pure text-generation (no tools, no context injection). Set by the
+    // renderer for proactive persona rewrites / idle chatter so flavoring
+    // text can't trigger side-effecting tools. Defaults to false.
+    no_tools: Option<bool>,
 ) -> Result<ChatResult, String> {
     // Capture the analytics-relevant bits before dispatch consumes the
     // messages vec. We report at the end whether the turn succeeded or
@@ -65,6 +69,7 @@ pub async fn chat_complete(
         subscription_token,
         messages,
         on_chunk,
+        no_tools.unwrap_or(false),
     )
     .await;
 
@@ -94,6 +99,7 @@ async fn chat_complete_inner(
     subscription_token: Option<String>,
     messages: Vec<ChatMessage>,
     on_chunk: Channel<String>,
+    no_tools: bool,
 ) -> Result<ChatResult, String> {
     // Free / Paid both route through the chappie.kkweb.io proxy. The
     // renderer doesn't pass an api_key here; we load the device id from
@@ -120,6 +126,7 @@ async fn chat_complete_inner(
             model,
             messages,
             on_chunk,
+            no_tools,
         )
         .await;
     }
@@ -153,6 +160,7 @@ async fn chat_complete_inner(
                 model,
                 messages,
                 on_chunk,
+                no_tools,
             )
             .await
         }
@@ -166,6 +174,7 @@ async fn chat_complete_inner(
                 model,
                 messages,
                 on_chunk,
+                no_tools,
             )
             .await
         }
@@ -179,6 +188,7 @@ async fn chat_complete_inner(
                 model,
                 messages,
                 on_chunk,
+                no_tools,
             )
             .await
         }

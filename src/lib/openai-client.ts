@@ -7,10 +7,19 @@ export type ChatResult = {
   endConversation: boolean;
 };
 
+export type CompleteOpts = {
+  // Pure text generation: ask Rust to offer no tools and skip context
+  // injection. Used for proactive persona rewrites / idle chatter so the
+  // flavoring text can't make the model fire side-effecting tools (e.g. a
+  // calendar warning being misread as a set_timer request).
+  noTools?: boolean;
+};
+
 export type ChatClient = {
   complete: (
     messages: Message[],
     onChunk?: (chunk: string) => void,
+    opts?: CompleteOpts,
   ) => Promise<ChatResult>;
 };
 
@@ -32,7 +41,7 @@ export function createChatClient(
   subscriptionTokenGetter: () => string = () => "",
 ): ChatClient {
   return {
-    async complete(messages, onChunk) {
+    async complete(messages, onChunk, opts) {
       // The Rust side streams text deltas through this Channel as soon as
       // they arrive from OpenAI; the renderer uses them to start TTS on
       // partial output. Tests can pass a mock invoker without a Channel.
@@ -47,6 +56,7 @@ export function createChatClient(
         subscriptionToken: subscriptionTokenGetter(),
         messages,
         onChunk: channel,
+        noTools: opts?.noTools ?? false,
       });
       if (!result || typeof result.text !== "string" || !result.text) {
         throw new Error("OpenAI returned no content");

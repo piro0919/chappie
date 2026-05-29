@@ -87,10 +87,17 @@ async function rewriteInPersona(
   const resolved = resolveLanguage(lang);
   const system = `You are Chappie, currently voiced as a VOICEVOX character. Rewrite the user-provided sentence in the character's 口調 (speech style) described below. Keep the meaning and information identical — do not add or drop facts. Output ONE sentence only in ${resolved}, no markdown, no quotes, no preamble. Output just the rewritten sentence.\n\n--- character ---\n${persona}`;
   try {
-    const result = await chatClient.complete([
-      { role: "system", content: system },
-      { role: "user", content: speakText },
-    ]);
+    const result = await chatClient.complete(
+      [
+        { role: "system", content: system },
+        { role: "user", content: speakText },
+      ],
+      undefined,
+      // No tools: this is a pure rephrase. Without this the model treats
+      // the flavoring text (e.g. a calendar warning "15分後に〇〇です") as a
+      // request and fires side-effecting tools like set_timer.
+      { noTools: true },
+    );
     const trimmed = result.text.trim().replace(/^[「『"']+|[」』"']+$/g, "");
     return trimmed || speakText;
   } catch (err) {
@@ -1166,10 +1173,16 @@ export function useConversationLoop(): { state: State; error: string | null } {
               ? `\n\n--- context ---\n${p.context}\n--- end context ---\nUse the context naturally if relevant; do not list it back verbatim. Skip mentioning context that doesn't fit a casual remark.`
               : "",
           ].join("");
-          const result = await chatClientRef.current.complete([
-            { role: "system", content: systemContent },
-            { role: "user", content: "[idle]" },
-          ]);
+          const result = await chatClientRef.current.complete(
+            [
+              { role: "system", content: systemContent },
+              { role: "user", content: "[idle]" },
+            ],
+            undefined,
+            // Pure chatter generation — no tools, so an idle remark can't
+            // spawn timers/reminders or other side effects.
+            { noTools: true },
+          );
           const trimmed = result.text.trim();
           if (trimmed) chatter = trimmed;
         } catch (err) {

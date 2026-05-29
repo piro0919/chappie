@@ -43,6 +43,13 @@ pub async fn chat_complete_generic<P: LlmProvider>(
     model: String,
     messages: Vec<ChatMessage>,
     on_chunk: Channel<String>,
+    // When true, no tools are offered to the model and the agentic context
+    // injection (location / long-term memory) is skipped. Used for pure
+    // text-generation calls — proactive persona rewrites and idle chatter —
+    // where reusing the full tool-enabled path made the model treat the
+    // flavoring text (e.g. a calendar warning "15分後に〇〇です") as a request
+    // and fire side-effecting tools like set_timer.
+    no_tools: bool,
 ) -> Result<ChatResult, String> {
     let label = provider.label();
     // Proxy mode passes the device id through the `api_key` slot (used as
@@ -71,7 +78,9 @@ pub async fn chat_complete_generic<P: LlmProvider>(
     } else {
         Some(api_key.as_str())
     };
-    inject_context(&mut messages, &last_user_text, feature_key).await;
+    if !no_tools {
+        inject_context(&mut messages, &last_user_text, feature_key).await;
+    }
 
     crate::linfo!(
         app,
@@ -81,19 +90,22 @@ pub async fn chat_complete_generic<P: LlmProvider>(
     );
 
     let mut state = provider.prepare_state(messages);
-    let chitchat = crate::llm::chitchat::is_chitchat(&last_user_text, crate::i18n::current());
+    let chitchat = !no_tools
+        && crate::llm::chitchat::is_chitchat(&last_user_text, crate::i18n::current());
     // Routing mode (cache-prefix-affecting):
     //   chitchat     → minimal_tools (just end_conversation)
     //   personalized → per-user hot set + escape tool (when enabled & hot
     //                  set is large enough; escape tool lets the model fall
     //                  back to the full set on a miss — handled in the loop)
     //   full         → all_tools (cold start / light user / toggle off)
-    let hot_set = if !chitchat && crate::tool_usage::personalized_enabled() {
+    let hot_set = if !no_tools && !chitchat && crate::tool_usage::personalized_enabled() {
         crate::tool_usage::hot_tool_names()
     } else {
         None
     };
-    let (mut tools, route_mode) = if chitchat {
+    let (mut tools, route_mode) = if no_tools {
+        (serde_json::json!([]), "none")
+    } else if chitchat {
         (crate::tools::minimal_tools(), "chitchat")
     } else if let Some(ref hot) = hot_set {
         (crate::tools::personalized_tools(hot), "personalized")
@@ -118,7 +130,18 @@ pub async fn chat_complete_generic<P: LlmProvider>(
     let mut pending_fallback_url: Option<String> = None;
 
     for round in 0..=MAX_TOOL_ROUNDS {
-        let body = provider.build_body(&state, &model, &tools);
+        let mut body = provider.build_body(&state, &model, &tools);
+        // Pure text-generation: drop the tool fields entirely. Providers
+        // unconditionally emit `tools` (and OpenAI a `tool_choice: "auto"`),
+        // and an empty `tools: []` is rejected by some APIs — so remove the
+        // keys rather than send an empty array. With no tools offered the
+        // model can't fire set_timer et al.
+        if no_tools {
+            if let Some(obj) = body.as_object_mut() {
+                obj.remove("tools");
+                obj.remove("tool_choice");
+            }
+        }
 
         crate::linfo!(app, label, "round {round}: dispatch");
         let req = HTTP.post(&endpoint).json(&body);
