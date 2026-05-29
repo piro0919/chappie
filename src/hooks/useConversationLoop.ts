@@ -8,6 +8,13 @@ import {
   t as tRaw,
 } from "../i18n/messages";
 import {
+  buildAffinityStance,
+  getAffinity,
+  initAffinity,
+  markMilestoneCelebrated,
+  recordTurn,
+} from "../lib/affinity";
+import {
   addAssistant,
   addUser,
   createHistory,
@@ -86,6 +93,9 @@ async function rewriteInPersona(
   speakerId: number | undefined,
   mode: string,
   chatClient: ChatClient | null,
+  // Affinity (育成) stance — appended so the rewrite's warmth matches the
+  // bond built with this character.
+  stance = "",
 ): Promise<string> {
   if (speakerId === undefined || mode === "free" || !chatClient) {
     return speakText;
@@ -95,7 +105,8 @@ async function rewriteInPersona(
   )?.persona;
   if (!persona) return speakText;
   const resolved = resolveLanguage(lang);
-  const system = `You are Chappie, currently voiced as a VOICEVOX character. Rewrite the user-provided sentence in the character's 口調 (speech style) described below. Keep the meaning and information identical — do not add or drop facts. Output ONE sentence only in ${resolved}, no markdown, no quotes, no preamble. Output just the rewritten sentence.\n\n--- character ---\n${persona}`;
+  const stanceBlock = stance ? `\n\n${stance}` : "";
+  const system = `You are Chappie, currently voiced as a VOICEVOX character. Rewrite the user-provided sentence in the character's 口調 (speech style) described below. Keep the meaning and information identical — do not add or drop facts. Output ONE sentence only in ${resolved}, no markdown, no quotes, no preamble. Output just the rewritten sentence.\n\n--- character ---\n${persona}${stanceBlock}`;
   try {
     const result = await chatClient.complete(
       [
@@ -323,12 +334,25 @@ export function useConversationLoop(): { state: State; error: string | null } {
     // we measured the model continuing the previous character's voice
     // with only the new character's 二人称 mixed in. Right before the
     // user message, it dominates.
-    const perTurnOverride = buildPerTurnPrompt(voicevoxSpeakerIdRef.current);
+    // Affinity (育成): warm the tone by the intimacy built with THIS
+    // character. The stance rides inside the per-turn override (a late,
+    // dynamic message) so the static base persona at index 0 — and its
+    // prompt cache — stays untouched.
+    const affinity = getAffinity(voicevoxSpeakerIdRef.current);
+    const perTurnOverride = buildPerTurnPrompt(
+      voicevoxSpeakerIdRef.current,
+      buildAffinityStance(affinity),
+    );
     if (perTurnOverride) {
       requestMessages.splice(requestMessages.length - 1, 0, {
         role: "system",
         content: perTurnOverride,
       });
+    }
+    // Only the conversation path mentions a milestone (it runs every turn),
+    // and we mark it so it's celebrated once.
+    if (affinity.milestone != null) {
+      markMilestoneCelebrated(voicevoxSpeakerIdRef.current, affinity.milestone);
     }
 
     // Output routing (TTS vs HUD) is decided when the first text chunk
@@ -511,6 +535,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
       await invoke("exit_barge_in_mode").catch(() => {});
       ttsActiveRef.current = false;
     }
+    // Affinity (育成): count this successful user turn for the active
+    // character. Only the conversation path records — proactive auto-speech
+    // isn't the user spending time with the character. Error paths return
+    // earlier, so reaching here means the turn produced a reply.
+    recordTurn(voicevoxSpeakerIdRef.current);
     dispatch({ type: "speechDone" });
     // The model can call end_conversation when the user signaled goodbye;
     // in that case skip the continuation window and require a fresh wake-word
@@ -730,6 +759,9 @@ export function useConversationLoop(): { state: State; error: string | null } {
     void (async () => {
       try {
         const s = await loadSettings();
+        // Mirror per-character affinity (育成) into memory so the per-turn
+        // prompt can read the intimacy score synchronously.
+        await initAffinity();
         apiKeyRef.current = s.openaiApiKey;
         subscriptionTokenRef.current = s.subscriptionAccessToken;
         modeRef.current = s.mode;
@@ -1229,8 +1261,16 @@ export function useConversationLoop(): { state: State; error: string | null } {
               ? (VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId)
                   ?.persona ?? "")
               : "";
+          // Affinity (育成) stance, so idle chatter matches the closeness
+          // built with this character. Milestone is left to the conversation
+          // path only, so drop it here.
+          const affinityStance = buildAffinityStance({
+            ...getAffinity(speakerId),
+            milestone: null,
+          });
           const systemContent = [
             basePrompt,
+            `\n\n${affinityStance}`,
             persona ? `\n\n--- character ---\n${persona}` : "",
             p.context
               ? `\n\n--- context ---\n${p.context}\n--- end context ---\nUse the context naturally if relevant; do not list it back verbatim. Skip mentioning context that doesn't fit a casual remark.`
@@ -1268,6 +1308,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
         voicevoxSpeakerIdRef.current,
         modeRef.current,
         chatClientRef.current,
+        // Affinity stance (milestone reserved for the conversation path).
+        buildAffinityStance({
+          ...getAffinity(voicevoxSpeakerIdRef.current),
+          milestone: null,
+        }),
       );
     }
     console.info(`[proactive] fired: kind=${p.kind}`);

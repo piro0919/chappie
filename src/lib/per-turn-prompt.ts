@@ -35,7 +35,7 @@ const IDENTITY_RULE =
   "Chappie 本体の機能紹介は「何ができるの？」「使い方教えて」と聞かれたときだけで、その場合もキャラの口調のまま喋る。";
 
 const CHAPPIE_RESET =
-  "このターンは「チャッピー」本来の口調で答えてください。直前のターンが別キャラ（ずんだもんやめたん等）の口調だったとしても、その口調・一人称・語尾を引き継がないでください。冒頭のチャッピーのペルソナに従って、フラットで親しみやすい話し方に戻してください。";
+  "このターンは「チャッピー」本人として答えてください。直前のターンが別キャラ（ずんだもんやめたん等）だったとしても、その一人称・語尾・口癖は引き継がないでください。ただし口調の砕け具合・敬語度は固定せず、下の【親密度】の指示に完全に従って決めてください（「フラットに戻す」より親密度を優先）。";
 
 // Build the system-message body to inject for this turn. `undefined`
 // speakerId = chappie wake (returns the reset block). A known speaker
@@ -44,9 +44,13 @@ const CHAPPIE_RESET =
 // that case (the caller has already failed loudly elsewhere).
 export function buildPerTurnPrompt(
   speakerId: number | undefined,
+  // Affinity (育成) stance block — appended for BOTH chappie's own voice and
+  // VOICEVOX characters so the tone warms up with use. Empty = no affinity.
+  stance = "",
 ): string | null {
+  const stanceBlock = stance ? `\n\n${stance}` : "";
   if (speakerId === undefined) {
-    return `${CHAPPIE_RESET}\n\n${TURN_RULES}`;
+    return `${CHAPPIE_RESET}\n\n${TURN_RULES}${stanceBlock}`;
   }
   const speaker = VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === speakerId);
   if (!speaker) return null;
@@ -57,5 +61,5 @@ export function buildPerTurnPrompt(
   const samplesBlock = speaker.samples?.length
     ? `\n\n【話し方の例（このキャラのトーン・語尾・一人称が自然に出るよう参考にしてください）】\n${speaker.samples.map((s) => `・「${s}」`).join("\n")}`
     : "";
-  return `${speaker.persona}${samplesBlock}\n\n${IDENTITY_RULE}\n\n${TURN_RULES}\n\n（重要：前のターンが別キャラの口調だったとしても、このターンは上記の設定で答えてください。）`;
+  return `${speaker.persona}${samplesBlock}\n\n${IDENTITY_RULE}\n\n${TURN_RULES}${stanceBlock}\n\n（重要：前のターンが別キャラの口調だったとしても、このターンは上記の設定で答えてください。）`;
 }
