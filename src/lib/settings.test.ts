@@ -62,6 +62,8 @@ describe("settings", () => {
     personalizedToolsEnabled: true,
     externalMicOutputMode: "voice",
     currentVoicevoxSpeakerId: null,
+    switchbotToken: "",
+    switchbotSecret: "",
   } as const;
 
   it("returns defaults when store is empty", async () => {

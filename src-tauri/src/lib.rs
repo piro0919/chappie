@@ -44,6 +44,7 @@ mod screen_permission;
 mod screenshot;
 pub mod session_log;
 pub mod summarizer;
+pub mod switchbot;
 mod timer;
 pub mod tool_usage;
 pub mod tools;

@@ -58,6 +58,9 @@ chrono-tz = "0.10"
 urlencoding = "2"
 url = "2"
 arboard = "3"
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
 rss = { version = "2.0", default-features = false }
 readability = "0.3"
 

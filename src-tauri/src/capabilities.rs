@@ -1641,6 +1641,14 @@ fn capabilities_ja() -> String {
             ],
         ),
         (
+            "スマート家電（SwitchBot）",
+            &[
+                "リビングの電気つけて、エアコン消して、カーテン開けて",
+                "操作できる家電を教えて（登録済みデバイス一覧）",
+                "※設定画面で SwitchBot のトークンとシークレットの入力が必要",
+            ],
+        ),
+        (
             "世界時計",
             &[
                 "ロンドン今何時？／ニューヨークの時間は？",
@@ -1899,6 +1907,14 @@ fn capabilities_en() -> String {
                 "Each monitor gets its own photo (uses Pixabay)",
                 "Set today's Wikipedia picture of the day as wallpaper",
                 "Set a famous painting as wallpaper (Art Institute of Chicago)",
+            ],
+        ),
+        (
+            "Smart home (SwitchBot)",
+            &[
+                "Turn on the living room light, turn off the AC, open the curtains",
+                "What devices can you control? (lists your registered devices)",
+                "Note: needs your SwitchBot token & secret entered in Settings",
             ],
         ),
         (

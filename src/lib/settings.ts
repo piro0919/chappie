@@ -190,6 +190,16 @@ export type Settings = {
    * in the Settings UI — written by the conversation loop on each wake.
    */
   currentVoicevoxSpeakerId: number | null;
+  /**
+   * SwitchBot Cloud API credentials (the user's own, free for personal
+   * use; obtained from the SwitchBot app's Developer Options). Both are
+   * needed to control devices. Read by Rust directly from the store via
+   * StoreExt so the secret never rides the renderer's per-call path —
+   * same spirit as the LLM key living only in Rust. Empty = feature off
+   * (the switchbot tools return error=not_configured).
+   */
+  switchbotToken: string;
+  switchbotSecret: string;
 };
 
 const DEFAULTS: Settings = {
@@ -219,6 +229,8 @@ const DEFAULTS: Settings = {
   personalizedToolsEnabled: true,
   externalMicOutputMode: "voice",
   currentVoicevoxSpeakerId: null,
+  switchbotToken: "",
+  switchbotSecret: "",
 };
 const FILE = "settings.json";
 
@@ -339,6 +351,10 @@ export async function loadSettings(): Promise<Settings> {
     currentVoicevoxSpeakerId:
       (await store.get<number | null>("currentVoicevoxSpeakerId")) ??
       DEFAULTS.currentVoicevoxSpeakerId,
+    switchbotToken:
+      (await store.get<string>("switchbotToken")) ?? DEFAULTS.switchbotToken,
+    switchbotSecret:
+      (await store.get<string>("switchbotSecret")) ?? DEFAULTS.switchbotSecret,
   };
 }
 
@@ -445,6 +461,12 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   }
   if (patch.currentVoicevoxSpeakerId !== undefined) {
     await store.set("currentVoicevoxSpeakerId", patch.currentVoicevoxSpeakerId);
+  }
+  if (patch.switchbotToken !== undefined) {
+    await store.set("switchbotToken", patch.switchbotToken.trim());
+  }
+  if (patch.switchbotSecret !== undefined) {
+    await store.set("switchbotSecret", patch.switchbotSecret.trim());
   }
   await store.save();
 }

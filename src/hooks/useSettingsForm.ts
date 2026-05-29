@@ -72,6 +72,10 @@ export interface SettingsForm {
   setPersonalizedToolsEnabled: (v: boolean) => void;
   externalMicOutputMode: Settings["externalMicOutputMode"];
   setExternalMicOutputMode: (v: Settings["externalMicOutputMode"]) => void;
+  switchbotToken: string;
+  setSwitchbotToken: (v: string) => void;
+  switchbotSecret: string;
+  setSwitchbotSecret: (v: string) => void;
 }
 
 export function useSettingsForm(): SettingsForm {
@@ -105,6 +109,8 @@ export function useSettingsForm(): SettingsForm {
     useState(true);
   const [externalMicOutputMode, setExternalMicOutputMode] =
     useState<Settings["externalMicOutputMode"]>("voice");
+  const [switchbotToken, setSwitchbotToken] = useState("");
+  const [switchbotSecret, setSwitchbotSecret] = useState("");
 
   useEffect(() => {
     void (async () => {
@@ -128,6 +134,8 @@ export function useSettingsForm(): SettingsForm {
       setAnalyticsConsent(s.analyticsConsent);
       setPersonalizedToolsEnabled(s.personalizedToolsEnabled);
       setExternalMicOutputMode(s.externalMicOutputMode);
+      setSwitchbotToken(s.switchbotToken);
+      setSwitchbotSecret(s.switchbotSecret);
       // Mirror the stored consent flag into the Rust process so the
       // dispatch hot path doesn't run with a stale default-false until
       // the first toggle. Cached-only invoke, no network round-trip.
@@ -200,6 +208,8 @@ export function useSettingsForm(): SettingsForm {
             analyticsConsent,
             personalizedToolsEnabled,
             externalMicOutputMode,
+            switchbotToken,
+            switchbotSecret,
           });
           await invoke("set_speaker_threshold", { value: speakerThreshold });
           await invoke("set_vad_threshold", { value: vadThreshold });
@@ -235,6 +245,8 @@ export function useSettingsForm(): SettingsForm {
     analyticsConsent,
     personalizedToolsEnabled,
     externalMicOutputMode,
+    switchbotToken,
+    switchbotSecret,
   ]);
 
   return {
@@ -279,5 +291,9 @@ export function useSettingsForm(): SettingsForm {
     setPersonalizedToolsEnabled,
     externalMicOutputMode,
     setExternalMicOutputMode,
+    switchbotToken,
+    setSwitchbotToken,
+    switchbotSecret,
+    setSwitchbotSecret,
   };
 }

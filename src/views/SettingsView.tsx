@@ -23,6 +23,7 @@ import { PermissionsPanel } from "./settings/PermissionsPanel";
 import { PersonalizedToolsPanel } from "./settings/PersonalizedToolsPanel";
 import { ProactivePanel } from "./settings/ProactivePanel";
 import { SpeakerPanel } from "./settings/SpeakerPanel";
+import { SwitchbotPanel } from "./settings/SwitchbotPanel";
 import { VadPanel } from "./settings/VadPanel";
 import { VoicevoxPanel } from "./settings/VoicevoxPanel";
 
@@ -116,6 +117,12 @@ export function SettingsView() {
       <ExternalMicPanel
         value={form.externalMicOutputMode}
         setValue={form.setExternalMicOutputMode}
+      />
+      <SwitchbotPanel
+        token={form.switchbotToken}
+        setToken={form.setSwitchbotToken}
+        secret={form.switchbotSecret}
+        setSecret={form.setSwitchbotSecret}
       />
       <ProactivePanel
         micStatus={mic.status}

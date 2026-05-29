@@ -395,6 +395,49 @@ fn native_tools() -> Value {
         {
             "type": "function",
             "function": {
+                "name": "list_switchbot_devices",
+                "description": "ユーザーの SwitchBot デバイス一覧（名前・種類）を返す。「SwitchBot に何があるか教えて」「操作できる家電は？」のときや、switchbot_control の前にどんな名前で登録されているか確認したいときに呼ぶ。引数なし。未設定なら error=not_configured を返す。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "switchbot_control",
+                "description": "SwitchBot デバイスを操作する。「リビングの電気つけて」「エアコン消して」「カーテン開けて」など家電・照明・カーテン・プラグ・ロボット掃除機の物理操作。device はユーザーが言ったデバイス名（登録名に曖昧一致させる）。command は SwitchBot のコマンド: 入/オンは turnOn、切/オフは turnOff、ボタンを押すは press、カーテンは setPosition（parameter 例 \"0,ff,50\"=半開）、エアコン等の赤外線は setAll（parameter 例 \"26,2,1,on\"=26度/冷房/風量自動/オン）。parameter 省略時は default。device_not_found が返ったら available の名前を読み上げて聞き直す。未設定なら not_configured。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "device": {
+                            "type": "string",
+                            "description": "操作するデバイス名。ユーザーの言い方そのままでよい（登録名に曖昧一致する）。例: リビングの電気, 寝室のエアコン, カーテン。"
+                        },
+                        "command": {
+                            "type": "string",
+                            "description": "SwitchBot コマンド。turnOn / turnOff / press / setPosition / setAll など。"
+                        },
+                        "parameter": {
+                            "type": "string",
+                            "description": "コマンド引数。省略時 default。setAll なら \"温度,モード,風量,電源\"、setPosition なら \"index,mode,position\"。"
+                        },
+                        "command_type": {
+                            "type": "string",
+                            "description": "通常は省略（command）。赤外線リモコンのカスタムボタンを使うときだけ customize を指定。"
+                        }
+                    },
+                    "required": ["device", "command"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "open_finder",
                 "description": "Finder で場所を開く。「ダウンロード開いて」「ゴミ箱開いて」など。target はキーワード（downloads / desktop / documents / pictures / music / movies / applications / trash / home、日本語エイリアス可）または絶対パス（~/ 展開可）。",
                 "parameters": {
@@ -1024,6 +1067,98 @@ pub(crate) async fn execute_tool(
                 })
                 .to_string(),
                 Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "list_switchbot_devices" => {
+            if !crate::switchbot::is_configured(app) {
+                return json!({
+                    "ok": false,
+                    "error": "not_configured",
+                    "hint": "SwitchBot のトークンとシークレットが未設定です。設定画面で SwitchBot アプリの Developer Options から取得した値を入力するよう案内してください。"
+                })
+                .to_string();
+            }
+            match crate::switchbot::list_devices(app).await {
+                Ok(devices) => json!({
+                    "ok": true,
+                    "devices": devices
+                        .iter()
+                        .map(|d| json!({
+                            "name": d.name,
+                            "type": d.kind,
+                            "infrared": d.is_infrared
+                        }))
+                        .collect::<Vec<_>>()
+                })
+                .to_string(),
+                Err(e) => json!({ "ok": false, "error": e }).to_string(),
+            }
+        }
+        "switchbot_control" => {
+            if !crate::switchbot::is_configured(app) {
+                return json!({
+                    "ok": false,
+                    "error": "not_configured",
+                    "hint": "SwitchBot が未設定です。設定画面でトークンとシークレットの入力を案内してください。"
+                })
+                .to_string();
+            }
+            let device_query = arg_str(args, "device").to_string();
+            if device_query.trim().is_empty() {
+                return json!({ "ok": false, "error": "device is required" }).to_string();
+            }
+            let command = arg_str(args, "command").to_string();
+            if command.trim().is_empty() {
+                return json!({ "ok": false, "error": "command is required" }).to_string();
+            }
+            let parameter = {
+                let p = arg_str(args, "parameter");
+                if p.is_empty() {
+                    "default".to_string()
+                } else {
+                    p.to_string()
+                }
+            };
+            let command_type = {
+                let c = arg_str(args, "command_type");
+                if c.is_empty() {
+                    "command".to_string()
+                } else {
+                    c.to_string()
+                }
+            };
+            let devices = match crate::switchbot::list_devices(app).await {
+                Ok(d) => d,
+                Err(e) => return json!({ "ok": false, "error": e }).to_string(),
+            };
+            let Some(device) = crate::switchbot::resolve_device(&devices, &device_query) else {
+                // Hand the model the real names so it can re-ask / inform.
+                return json!({
+                    "ok": false,
+                    "error": "device_not_found",
+                    "query": device_query,
+                    "available": devices.iter().map(|d| d.name.clone()).collect::<Vec<_>>()
+                })
+                .to_string();
+            };
+            match crate::switchbot::send_command(
+                app,
+                &device.id,
+                &command,
+                &parameter,
+                &command_type,
+            )
+            .await
+            {
+                Ok(()) => json!({
+                    "ok": true,
+                    "device": device.name,
+                    "command": command
+                })
+                .to_string(),
+                Err(e) => {
+                    json!({ "ok": false, "device": device.name, "error": e }).to_string()
+                }
             }
         }
         "open_finder" => {

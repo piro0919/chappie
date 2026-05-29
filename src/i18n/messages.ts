@@ -130,6 +130,10 @@ type Messages = {
     ltmForgetConfirm: string;
     ltmForgetDone: string;
     personalizedToolsLabel: string;
+    switchbotLabel: string;
+    switchbotTokenPlaceholder: string;
+    switchbotSecretPlaceholder: string;
+    switchbotDescription: string;
     personalizedToolsToggle: string;
     personalizedToolsDescription: string;
     externalMicModeLabel: string;
@@ -354,6 +358,11 @@ const ja: Messages = {
       "本当に会話ログ・日次サマリ・トピックを全部削除しますか？モデルファイルと「私について」の記憶（save_memory のもの）は残ります。",
     ltmForgetDone: "削除しました",
     personalizedToolsLabel: "機能の最適化",
+    switchbotLabel: "SwitchBot（家電操作）",
+    switchbotTokenPlaceholder: "トークン",
+    switchbotSecretPlaceholder: "シークレット",
+    switchbotDescription:
+      "SwitchBot アプリの「開発者向けオプション」で取得したトークンとシークレットを入力すると、「リビングの電気つけて」などと声で家電を操作できます。両方の入力が必要です。",
     personalizedToolsToggle: "よく使う機能を優先する",
     personalizedToolsDescription:
       "あなたがよく使う機能を覚えて優先的に判断するので、反応が速く・正確になります。通常はオンのままで問題ありません。",
@@ -600,6 +609,11 @@ const en: Messages = {
       'Really delete all conversation logs, daily summaries, and topic snapshots? The model file and your saved "about me" facts (from save_memory) will stay.',
     ltmForgetDone: "Deleted",
     personalizedToolsLabel: "Feature optimization",
+    switchbotLabel: "SwitchBot (smart home)",
+    switchbotTokenPlaceholder: "Token",
+    switchbotSecretPlaceholder: "Secret",
+    switchbotDescription:
+      'Enter the token and secret from the SwitchBot app\'s Developer Options to control your devices by voice ("turn on the living room light"). Both are required.',
     personalizedToolsToggle: "Prioritize features you use most",
     personalizedToolsDescription:
       "Learns which features you use most and considers them first, making responses faster and more accurate. Best left on.",
@@ -847,6 +861,11 @@ const es: Messages = {
       '¿Eliminar todos los registros de conversación, resúmenes diarios y temas? El archivo del modelo y los datos guardados de "sobre mí" (con save_memory) se mantienen.',
     ltmForgetDone: "Borrado",
     personalizedToolsLabel: "Optimización de funciones",
+    switchbotLabel: "SwitchBot (hogar inteligente)",
+    switchbotTokenPlaceholder: "Token",
+    switchbotSecretPlaceholder: "Secreto",
+    switchbotDescription:
+      "Introduce el token y el secreto de las Opciones de desarrollador de la app SwitchBot para controlar tus dispositivos con la voz («enciende la luz del salón»). Ambos son necesarios.",
     personalizedToolsToggle: "Priorizar las funciones que más usas",
     personalizedToolsDescription:
       "Aprende qué funciones usas más y las considera primero, haciendo las respuestas más rápidas y precisas. Mejor dejarlo activado.",
@@ -1094,6 +1113,11 @@ const fr: Messages = {
       "Vraiment supprimer tous les journaux de conversation, résumés quotidiens et sujets ? Le fichier du modèle et les faits enregistrés « à mon sujet » (via save_memory) restent.",
     ltmForgetDone: "Supprimé",
     personalizedToolsLabel: "Optimisation des fonctions",
+    switchbotLabel: "SwitchBot (maison connectée)",
+    switchbotTokenPlaceholder: "Jeton",
+    switchbotSecretPlaceholder: "Secret",
+    switchbotDescription:
+      "Saisissez le jeton et le secret depuis les Options développeur de l'app SwitchBot pour contrôler vos appareils à la voix (« allume la lumière du salon »). Les deux sont requis.",
     personalizedToolsToggle: "Prioriser les fonctions les plus utilisées",
     personalizedToolsDescription:
       "Apprend les fonctions que vous utilisez le plus et les privilégie, pour des réponses plus rapides et plus précises. À laisser activé.",
@@ -1341,6 +1365,11 @@ const de: Messages = {
       "Wirklich alle Gesprächsprotokolle, Tageszusammenfassungen und Themen löschen? Die Modelldatei und die gespeicherten Profil-Fakten (via save_memory) bleiben erhalten.",
     ltmForgetDone: "Gelöscht",
     personalizedToolsLabel: "Funktionsoptimierung",
+    switchbotLabel: "SwitchBot (Smart Home)",
+    switchbotTokenPlaceholder: "Token",
+    switchbotSecretPlaceholder: "Secret",
+    switchbotDescription:
+      "Gib Token und Secret aus den Entwickleroptionen der SwitchBot-App ein, um deine Geräte per Sprache zu steuern („mach das Wohnzimmerlicht an“). Beide werden benötigt.",
     personalizedToolsToggle: "Meistgenutzte Funktionen bevorzugen",
     personalizedToolsDescription:
       "Lernt, welche Funktionen du am häufigsten nutzt, und berücksichtigt sie zuerst – für schnellere und genauere Antworten. Am besten aktiviert lassen.",
@@ -1583,6 +1612,11 @@ const zh: Messages = {
       "确定要删除所有对话日志、每日总结和话题快照吗？模型文件和保存的「关于我」的资料（通过 save_memory）会保留。",
     ltmForgetDone: "已删除",
     personalizedToolsLabel: "功能优化",
+    switchbotLabel: "SwitchBot（智能家居）",
+    switchbotTokenPlaceholder: "令牌",
+    switchbotSecretPlaceholder: "密钥",
+    switchbotDescription:
+      "在 SwitchBot 应用的「开发者选项」中获取令牌和密钥并填入，即可用语音控制设备（“打开客厅的灯”）。两者都需要填写。",
     personalizedToolsToggle: "优先使用常用功能",
     personalizedToolsDescription:
       "学习你最常用的功能并优先判断，让响应更快更准确。建议保持开启。",
@@ -1824,6 +1858,11 @@ const pt: Messages = {
       "Excluir todos os registros de conversa, resumos diários e tópicos? O arquivo do modelo e os dados salvos sobre você (via save_memory) permanecem.",
     ltmForgetDone: "Apagado",
     personalizedToolsLabel: "Otimização de funções",
+    switchbotLabel: "SwitchBot (casa inteligente)",
+    switchbotTokenPlaceholder: "Token",
+    switchbotSecretPlaceholder: "Segredo",
+    switchbotDescription:
+      'Insira o token e o segredo das Opções de desenvolvedor do app SwitchBot para controlar seus dispositivos por voz ("liga a luz da sala"). Ambos são necessários.',
     personalizedToolsToggle: "Priorizar as funções que você mais usa",
     personalizedToolsDescription:
       "Aprende quais funções você mais usa e as considera primeiro, deixando as respostas mais rápidas e precisas. Melhor manter ativado.",
@@ -2069,6 +2108,11 @@ const ko: Messages = {
       '정말로 모든 대화 로그, 일일 요약, 화제 스냅샷을 삭제할까요? 모델 파일과 저장된 "나에 대해" 정보(save_memory로 저장한 것)는 남습니다.',
     ltmForgetDone: "삭제됨",
     personalizedToolsLabel: "기능 최적화",
+    switchbotLabel: "SwitchBot (스마트홈)",
+    switchbotTokenPlaceholder: "토큰",
+    switchbotSecretPlaceholder: "시크릿",
+    switchbotDescription:
+      "SwitchBot 앱의 '개발자 옵션'에서 받은 토큰과 시크릿을 입력하면 음성으로 기기를 제어할 수 있습니다(\"거실 불 켜줘\"). 둘 다 입력해야 합니다.",
     personalizedToolsToggle: "자주 쓰는 기능 우선",
     personalizedToolsDescription:
       "자주 사용하는 기능을 학습해 먼저 고려하므로 응답이 더 빠르고 정확해집니다. 켜 두는 것을 권장합니다.",
@@ -2316,6 +2360,11 @@ const it: Messages = {
       "Davvero eliminare tutti i log delle conversazioni, i riassunti quotidiani e gli argomenti? Il file del modello e i fatti salvati su di te (tramite save_memory) restano.",
     ltmForgetDone: "Eliminato",
     personalizedToolsLabel: "Ottimizzazione delle funzioni",
+    switchbotLabel: "SwitchBot (casa intelligente)",
+    switchbotTokenPlaceholder: "Token",
+    switchbotSecretPlaceholder: "Secret",
+    switchbotDescription:
+      "Inserisci il token e il secret dalle Opzioni sviluppatore dell'app SwitchBot per controllare i dispositivi con la voce («accendi la luce del salotto»). Servono entrambi.",
     personalizedToolsToggle: "Dai priorità alle funzioni che usi di più",
     personalizedToolsDescription:
       "Impara quali funzioni usi di più e le considera per prime, rendendo le risposte più rapide e precise. Meglio lasciarlo attivo.",
