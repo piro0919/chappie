@@ -517,6 +517,83 @@ fn menu_label_quit(lang: Lang) -> &'static str {
     }
 }
 
+/// Build a tray `Image` from raw PNG bytes.
+///
+/// The bundled tray glyphs are sized for the macOS menu bar — wide and
+/// fixed-height (e.g. 137×88). macOS scales them to the bar height keeping
+/// their aspect ratio, but the Windows system tray forces every icon into a
+/// square slot, which squashes a 137×88 glyph. On Windows we therefore
+/// letterbox the glyph onto a transparent square canvas first so it scales
+/// without distortion; macOS/Linux use the PNG as-is.
+fn tray_image(bytes: &'static [u8]) -> tauri::Result<Image<'static>> {
+    #[cfg(target_os = "windows")]
+    if let Some(img) = windows_square_icon(bytes) {
+        return Ok(img);
+    }
+    Image::from_bytes(bytes)
+}
+
+#[cfg(target_os = "windows")]
+fn windows_square_icon(bytes: &[u8]) -> Option<Image<'static>> {
+    use image::GenericImageView;
+    use windows::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CXSMICON};
+
+    let img = image::load_from_memory(bytes).ok()?.to_rgba8();
+    let (w, h) = img.dimensions();
+
+    // Trim the fully-transparent margin so the glyph fills as much of the
+    // square as possible. Only alpha==0 pixels are removed, so no visible part
+    // of any icon is ever cropped — we just drop the empty padding the macOS
+    // menu-bar art carries.
+    let (mut min_x, mut min_y, mut max_x, mut max_y) = (w, h, 0u32, 0u32);
+    let mut any = false;
+    for y in 0..h {
+        for x in 0..w {
+            if img.get_pixel(x, y)[3] > 0 {
+                any = true;
+                min_x = min_x.min(x);
+                min_y = min_y.min(y);
+                max_x = max_x.max(x);
+                max_y = max_y.max(y);
+            }
+        }
+    }
+    let (cw, ch, content) = if any {
+        let cw = max_x - min_x + 1;
+        let ch = max_y - min_y + 1;
+        (
+            cw,
+            ch,
+            image::imageops::crop_imm(&img, min_x, min_y, cw, ch).to_image(),
+        )
+    } else {
+        (w, h, img)
+    };
+
+    // Letterbox the trimmed glyph onto a transparent square (centered, aspect
+    // preserved) so the square tray slot can't squash it.
+    let side = cw.max(ch);
+    let mut canvas = image::RgbaImage::new(side, side);
+    let ox = ((side - cw) / 2) as i64;
+    let oy = ((side - ch) / 2) as i64;
+    image::imageops::overlay(&mut canvas, &content, ox, oy);
+
+    // Render at the tray's exact small-icon size (DPI-aware) with Lanczos3, so
+    // Windows displays the HICON 1:1 instead of running its own low-quality
+    // scaler over the source — that down-scale was the "soft" look.
+    let target = {
+        let sm = unsafe { GetSystemMetrics(SM_CXSMICON) };
+        if sm <= 0 {
+            32u32
+        } else {
+            (sm as u32).max(16)
+        }
+    };
+    let scaled =
+        image::imageops::resize(&canvas, target, target, image::imageops::FilterType::Lanczos3);
+    Some(Image::new_owned(scaled.into_raw(), target, target))
+}
+
 pub struct TrayHandle {
     pub icon: Mutex<TrayIcon<tauri::Wry>>,
     pub last_state: Mutex<TrayState>,
@@ -565,7 +642,7 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
     }
     let lang = crate::i18n::current();
     let menu = build_menu(app, TrayState::Idle, true)?;
-    let icon = Image::from_bytes(TrayState::Idle.icon_bytes(current_character()))?;
+    let icon = tray_image(TrayState::Idle.icon_bytes(current_character()))?;
     let tray = TrayIconBuilder::with_id("main")
         .icon(icon)
         .icon_as_template(false)
@@ -743,7 +820,7 @@ pub fn apply_tray_state(app: &AppHandle, state: TrayState) -> tauri::Result<()> 
     } else {
         (character.off_icon_bytes(), off_label(lang))
     };
-    tray.set_icon(Some(Image::from_bytes(icon_bytes)?))?;
+    tray.set_icon(Some(tray_image(icon_bytes)?))?;
     tray.set_tooltip(Some(tooltip))?;
     let menu = build_menu(app, state, listening)?;
     tray.set_menu(Some(menu))?;
