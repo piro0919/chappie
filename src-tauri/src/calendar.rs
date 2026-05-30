@@ -4,11 +4,24 @@
 // an entitlement / signing mismatch surfacing as an NSException can't take
 // down the whole process. Mirrors the pattern in galopen/src-tauri/src/calendar.rs.
 
-use chrono::{DateTime, Local, TimeZone, Utc};
-use objc2_event_kit::{EKAuthorizationStatus, EKCalendar, EKEntityType, EKEventStatus, EKEventStore};
-use objc2_foundation::{NSArray, NSDate};
+// Calendar is a macOS-only (EventKit) integration. On Windows there is no
+// v1 equivalent (see the platform-support table in README), so this module
+// compiles down to graceful "not_supported" stubs on non-macOS targets —
+// the `list_events` tool then reports that calendar access is unavailable
+// rather than failing the build. The shared data types (`CalendarEvent`,
+// `Range`) stay cross-platform so callers don't need `#[cfg]` of their own.
+
 use serde::{Deserialize, Serialize};
+
+#[cfg(target_os = "macos")]
+use chrono::{DateTime, Local, TimeZone, Utc};
+#[cfg(target_os = "macos")]
+use objc2_event_kit::{EKAuthorizationStatus, EKCalendar, EKEntityType, EKEventStatus, EKEventStore};
+#[cfg(target_os = "macos")]
+use objc2_foundation::{NSArray, NSDate};
+#[cfg(target_os = "macos")]
 use std::sync::mpsc;
+#[cfg(target_os = "macos")]
 use std::sync::OnceLock;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -30,18 +43,22 @@ pub enum Range {
     Upcoming,
 }
 
+#[cfg(target_os = "macos")]
 enum Cmd {
     CheckPermission(mpsc::Sender<Result<String, String>>),
     RequestPermission(mpsc::Sender<Result<bool, String>>),
     FetchEvents(Range, mpsc::Sender<Result<Vec<CalendarEvent>, String>>),
 }
 
+#[cfg(target_os = "macos")]
 pub struct CalendarState {
     tx: mpsc::Sender<Cmd>,
 }
 
+#[cfg(target_os = "macos")]
 static STATE: OnceLock<CalendarState> = OnceLock::new();
 
+#[cfg(target_os = "macos")]
 pub fn init() {
     let (tx, rx) = mpsc::channel::<Cmd>();
     std::thread::spawn(move || {
@@ -63,8 +80,10 @@ pub fn init() {
     let _ = STATE.set(CalendarState { tx });
 }
 
+#[cfg(target_os = "macos")]
 use crate::objc_util::guarded_result as guarded;
 
+#[cfg(target_os = "macos")]
 fn send<T>(make: impl FnOnce(mpsc::Sender<Result<T, String>>) -> Cmd) -> Result<T, String> {
     let state = STATE.get().ok_or_else(|| "calendar not initialized".to_string())?;
     let (tx, rx) = mpsc::channel();
@@ -72,6 +91,7 @@ fn send<T>(make: impl FnOnce(mpsc::Sender<Result<T, String>>) -> Cmd) -> Result<
     rx.recv().map_err(|e| e.to_string())?
 }
 
+#[cfg(target_os = "macos")]
 #[allow(deprecated)]
 fn check_permission_inner() -> Result<String, String> {
     let status = unsafe { EKEventStore::authorizationStatusForEntityType(EKEntityType::Event) };
@@ -89,6 +109,7 @@ fn check_permission_inner() -> Result<String, String> {
     Ok(s.to_string())
 }
 
+#[cfg(target_os = "macos")]
 fn request_permission_inner(store: &EKEventStore) -> Result<bool, String> {
     let (tx, rx) = mpsc::channel();
     let tx_arc = std::sync::Arc::new(std::sync::Mutex::new(Some(tx)));
@@ -109,6 +130,7 @@ fn request_permission_inner(store: &EKEventStore) -> Result<bool, String> {
     rx.recv().map_err(|e| format!("Permission request failed: {e}"))
 }
 
+#[cfg(target_os = "macos")]
 fn fetch_events_inner(
     store: &EKEventStore,
     range: Range,
@@ -244,16 +266,19 @@ fn fetch_events_inner(
     Ok(events)
 }
 
+#[cfg(target_os = "macos")]
 #[tauri::command]
 pub async fn calendar_status() -> Result<String, String> {
     send(Cmd::CheckPermission)
 }
 
+#[cfg(target_os = "macos")]
 #[tauri::command]
 pub async fn request_calendar_access() -> Result<bool, String> {
     send(Cmd::RequestPermission)
 }
 
+#[cfg(target_os = "macos")]
 pub fn calendar_status_sync() -> Result<String, String> {
     send(Cmd::CheckPermission)
 }
@@ -261,10 +286,50 @@ pub fn calendar_status_sync() -> Result<String, String> {
 /// Synchronous (blocking) form of `request_calendar_access`, used by the
 /// `list_events` tool handler so it can trigger the system prompt
 /// in-context when the user first asks about their schedule.
+#[cfg(target_os = "macos")]
 pub fn request_access_sync() -> Result<bool, String> {
     send(Cmd::RequestPermission)
 }
 
+#[cfg(target_os = "macos")]
 pub fn fetch_events(range: Range) -> Result<Vec<CalendarEvent>, String> {
     send(|tx| Cmd::FetchEvents(range, tx))
+}
+
+// ---------------------------------------------------------------------------
+// Non-macOS stubs. Calendar has no v1 equivalent on Windows/Linux, so the
+// API surface is preserved but reports "not_supported". `list_events`'
+// status check (`== "granted"`) falls through to a graceful "calendar
+// access unavailable" reply, and the proactive scheduler skips its
+// calendar branches because the status never reads "granted".
+// ---------------------------------------------------------------------------
+
+#[cfg(not(target_os = "macos"))]
+pub fn init() {}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub async fn calendar_status() -> Result<String, String> {
+    Ok("not_supported".to_string())
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub async fn request_calendar_access() -> Result<bool, String> {
+    Ok(false)
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn calendar_status_sync() -> Result<String, String> {
+    Ok("not_supported".to_string())
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn request_access_sync() -> Result<bool, String> {
+    Ok(false)
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn fetch_events(_range: Range) -> Result<Vec<CalendarEvent>, String> {
+    Err("calendar is not supported on this platform".to_string())
 }

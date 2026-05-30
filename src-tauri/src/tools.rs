@@ -1181,11 +1181,22 @@ pub(crate) async fn execute_tool(
             if name.is_empty() {
                 return json!({ "ok": false, "error": "name is empty" }).to_string();
             }
-            match std::process::Command::new("open")
+            // Launch a GUI app by name. macOS: `open -a`. Windows: the shell's
+            // `start`, which resolves App Paths / Start-menu names (Slack,
+            // Spotify, etc. that aren't on PATH). A non-zero exit means the
+            // name didn't resolve → the not_installed / web-fallback branch.
+            #[cfg(target_os = "macos")]
+            let launch = std::process::Command::new("open")
                 .arg("-a")
                 .arg(name)
-                .status()
-            {
+                .status();
+            #[cfg(target_os = "windows")]
+            let launch = std::process::Command::new("cmd")
+                .args(["/C", "start", "", name])
+                .status();
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            let launch = std::process::Command::new("xdg-open").arg(name).status();
+            match launch {
                 Ok(s) if s.success() => json!({ "ok": true, "name": name }).to_string(),
                 Ok(_) => json!({
                     "ok": false,

@@ -27,7 +27,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app"],
+    "targets": ["app", "nsis"],
     "createUpdaterArtifacts": true,
     "category": "Productivity",
     "shortDescription": "Hands-free voice AI assistant",

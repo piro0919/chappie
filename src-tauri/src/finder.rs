@@ -1,7 +1,8 @@
-// Open a Finder window at a well-known macOS folder (downloads, desktop,
-// applications, etc.) or a literal path. Resolution prefers user-specific
-// dirs from the `dirs` crate over hardcoded `~/Downloads` so the tool
-// respects xdg-style overrides where the user has moved them.
+// Open a file-manager window at a well-known folder (downloads, desktop,
+// documents, etc.) or a literal path. Resolution prefers user-specific dirs
+// from the `dirs` crate over hardcoded paths so the tool respects where the
+// user has actually moved them. macOS uses Finder via `open`; Windows uses
+// Explorer.
 
 use std::path::PathBuf;
 use std::process::Command;
@@ -17,9 +18,27 @@ fn resolve(target: &str) -> Result<PathBuf, String> {
         "music" | "ミュージック" | "音楽" => dirs::audio_dir(),
         "movies" | "movie" | "ムービー" | "動画" => dirs::video_dir(),
         "applications" | "application" | "apps" | "アプリ" | "アプリケーション" => {
-            Some(PathBuf::from("/Applications"))
+            #[cfg(target_os = "windows")]
+            {
+                std::env::var_os("ProgramFiles").map(PathBuf::from)
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                Some(PathBuf::from("/Applications"))
+            }
         }
-        "trash" | "ゴミ箱" => dirs::home_dir().map(|h| h.join(".Trash")),
+        "trash" | "ゴミ箱" => {
+            #[cfg(target_os = "windows")]
+            {
+                // The Recycle Bin is a virtual shell folder, handled directly
+                // in `open()`; resolve() never gets here on Windows.
+                None
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                dirs::home_dir().map(|h| h.join(".Trash"))
+            }
+        }
         _ => {
             // Literal path. Expand a leading ~ for convenience.
             if let Some(stripped) = target.strip_prefix("~/") {
@@ -34,17 +53,53 @@ fn resolve(target: &str) -> Result<PathBuf, String> {
     path.ok_or_else(|| format!("couldn't resolve target: {target}"))
 }
 
-pub fn open(target: &str) -> Result<PathBuf, String> {
-    let path = resolve(target)?;
-    if !path.exists() {
-        return Err(format!("path does not exist: {}", path.display()));
-    }
+#[cfg(target_os = "macos")]
+fn launch<S: AsRef<std::ffi::OsStr>>(arg: S) -> Result<(), String> {
     let status = Command::new("open")
-        .arg(&path)
+        .arg(arg)
         .status()
         .map_err(|e| format!("open spawn: {e}"))?;
     if !status.success() {
         return Err(format!("open exited {status}"));
     }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn launch<S: AsRef<std::ffi::OsStr>>(arg: S) -> Result<(), String> {
+    // explorer.exe routinely returns exit code 1 even on success, so we only
+    // surface a failure to *spawn* it, not its exit status.
+    Command::new("explorer")
+        .arg(arg)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("explorer spawn: {e}"))
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn launch<S: AsRef<std::ffi::OsStr>>(arg: S) -> Result<(), String> {
+    Command::new("xdg-open")
+        .arg(arg)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("xdg-open spawn: {e}"))
+}
+
+pub fn open(target: &str) -> Result<PathBuf, String> {
+    // Windows virtual shell folders that have no filesystem path.
+    #[cfg(target_os = "windows")]
+    {
+        let key = target.trim().to_ascii_lowercase();
+        if matches!(key.as_str(), "trash" | "ゴミ箱") {
+            launch("shell:RecycleBinFolder")?;
+            return Ok(PathBuf::from("Recycle Bin"));
+        }
+    }
+
+    let path = resolve(target)?;
+    if !path.exists() {
+        return Err(format!("path does not exist: {}", path.display()));
+    }
+    launch(&path)?;
     Ok(path)
 }

@@ -23,6 +23,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
 use std::process::Command;
 use tauri::{AppHandle, Manager};
 
@@ -520,6 +521,7 @@ async fn download_one(client: &reqwest::Client, url: &str, dest: &Path) -> Resul
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
 fn apply_wallpaper(paths: &[PathBuf], monitor_count: usize) -> Result<(), String> {
     if paths.is_empty() {
         return Err("no images to apply".into());
@@ -534,6 +536,87 @@ fn apply_wallpaper(paths: &[PathBuf], monitor_count: usize) -> Result<(), String
     run_osascript(&script)
 }
 
+// Windows: per-monitor wallpaper via the IDesktopWallpaper COM interface,
+// which mirrors macOS's "different image per desktop" behaviour. Falls back
+// to SystemParametersInfo (single image on the primary) if the monitor
+// device-path enumeration comes back empty.
+#[cfg(target_os = "windows")]
+fn apply_wallpaper(paths: &[PathBuf], _monitor_count: usize) -> Result<(), String> {
+    use windows::core::PCWSTR;
+    use windows::Win32::System::Com::{
+        CoCreateInstance, CoInitializeEx, CoTaskMemFree, CLSCTX_ALL, COINIT_APARTMENTTHREADED,
+    };
+    use windows::Win32::UI::Shell::{DesktopWallpaper, IDesktopWallpaper};
+
+    if paths.is_empty() {
+        return Err("no images to apply".into());
+    }
+
+    fn wide(p: &Path) -> Vec<u16> {
+        use std::os::windows::ffi::OsStrExt;
+        p.as_os_str().encode_wide().chain(std::iter::once(0)).collect()
+    }
+
+    unsafe {
+        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+        let dw: IDesktopWallpaper = CoCreateInstance(&DesktopWallpaper, None, CLSCTX_ALL)
+            .map_err(|e| format!("CoCreateInstance(DesktopWallpaper): {e}"))?;
+
+        let count = dw
+            .GetMonitorDevicePathCount()
+            .map_err(|e| format!("GetMonitorDevicePathCount: {e}"))?;
+
+        if count == 0 {
+            // No enumerable monitor — set one wallpaper the legacy way.
+            return apply_wallpaper_single(&paths[0]);
+        }
+
+        for i in 0..count {
+            let monitor_id = dw
+                .GetMonitorDevicePathAt(i)
+                .map_err(|e| format!("GetMonitorDevicePathAt({i}): {e}"))?;
+            let path = &paths[(i as usize) % paths.len()];
+            let w = wide(path);
+            let res = dw.SetWallpaper(monitor_id, PCWSTR(w.as_ptr()));
+            // The monitor-id string is COM-allocated; free it regardless of
+            // the SetWallpaper result.
+            CoTaskMemFree(Some(monitor_id.0 as *const _));
+            res.map_err(|e| format!("SetWallpaper(monitor {i}): {e}"))?;
+        }
+    }
+    Ok(())
+}
+
+/// Windows single-wallpaper fallback using SystemParametersInfo. Applies one
+/// image (Windows then spans/fits it across monitors per the user's setting).
+#[cfg(target_os = "windows")]
+fn apply_wallpaper_single(path: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        SystemParametersInfoW, SPIF_SENDCHANGE, SPIF_UPDATEINIFILE, SPI_SETDESKWALLPAPER,
+    };
+    let wide: Vec<u16> = path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    unsafe {
+        SystemParametersInfoW(
+            SPI_SETDESKWALLPAPER,
+            0,
+            Some(wide.as_ptr() as *mut _),
+            SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
+        )
+        .map_err(|e| format!("SystemParametersInfoW(SPI_SETDESKWALLPAPER): {e}"))
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn apply_wallpaper(_paths: &[PathBuf], _monitor_count: usize) -> Result<(), String> {
+    Err("wallpaper change is not supported on this platform".into())
+}
+
+#[cfg(target_os = "macos")]
 fn build_applescript(per_monitor: &[&PathBuf]) -> String {
     let mut script = String::from("tell application \"System Events\"\n");
     for (i, path) in per_monitor.iter().enumerate() {
@@ -548,6 +631,7 @@ fn build_applescript(per_monitor: &[&PathBuf]) -> String {
     script
 }
 
+#[cfg(target_os = "macos")]
 fn run_osascript(script: &str) -> Result<(), String> {
     let out = Command::new("osascript")
         .arg("-e")
@@ -577,6 +661,7 @@ mod tests {
         assert!(!is_pixabay_url("https://pixabay.com.evil.com/x.jpg"));
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn applescript_for_one_monitor() {
         let p = PathBuf::from("/tmp/a.jpg");
@@ -586,6 +671,7 @@ mod tests {
         assert!(s.contains("/tmp/a.jpg"));
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn applescript_for_three_monitors() {
         let p1 = PathBuf::from("/tmp/a.jpg");
@@ -600,6 +686,7 @@ mod tests {
         assert!(s.contains("c.jpg"));
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn applescript_escapes_double_quotes_in_path() {
         let p = PathBuf::from("/tmp/has\"quote.jpg");
