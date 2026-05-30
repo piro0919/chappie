@@ -39,10 +39,6 @@ tauri-plugin-deep-link = "2"
 cpal = "0.17"
 rubato = { version = "0.16", features = ["fft_resampler"], default-features = false }
 voice_activity_detector = "0.2"
-# WebRTC's AudioProcessing module (AEC3 / AGC2 / noise suppression).
-# `bundled` builds the C++ library from source at build time so we don't
-# rely on a system-installed copy on user machines. Used by `apm.rs`.
-webrtc-audio-processing = { version = "2", features = ["bundled"] }
 # Speaker recognition: WeSpeaker ECAPA-TDNN ONNX via pure-Rust tract +
 # kaldi-compatible 80-dim mel filterbank for preprocessing. Model file
 # is downloaded on first run (mirroring the Whisper model flow in
@@ -63,6 +59,15 @@ sha2 = "0.10"
 base64 = "0.22"
 rss = { version = "2.0", default-features = false }
 readability = "0.3"
+
+# WebRTC's AudioProcessing module (AEC3 / AGC2 / noise suppression).
+# `bundled` builds the C++ library from source via meson/cp, which only
+# works on Unix toolchains — the bundled build shells out to `cp` and is
+# not MSVC-compatible. So it's scoped to non-Windows targets here; `apm.rs`
+# provides a pass-through stub on Windows (see the `#[cfg]` split there).
+# Used by `apm.rs`.
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+webrtc-audio-processing = { version = "2", features = ["bundled"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
