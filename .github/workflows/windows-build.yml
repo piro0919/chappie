@@ -1,0 +1,70 @@
+name: windows-build
+
+# Compile-gate for the Windows port (#22). The backend is cfg-gated per
+# target_os, so a macOS-only change can silently break the Windows build
+# with nothing on the Mac dev box to catch it. This runs `cargo check` on a
+# real windows-latest runner so that breakage surfaces on every push/PR.
+#
+# It does NOT exercise runtime behaviour (no mic / Whisper / WinRT calls) —
+# end-to-end hardware verification still happens manually on Windows 11.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src-tauri/**"
+      - "src/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/windows-build.yml"
+  pull_request:
+    paths:
+      - "src-tauri/**"
+      - "src/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/windows-build.yml"
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: windows-latest
+    env:
+      # whisper-rs-sys runs bindgen, which needs libclang. The windows-latest
+      # image ships LLVM here; point bindgen at it explicitly so it never
+      # falls back to a PATH probe.
+      LIBCLANG_PATH: "C:\\Program Files\\LLVM\\bin"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      # tauri::generate_context! embeds frontendDist (../dist) at compile time,
+      # so the Rust check fails unless the renderer has been built first.
+      - name: Build renderer (produces dist/ for generate_context!)
+        run: pnpm build
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: cargo check (all targets)
+        working-directory: src-tauri
+        run: cargo check --all-targets --locked
