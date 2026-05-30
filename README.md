@@ -134,35 +134,54 @@ More tools coming over time.
 
 **macOS** — primary target. Apple Silicon (`aarch64-apple-darwin`), tested on macOS 14+. All features below are available.
 
-**Windows** — coming soon (incremental port underway). The Tauri / Rust / WebView layer is cross-platform, but each macOS-specific integration (osascript, pmset, `screencapture`, EventKit, ScreenCaptureKit, AVFoundation) needs a Windows equivalent (`windows-rs` SMTC, `GetSystemPowerStatus`, `SetThreadExecutionState`, etc.). Core loop first, then features ported by usage frequency.
+**Windows** — initial port (`x86_64-pc-windows-msvc`). The Rust backend and the
+React/WebView renderer build and the system tools below are implemented against
+Win32 / WinRT (`windows` crate): Core Audio for volume, `GetSystemPowerStatus`
+for battery, `SetThreadExecutionState` / `SetSuspendState` / `LockWorkStation`
+for sleep & lock, `IDesktopWallpaper` for wallpaper, GDI for screenshots, and
+SMTC for media control. Whisper runs on the CPU backend (Metal is macOS-only).
+The port has been built and compiled on Windows 11; end-to-end hardware
+verification (mic capture, system voices, tray) is still in progress, so treat
+the ✅ marks below as "implemented, verification pending". Two known gaps: the
+WebRTC audio front end (AGC2 / noise-suppression / high-pass) is macOS/Unix-only
+— its bundled C++ build isn't MSVC-compatible — so the Windows mic path runs
+without it for now (quiet speech may need a louder voice or higher input gain);
+and Calendar has no Windows equivalent (EventKit-only).
 
 ### Feature availability
 
 | Feature | macOS | Windows |
 | --- | --- | --- |
-| Wake word + STT (Whisper) | ✅ | 🚧 planned |
-| Speaker recognition (voiceprint, on-device) | ✅ | 🚧 planned |
-| LLM chat (OpenAI / Anthropic / Gemini) | ✅ | 🚧 planned |
-| TTS (system voices) | ✅ | 🚧 planned |
-| Tray icon + states | ✅ | 🚧 planned |
-| Timers / reminders | ✅ | 🚧 planned |
-| Volume control | ✅ | 🚧 planned |
-| Screenshot | ✅ | 🚧 planned |
-| Music control (Spotify / Music.app) | ✅ | 🚧 planned (SMTC) |
-| Battery / sleep prevention / lock | ✅ | 🚧 planned |
+| Wake word + STT (Whisper) | ✅ | ✅ (CPU backend) |
+| Speaker recognition (voiceprint, on-device) | ✅ | ✅ (no OS deps) |
+| LLM chat (OpenAI / Anthropic / Gemini) | ✅ | ✅ |
+| TTS (system voices) | ✅ | ✅ (WebView2 / SAPI) |
+| Tray icon + states | ✅ | ✅ |
+| Timers / reminders | ✅ | ✅ |
+| Mic noise-suppression / AGC (WebRTC APM) | ✅ | ❌ (bundled build is Unix-only) |
+| Volume control | ✅ | ✅ (Core Audio) |
+| Screenshot | ✅ | ✅ (GDI; full-screen only, no marquee) |
+| Music control (Spotify / Music.app) | ✅ | ✅ (SMTC, system-wide session) |
+| Battery / sleep prevention / lock | ✅ | ✅ (Win32 power APIs) |
 | Calendar (read-only) | ✅ (EventKit) | ❌ not planned for v1 |
-| Location grounding (CoreLocation + IP fallback) | ✅ | 🚧 planned (Windows.Devices.Geolocation + IP) |
-| Clipboard / notes / open URL / open app / open Finder | ✅ | 🚧 planned |
-| Long-term memory (profile / preference / episode) | ✅ | 🚧 planned (no OS deps, easy port) |
-| Auto-update | ✅ | 🚧 planned |
+| Location grounding (CoreLocation + IP fallback) | ✅ | ✅ (IP fallback only) |
+| Clipboard / notes / open URL / open app / open Finder | ✅ | ✅ (Explorer / shell `start`) |
+| Long-term memory (profile / preference / episode) | ✅ | ✅ (no OS deps) |
+| Auto-update | ✅ | ✅ (NSIS) |
 
 ## Development
 
 ### Requirements
 
-- macOS 14+ on Apple Silicon (M1 or later) — Windows version coming soon; see the table above for current feature parity
+- macOS 14+ on Apple Silicon (M1 or later), **or** Windows 10/11 (x64) — see the table above for per-platform feature parity
 - [pnpm](https://pnpm.io/)
 - [Rust](https://rustup.rs/) (stable toolchain)
+- **Windows only:** Visual Studio C++ Build Tools (MSVC + Windows SDK), CMake, and LLVM/Clang — Whisper builds via CMake and the WebRTC-free mic path needs the MSVC toolchain. Install with:
+  ```powershell
+  winget install Rustlang.Rustup OpenJS.NodeJS.LTS Kitware.CMake LLVM.LLVM
+  winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --includeRecommended"
+  ```
+  Build inside a "Developer PowerShell for VS 2022" (or after importing `vcvars64.bat`) so `cl.exe` / `link.exe` are on `PATH`, and set `LIBCLANG_PATH` to the LLVM `bin` directory.
 
 ### Setup & run
 
@@ -243,6 +262,8 @@ The menu-bar icon reflects the current state:
 
 ## Build
 
+### macOS
+
 ```bash
 TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/chappie.key)" \
 TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
@@ -255,6 +276,26 @@ Outputs:
 - `src-tauri/target/release/bundle/macos/Chappie.app`
 - `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz` + `.sig` (updater feed)
 - `src-tauri/target/release/bundle/dmg/Chappie_<version>_aarch64.dmg`
+
+### Windows
+
+From a Developer PowerShell (so MSVC is on `PATH`) with `LIBCLANG_PATH` set:
+
+```powershell
+$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content $HOME\.tauri\chappie.key -Raw
+$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
+pnpm tauri build
+```
+
+Outputs the NSIS installer + its updater artifacts:
+
+- `src-tauri/target/release/bundle/nsis/Chappie_<version>_x64-setup.exe`
+- `src-tauri/target/release/bundle/nsis/Chappie_<version>_x64-setup.nsis.zip` + `.sig`
+
+> The `bundle.targets` list is `["app", "nsis"]`; Tauri builds only the target
+> valid for the host, so the same command produces a `.app` on macOS and an NSIS
+> installer on Windows. To skip updater signing for a local test build, pass
+> `--config '{\"bundle\":{\"createUpdaterArtifacts\":false}}'`.
 
 > `APPLE_SIGNING_IDENTITY="-"` is ad-hoc signing. Without it macOS will report
 > "the app is damaged" after distribution. There is no notarization, so on
