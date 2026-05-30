@@ -69,6 +69,26 @@ readability = "0.3"
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 webrtc-audio-processing = { version = "2", features = ["bundled"] }
 
+# Windows system integration. Each macOS shell-out (osascript / pmset /
+# caffeinate / screencapture / open) has a Win32 equivalent reached through
+# this crate: Core Audio (volume), GetSystemPowerStatus (battery),
+# SetThreadExecutionState / SetSuspendState (sleep prevention / sleep),
+# LockWorkStation (lock), SystemParametersInfo (wallpaper), GDI BitBlt
+# (screenshot), and the SMTC WinRT API (media control). See the per-module
+# `#[cfg(target_os = "windows")]` impls.
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_System_Com",
+    "Win32_Media_Audio",
+    "Win32_Media_Audio_Endpoints",
+    "Win32_System_Power",
+    "Win32_System_Shutdown",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Shell",
+    "Win32_Graphics_Gdi",
+] }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSDate", "NSArray", "NSPredicate", "NSString", "NSError", "NSURL"] }
