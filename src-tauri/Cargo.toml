@@ -87,7 +87,13 @@ windows = { version = "0.58", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_UI_Shell",
     "Win32_Graphics_Gdi",
+    "Media_Control",
+    "Foundation",
+    "Foundation_Collections",
 ] }
+# PNG encoding for GDI screenshots. PNG-only to avoid pulling the full codec
+# set (avif/av1/webp) — screenshots only ever need PNG.
+image = { version = "0.25", default-features = false, features = ["png"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
