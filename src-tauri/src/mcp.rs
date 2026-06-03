@@ -34,6 +34,7 @@ mod news;
 mod pokemon;
 mod quake;
 mod stocks;
+mod typhoon;
 mod units;
 mod wiki;
 
@@ -54,6 +55,7 @@ pub fn tools_openai_schema() -> Vec<Value> {
     out.extend(pokemon::tools());
     out.extend(wiki::tools());
     out.extend(quake::tools());
+    out.extend(typhoon::tools());
     out.extend(fx::tools());
     out.extend(astro::tools());
     out.extend(fetch::tools());
@@ -102,6 +104,9 @@ pub async fn try_execute(name: &str, args: &Value) -> Option<String> {
     }
     if let Some(rest) = name.strip_prefix("mcp_quake_") {
         return Some(quake::execute(rest, args).await);
+    }
+    if let Some(rest) = name.strip_prefix("mcp_typhoon_") {
+        return Some(typhoon::execute(rest, args).await);
     }
     if let Some(rest) = name.strip_prefix("mcp_fx_") {
         return Some(fx::execute(rest, args).await);

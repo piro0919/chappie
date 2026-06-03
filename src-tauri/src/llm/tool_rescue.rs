@@ -65,6 +65,12 @@ const RESCUE_MAP: &[RescueEntry] = &[
         universal: &[],
     },
     RescueEntry {
+        tool: "mcp_typhoon_current",
+        ja: &["台風", "たいふう"],
+        en: &["typhoon"],
+        universal: &[],
+    },
+    RescueEntry {
         tool: "mcp_aurora_forecast",
         ja: &["オーロラ"],
         en: &[],
@@ -245,6 +251,7 @@ mod tests {
     fn ja_distinctive_keywords_rescue_their_tool() {
         let cases = [
             ("地震あった？", "mcp_quake_recent"),
+            ("台風どうなってる？", "mcp_typhoon_current"),
             ("今夜オーロラ見える？", "mcp_aurora_forecast"),
             ("明日の日の出は何時？", "mcp_astro_sunmoon"),
             ("ドル円いくら？", "mcp_fx_rate"),

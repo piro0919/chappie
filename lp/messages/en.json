@@ -82,6 +82,13 @@
         "example3": "\"Has there been a big one lately?\"",
         "body": "Pulls the latest quake list from JMA (Japan Meteorological Agency) and reads epicenter, magnitude, max intensity, and time aloud. Quick reassurance when you feel a tremor."
       },
+      "typhoon": {
+        "title": "Tell you about typhoons",
+        "example1": "\"How's the typhoon?\"",
+        "example2": "\"Is a typhoon coming?\"",
+        "example3": "\"Where's the typhoon heading?\"",
+        "body": "Reads out the active typhoons from JMA (Japan Meteorological Agency) — number, name, center position, course, speed, central pressure, max wind, and where it's headed. If none are active, you hear that in one line."
+      },
       "fx": {
         "title": "Answer exchange rates",
         "example1": "\"USD to JPY?\"",

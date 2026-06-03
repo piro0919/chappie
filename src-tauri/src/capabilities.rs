@@ -70,6 +70,10 @@ fn capabilities_pt() -> String {
             &["Sismos recentes?, acabei de sentir um tremor?", "Lista mais recente da JMA — epicentro, magnitude, intensidade"],
         ),
         (
+            "Tufões",
+            &["Como está o tufão?, vem tufão?", "JMA — número, nome, posição central, rumo, pressão e vento máximo do tufão ativo"],
+        ),
+        (
             "Câmbio",
             &["1 dólar em iene?, e o euro?", "Quanto são 100 dólares em ienes? (amount converte na hora)"],
         ),
@@ -289,6 +293,10 @@ fn capabilities_ko() -> String {
             &["최근 지진?, 방금 흔들렸어?", "JMA 최신 지진 목록 — 진원·규모·최대 진도"],
         ),
         (
+            "태풍 정보",
+            &["태풍 어떻게 됐어?, 태풍 와?", "JMA — 발생 중인 태풍의 번호·이름·중심 위치·진로·중심 기압·최대 풍속"],
+        ),
+        (
             "환율",
             &["1달러 얼마야?, 유로는?", "100달러는 얼마야? (amount 지정 시 즉시 환산)"],
         ),
@@ -503,6 +511,10 @@ fn capabilities_it() -> String {
         (
             "Terremoti",
             &["Terremoti recenti?, ho appena sentito una scossa?", "Lista JMA più recente — epicentro, magnitudo, intensità"],
+        ),
+        (
+            "Tifoni",
+            &["Come va il tifone?, sta arrivando un tifone?", "JMA — numero, nome, posizione, rotta, pressione e vento massimo del tifone attivo"],
         ),
         (
             "Cambio",
@@ -727,6 +739,10 @@ fn capabilities_es() -> String {
             &["¿Sismos recientes?, ¿acabo de sentir un temblor?", "Lista más reciente de la JMA — epicentro, magnitud, intensidad"],
         ),
         (
+            "Tifones",
+            &["¿Cómo va el tifón?, ¿viene un tifón?", "JMA — número, nombre, posición, rumbo, presión y viento máximo del tifón activo"],
+        ),
+        (
             "Tipo de cambio",
             &["¿1 dólar en yenes?, ¿y el euro?", "¿Cuántos yenes son 100 dólares? (amount convierte al vuelo)"],
         ),
@@ -947,6 +963,10 @@ fn capabilities_fr() -> String {
         (
             "Séismes",
             &["Des séismes récents ?, je viens de sentir une secousse ?", "Liste JMA la plus récente — épicentre, magnitude, intensité"],
+        ),
+        (
+            "Typhons",
+            &["Le typhon, ça donne quoi ?, un typhon arrive ?", "JMA — numéro, nom, position, trajectoire, pression et vent maximal du typhon actif"],
         ),
         (
             "Taux de change",
@@ -1171,6 +1191,10 @@ fn capabilities_de() -> String {
             &["Aktuelle Erdbeben?, hab ich gerade was gespürt?", "Aktuellste JMA-Liste — Epizentrum, Magnitude, Intensität"],
         ),
         (
+            "Taifune",
+            &["Wie steht's um den Taifun?, kommt ein Taifun?", "JMA — Nummer, Name, Position, Zugbahn, Kerndruck und Spitzenwind des aktiven Taifuns"],
+        ),
+        (
             "Wechselkurs",
             &["1 Dollar in Yen?, und der Euro?", "Wieviel sind 100 Dollar in Yen? (amount rechnet direkt um)"],
         ),
@@ -1391,6 +1415,10 @@ fn capabilities_zh() -> String {
         (
             "地震信息",
             &["最近有地震吗？, 刚才晃了一下？", "气象厅最新地震列表 — 震源、震级、最大烈度"],
+        ),
+        (
+            "台风信息",
+            &["台风怎么样了？, 有台风吗？", "气象厅 — 现有台风的编号、名称、中心位置、移动方向、中心气压和最大风速"],
         ),
         (
             "汇率",
@@ -1620,6 +1648,13 @@ fn capabilities_ja() -> String {
             &[
                 "最近の地震は？／さっき揺れた？",
                 "気象庁の最新地震一覧から、震源・マグニチュード・最大震度を読み上げ",
+            ],
+        ),
+        (
+            "台風情報",
+            &[
+                "台風どうなってる？／台風来てる？／今の進路は？",
+                "気象庁の発生中の台風から、番号・名前・中心位置・進路・速度・中心気圧・最大風速・今後の見込みを読み上げ",
             ],
         ),
         (
@@ -1879,6 +1914,13 @@ fn capabilities_en() -> String {
             &[
                 "Any recent quakes?, did I just feel one?",
                 "JMA's latest list — epicenter, magnitude, max intensity",
+            ],
+        ),
+        (
+            "Typhoons",
+            &[
+                "How's the typhoon?, is a typhoon coming?, where's it heading?",
+                "Active typhoons from JMA — number, name, center position, course, speed, central pressure, max wind and outlook",
             ],
         ),
         (

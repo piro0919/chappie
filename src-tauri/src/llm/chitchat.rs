@@ -106,7 +106,7 @@ const JA_TOOL_KEYWORDS: &[&str] = &[
     "タイマー", "アラーム", "リマインダー", "リマインド", "リマインド", "目覚まし",
     "何時", "今何時", "時刻", "予定", "カレンダー", "スケジュール",
     // weather / location
-    "天気", "気温", "雨", "雪", "湿度", "風速", "降水",
+    "天気", "気温", "雨", "雪", "湿度", "風速", "降水", "台風",
     // volume / mute / battery / sleep
     "音量", "ボリューム", "ミュート", "消音", "バッテリー", "残量", "充電",
     "ロック", "スリープ", "スクリーン", "起きてて",
@@ -158,7 +158,7 @@ const JA_CHITCHAT: &[&str] = &[
 const EN_TOOL_KEYWORDS: &[&str] = &[
     "timer", "alarm", "reminder", "remind", "wake me", "schedule", "calendar",
     "what time", "the time",
-    "weather", "temperature", "rain", "snow", "humidity", "forecast",
+    "weather", "temperature", "rain", "snow", "humidity", "forecast", "typhoon",
     "volume", "mute", "louder", "quieter", "battery", "charge",
     "lock", "sleep", "screen", "stay awake",
     "music", "song", "play ", "pause", "next track", "previous track",
