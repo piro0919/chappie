@@ -198,11 +198,6 @@ type Messages = {
     proactiveCalendarHud: string;
     proactiveWeatherAlert: string;
     proactiveWeatherAlertHud: string;
-    proactiveIdleChatterPhrase1: string;
-    proactiveIdleChatterPhrase2: string;
-    proactiveIdleChatterPhrase3: string;
-    proactiveIdleChatterPhrase4: string;
-    proactiveIdleChatterPhrase5: string;
     fallbackError: string;
     modelProgress: string;
     modelFetchFailed: string;
@@ -445,11 +440,6 @@ const ja: Messages = {
     proactiveCalendarHud: "📅 {title}（{leadMin}分後）",
     proactiveWeatherAlert: "{detail}",
     proactiveWeatherAlertHud: "⚠ {detail}",
-    proactiveIdleChatterPhrase1: "そういえば、最近どうですか？",
-    proactiveIdleChatterPhrase2: "ちょっと話しかけたくなりました。",
-    proactiveIdleChatterPhrase3: "なにか手伝えること、ありますか？",
-    proactiveIdleChatterPhrase4: "そろそろ休憩はいかがですか？",
-    proactiveIdleChatterPhrase5: "おつかれさまです。",
     fallbackError: "うまく繋がりませんでした。",
     modelProgress: "Whisper モデルを取得中… {pct}%",
     modelFetchFailed: "モデル取得に失敗: {err}",
@@ -699,11 +689,6 @@ const en: Messages = {
     proactiveCalendarHud: "📅 {title} (in {leadMin}m)",
     proactiveWeatherAlert: "{detail}",
     proactiveWeatherAlertHud: "⚠ {detail}",
-    proactiveIdleChatterPhrase1: "By the way, how's it going?",
-    proactiveIdleChatterPhrase2: "Just felt like saying hi.",
-    proactiveIdleChatterPhrase3: "Anything I can help with?",
-    proactiveIdleChatterPhrase4: "Maybe time for a break?",
-    proactiveIdleChatterPhrase5: "Good work today.",
     fallbackError: "Couldn't connect.",
     modelProgress: "Downloading Whisper model… {pct}%",
     modelFetchFailed: "Model fetch failed: {err}",
@@ -954,11 +939,6 @@ const es: Messages = {
     proactiveCalendarHud: "📅 {title} (en {leadMin}m)",
     proactiveWeatherAlert: "{detail}",
     proactiveWeatherAlertHud: "⚠ {detail}",
-    proactiveIdleChatterPhrase1: "Por cierto, ¿cómo va?",
-    proactiveIdleChatterPhrase2: "Solo quería saludar.",
-    proactiveIdleChatterPhrase3: "¿En qué puedo ayudarte?",
-    proactiveIdleChatterPhrase4: "¿Tal vez un descanso?",
-    proactiveIdleChatterPhrase5: "Buen trabajo hoy.",
     fallbackError: "No se pudo conectar.",
     modelProgress: "Descargando el modelo de Whisper… {pct}%",
     modelFetchFailed: "Falló la descarga del modelo: {err}",
@@ -1209,11 +1189,6 @@ const fr: Messages = {
     proactiveCalendarHud: "📅 {title} (dans {leadMin}m)",
     proactiveWeatherAlert: "{detail}",
     proactiveWeatherAlertHud: "⚠ {detail}",
-    proactiveIdleChatterPhrase1: "Au fait, comment ça va ?",
-    proactiveIdleChatterPhrase2: "J'avais envie de discuter.",
-    proactiveIdleChatterPhrase3: "Je peux vous aider ?",
-    proactiveIdleChatterPhrase4: "Une petite pause ?",
-    proactiveIdleChatterPhrase5: "Bon travail aujourd'hui.",
     fallbackError: "Impossible de se connecter.",
     modelProgress: "Téléchargement du modèle Whisper… {pct}%",
     modelFetchFailed: "Échec du téléchargement du modèle : {err}",
@@ -1465,11 +1440,6 @@ const de: Messages = {
     proactiveCalendarHud: "📅 {title} (in {leadMin}m)",
     proactiveWeatherAlert: "{detail}",
     proactiveWeatherAlertHud: "⚠ {detail}",
-    proactiveIdleChatterPhrase1: "Übrigens, wie läuft's?",
-    proactiveIdleChatterPhrase2: "Wollte nur kurz Hallo sagen.",
-    proactiveIdleChatterPhrase3: "Kann ich irgendwie helfen?",
-    proactiveIdleChatterPhrase4: "Vielleicht Zeit für eine Pause?",
-    proactiveIdleChatterPhrase5: "Gut gemacht heute.",
     fallbackError: "Verbindung fehlgeschlagen.",
     modelProgress: "Whisper-Modell wird geladen… {pct}%",
     modelFetchFailed: "Modell-Download fehlgeschlagen: {err}",
@@ -1710,11 +1680,6 @@ const zh: Messages = {
     proactiveCalendarHud: "📅 {title}（{leadMin}分钟后）",
     proactiveWeatherAlert: "{detail}",
     proactiveWeatherAlertHud: "⚠ {detail}",
-    proactiveIdleChatterPhrase1: "对了，最近怎么样？",
-    proactiveIdleChatterPhrase2: "想跟你打个招呼。",
-    proactiveIdleChatterPhrase3: "有什么需要帮忙的吗？",
-    proactiveIdleChatterPhrase4: "要不要休息一下？",
-    proactiveIdleChatterPhrase5: "辛苦了。",
     fallbackError: "连接失败。",
     modelProgress: "正在下载 Whisper 模型… {pct}%",
     modelFetchFailed: "模型下载失败:{err}",
@@ -1962,11 +1927,6 @@ const pt: Messages = {
     proactiveCalendarHud: "📅 {title} (em {leadMin}m)",
     proactiveWeatherAlert: "{detail}",
     proactiveWeatherAlertHud: "⚠ {detail}",
-    proactiveIdleChatterPhrase1: "A propósito, como vai?",
-    proactiveIdleChatterPhrase2: "Tive vontade de conversar.",
-    proactiveIdleChatterPhrase3: "Posso ajudar com algo?",
-    proactiveIdleChatterPhrase4: "Que tal uma pausa?",
-    proactiveIdleChatterPhrase5: "Bom trabalho hoje.",
     fallbackError: "Não foi possível conectar.",
     modelProgress: "Baixando o modelo do Whisper… {pct}%",
     modelFetchFailed: "Falha ao baixar o modelo: {err}",
@@ -2216,11 +2176,6 @@ const ko: Messages = {
     proactiveCalendarHud: "📅 {title}({leadMin}분 후)",
     proactiveWeatherAlert: "{detail}",
     proactiveWeatherAlertHud: "⚠ {detail}",
-    proactiveIdleChatterPhrase1: "그러고 보니, 요즘 어떠세요?",
-    proactiveIdleChatterPhrase2: "잠깐 말 걸고 싶었어요.",
-    proactiveIdleChatterPhrase3: "도와드릴 거 있나요?",
-    proactiveIdleChatterPhrase4: "잠깐 쉬는 건 어때요?",
-    proactiveIdleChatterPhrase5: "수고 많으셨어요.",
     fallbackError: "연결할 수 없었어요.",
     modelProgress: "Whisper 모델 다운로드 중… {pct}%",
     modelFetchFailed: "모델 다운로드 실패: {err}",
@@ -2471,11 +2426,6 @@ const it: Messages = {
     proactiveCalendarHud: "📅 {title} (tra {leadMin}m)",
     proactiveWeatherAlert: "{detail}",
     proactiveWeatherAlertHud: "⚠ {detail}",
-    proactiveIdleChatterPhrase1: "A proposito, come va?",
-    proactiveIdleChatterPhrase2: "Volevo solo salutarti.",
-    proactiveIdleChatterPhrase3: "Posso aiutarti in qualcosa?",
-    proactiveIdleChatterPhrase4: "Magari una pausa?",
-    proactiveIdleChatterPhrase5: "Buon lavoro oggi.",
     fallbackError: "Connessione non riuscita.",
     modelProgress: "Download del modello Whisper… {pct}%",
     modelFetchFailed: "Download del modello fallito: {err}",
@@ -2705,4 +2655,224 @@ export function buildSystemPrompt(lang: Language): string {
 export function pickWakeAck(lang: Language, speakerId?: number): string {
   const acks = getWakeAcks(lang, undefined, speakerId);
   return acks[Math.floor(Math.random() * acks.length)];
+}
+
+type IdleChatterPool = {
+  any: string[];
+  morning?: string[];
+  evening?: string[];
+  lateNight?: string[];
+};
+
+// Per-locale idle-chatter lines — what Chappie says unprompted after a
+// stretch of silence (the proactive idle-chatter feature). Same shape and
+// time-banding as WAKE_ACKS: `any` is the always-on base, the optional time
+// pools layer morning / evening / late-night flavor on top. Japanese stays
+// in keigo (です/ます) to match the assistant's register. Free mode draws
+// straight from here (its 5/day quota rules out an LLM call); BYOK/Paid
+// generate via the LLM and only fall back to this pool. Append freely — the
+// selector picks uniformly at random, so order doesn't matter.
+const IDLE_CHATTER: Record<Exclude<Language, "auto">, IdleChatterPool> = {
+  ja: {
+    any: [
+      "そういえば、最近どうですか？",
+      "なにか手伝えること、ありますか？",
+      "ちょっと話しかけたくなりました。",
+      "順調ですか？",
+      "困っていること、ないですか？",
+      "水分、ちゃんと取れていますか？",
+      "気分転換に、少し伸びでもしませんか？",
+      "なにか面白いこと、ありましたか？",
+      "ひと息つきましょうか。",
+      "息抜きに、少し雑談でもどうですか？",
+    ],
+    morning: [
+      "おはようございます。今日はどんな予定ですか？",
+      "いい朝ですね。",
+      "今日も一日、よろしくお願いします。",
+    ],
+    evening: [
+      "おつかれさまです。",
+      "今日はどんな一日でしたか？",
+      "そろそろ休憩はいかがですか？",
+    ],
+    lateNight: [
+      "夜更かしですか？無理はしないでくださいね。",
+      "まだ起きていらっしゃるんですね。",
+      "そろそろ休みませんか？",
+    ],
+  },
+  en: {
+    any: [
+      "By the way, how's it going?",
+      "Anything I can help with?",
+      "Just felt like saying hi.",
+      "Everything going okay?",
+      "Anything on your mind?",
+      "Staying hydrated?",
+      "Maybe time for a little stretch?",
+      "Anything interesting happen today?",
+      "Want to take a quick breather?",
+      "Up for a little chat?",
+    ],
+    morning: [
+      "Good morning! What's on for today?",
+      "Lovely morning, isn't it?",
+      "Hope today goes well.",
+    ],
+    evening: [
+      "Nice work today.",
+      "How was your day?",
+      "Maybe time for a break?",
+    ],
+    lateNight: [
+      "Up late? Don't push yourself too hard.",
+      "Still awake, I see.",
+      "Maybe call it a night soon?",
+    ],
+  },
+  es: {
+    any: [
+      "Por cierto, ¿cómo va todo?",
+      "¿Hay algo en que pueda ayudar?",
+      "Tenía ganas de saludar.",
+      "¿Todo bien?",
+      "¿Algo en mente?",
+      "¿Te estás hidratando?",
+      "¿Qué tal un pequeño estiramiento?",
+      "¿Pasó algo interesante hoy?",
+      "¿Quieres tomar un respiro?",
+      "¿Charlamos un poco?",
+    ],
+    morning: ["¡Buenos días! ¿Qué planes hay hoy?", "Bonita mañana, ¿verdad?"],
+    evening: ["Buen trabajo hoy.", "¿Qué tal tu día?"],
+    lateNight: [
+      "¿Despierto tan tarde? No te exijas demasiado.",
+      "¿Aún despierto?",
+    ],
+  },
+  fr: {
+    any: [
+      "Au fait, comment ça va ?",
+      "Besoin d'un coup de main ?",
+      "J'avais envie de passer dire bonjour.",
+      "Tout se passe bien ?",
+      "Quelque chose en tête ?",
+      "Tu penses à boire un peu d'eau ?",
+      "Et si on s'étirait un peu ?",
+      "Quelque chose d'intéressant aujourd'hui ?",
+      "Envie de faire une petite pause ?",
+      "On papote un peu ?",
+    ],
+    morning: [
+      "Bonjour ! Quel est le programme aujourd'hui ?",
+      "Belle matinée, non ?",
+    ],
+    evening: ["Bon travail aujourd'hui.", "Comment s'est passée ta journée ?"],
+    lateNight: ["Encore debout ? Ne te surmène pas.", "Toujours réveillé ?"],
+  },
+  de: {
+    any: [
+      "Übrigens, wie läuft's?",
+      "Kann ich bei etwas helfen?",
+      "Wollte nur kurz Hallo sagen.",
+      "Läuft alles gut?",
+      "Was geht dir durch den Kopf?",
+      "Schon genug getrunken?",
+      "Wie wär's mit einer kleinen Dehnung?",
+      "Heute schon was Interessantes erlebt?",
+      "Lust auf eine kurze Pause?",
+      "Plaudern wir ein bisschen?",
+    ],
+    morning: ["Guten Morgen! Was steht heute an?", "Schöner Morgen, oder?"],
+    evening: ["Gute Arbeit heute.", "Wie war dein Tag?"],
+    lateNight: ["Noch wach? Überanstreng dich nicht.", "Immer noch auf?"],
+  },
+  it: {
+    any: [
+      "A proposito, come va?",
+      "Posso aiutarti con qualcosa?",
+      "Avevo voglia di fare due chiacchiere.",
+      "Va tutto bene?",
+      "Qualcosa per la testa?",
+      "Ti stai idratando?",
+      "Che ne dici di un po' di stretching?",
+      "È successo qualcosa di interessante oggi?",
+      "Ti va una piccola pausa?",
+      "Facciamo due chiacchiere?",
+    ],
+    morning: ["Buongiorno! Che programmi hai oggi?", "Bella mattinata, vero?"],
+    evening: ["Buon lavoro oggi.", "Com'è andata la giornata?"],
+    lateNight: ["Ancora sveglio? Non strafare.", "Sei ancora in piedi?"],
+  },
+  pt: {
+    any: [
+      "A propósito, como vai?",
+      "Posso ajudar em algo?",
+      "Deu vontade de dar um oi.",
+      "Está tudo bem?",
+      "Algo na cabeça?",
+      "Está se hidratando?",
+      "Que tal um alongamento?",
+      "Aconteceu algo interessante hoje?",
+      "Quer dar uma pausa?",
+      "Vamos bater um papo?",
+    ],
+    morning: ["Bom dia! Quais são os planos de hoje?", "Bela manhã, não é?"],
+    evening: ["Bom trabalho hoje.", "Como foi o seu dia?"],
+    lateNight: ["Acordado até tarde? Não se sobrecarregue.", "Ainda acordado?"],
+  },
+  ko: {
+    any: [
+      "그러고 보니, 요즘 어떠세요?",
+      "도와드릴 일 있을까요?",
+      "그냥 인사하고 싶었어요.",
+      "다 잘 되고 있나요?",
+      "무슨 생각 하세요?",
+      "수분 잘 챙기고 계세요?",
+      "가볍게 스트레칭 어떠세요?",
+      "오늘 재미있는 일 있었어요?",
+      "잠깐 쉬어 갈까요?",
+      "잠깐 얘기 나눌까요?",
+    ],
+    morning: [
+      "좋은 아침이에요. 오늘 일정은 어떠세요?",
+      "기분 좋은 아침이네요.",
+    ],
+    evening: ["오늘도 수고하셨어요.", "오늘 하루 어땠어요?"],
+    lateNight: ["늦게까지 깨어 있네요. 무리하지 마세요.", "아직 안 주무세요?"],
+  },
+  zh: {
+    any: [
+      "对了，最近怎么样？",
+      "有什么我能帮忙的吗？",
+      "就是想打个招呼。",
+      "一切都还顺利吗？",
+      "在想什么呢？",
+      "记得多喝点水哦。",
+      "要不要起来伸展一下？",
+      "今天有什么有趣的事吗？",
+      "要不要歇一会儿？",
+      "聊几句吗？",
+    ],
+    morning: ["早上好。今天有什么安排？", "今天天气不错呢。"],
+    evening: ["今天辛苦了。", "今天过得怎么样？"],
+    lateNight: ["这么晚还没睡？别太累着了。", "还醒着呢？"],
+  },
+};
+
+// Time-of-day-aware idle-chatter pool for `lang` (base `any` + the active
+// band). Mirrors getWakeAcks.
+export function getIdleChatter(lang: Language, hour?: number): string[] {
+  const pool = IDLE_CHATTER[resolveLanguage(lang)];
+  const h = hour ?? new Date().getHours();
+  const band = timeBand(h);
+  const extras = band === "daytime" ? [] : (pool[band] ?? []);
+  return [...pool.any, ...extras];
+}
+
+// Pick a random idle-chatter line for `lang`, time-of-day-aware.
+export function pickIdleChatter(lang: Language, hour?: number): string {
+  const lines = getIdleChatter(lang, hour);
+  return lines[Math.floor(Math.random() * lines.length)];
 }

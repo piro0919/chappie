@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import {
   buildSystemPrompt,
+  pickIdleChatter,
   pickWakeAck,
   resolveLanguage,
   t as tRaw,
@@ -70,6 +71,12 @@ const ERROR_DISPLAY_MS = 1800;
 // Cooldown after TTS finishes before the mic capture is re-enabled. Leaves
 // room for speaker reverb and ensures Chappie doesn't re-trigger on its tail.
 const POST_TTS_COOLDOWN_MS = 350;
+
+// Ignore a proactive:fired that arrives within this window of the previous
+// one we handled. Genuine fires are spaced minutes apart by the Rust
+// scheduler; a sub-second repeat only happens if one emit gets delivered /
+// played more than once, so collapsing them is always safe.
+const PROACTIVE_DEDUPE_MS = 5000;
 
 // Rewrite a template-based proactive line into the active VOICEVOX
 // character's 口調. No-op when chappie's default voice is active, or
@@ -163,7 +170,7 @@ type ProactiveFiredPayload =
     }
   | { kind: "calendarWarning"; leadMin: number; title: string }
   | { kind: "weatherAlert"; detail: string }
-  | { kind: "idleChatter"; phraseIndex: number; context: string };
+  | { kind: "idleChatter"; context: string };
 
 export function useConversationLoop(): { state: State; error: string | null } {
   const [state, setState] = useState<State>({ state: "initializing" });
@@ -208,6 +215,12 @@ export function useConversationLoop(): { state: State; error: string | null } {
   // OR-merge here when wiring music control_music play/pause.
   const externalAudioActiveRef = useRef(false);
   const errorRecoveryTimerRef = useRef<number | null>(null);
+  // Wall-clock ms of the last proactive:fired we actually handled. The
+  // Rust scheduler spaces genuine proactive fires by minutes (90min idle
+  // cooldown, 4h weather, once-a-day morning brief), so two arriving within
+  // a few seconds are never legitimate — they only happen if a single emit
+  // gets played more than once. Belt-and-braces dedupe against that.
+  const lastProactiveHandledAtRef = useRef(0);
   // VOICEVOX speaker active for the current/next turn (set by
   // applyVoiceForWake). undefined = use chappie's own voice/persona, no
   // 口調 override. Used by runTurn to inject the per-character persona as a
@@ -1164,6 +1177,13 @@ export function useConversationLoop(): { state: State; error: string | null } {
     IpcEvent.proactiveFired,
     async (e) => {
       const p = e.payload;
+      // Collapse a duplicate fire that lands right after the previous one
+      // (see PROACTIVE_DEDUPE_MS) so a single emit can't be spoken twice.
+      const nowMs = Date.now();
+      if (nowMs - lastProactiveHandledAtRef.current < PROACTIVE_DEDUPE_MS) {
+        return;
+      }
+      lastProactiveHandledAtRef.current = nowMs;
       let speakText: string;
       let hudText: string;
       // Resolve the output surface up front so we can skip the
@@ -1248,18 +1268,11 @@ export function useConversationLoop(): { state: State; error: string | null } {
           params,
         );
       } else {
-        const slot = Math.min(Math.max(p.phraseIndex, 0), 4);
-        // Static key list keeps t()'s string-literal union happy; the
-        // Rust side bounds phrase_index to 0..IDLE_CHATTER_PHRASE_COUNT
-        // which is wired to match this array length.
-        const phraseKeys = [
-          "conversation.proactiveIdleChatterPhrase1",
-          "conversation.proactiveIdleChatterPhrase2",
-          "conversation.proactiveIdleChatterPhrase3",
-          "conversation.proactiveIdleChatterPhrase4",
-          "conversation.proactiveIdleChatterPhrase5",
-        ] as const;
-        const fallback = tRaw(langRef.current, phraseKeys[slot]);
+        // Time-of-day-aware random line from the idle-chatter pool. The pool
+        // is the source of variety now (10+ base lines per locale plus
+        // morning/evening/late-night extras), so selection lives renderer-
+        // side — Rust just signals that an idle fire is due.
+        const fallback = pickIdleChatter(langRef.current);
         // Free mode shares its 5/day quota with this — burning daily
         // calls on unsolicited chatter is anti-feature, so Free always
         // uses the static phrase. BYOK/Paid pay their own bill so

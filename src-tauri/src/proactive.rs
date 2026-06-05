@@ -52,10 +52,14 @@ const IDLE_CHATTER_DAILY_MAX: u32 = 3;
 /// 90 minutes keeps the cadence sane even if the user comes back,
 /// uses Chappie briefly, and goes idle again immediately.
 const IDLE_CHATTER_FIRE_COOLDOWN_SECONDS: i64 = 90 * 60;
-/// How many phrase slots the renderer's i18n catalog exposes for
-/// idle chatter. Rust picks an index in `0..N` and the renderer
-/// resolves `conversation.proactiveIdleChatterPhrase{N+1}`.
-const IDLE_CHATTER_PHRASE_COUNT: u32 = 5;
+/// If the wall clock jumps more than this between two consecutive ticks,
+/// the machine was asleep (lid closed) — the process is suspended during
+/// macOS sleep so the loop simply stops ticking. 3× the tick interval is
+/// well clear of normal scheduling jitter while still catching even a
+/// short nap. On detection we restart the idle clock so a multi-hour
+/// sleep doesn't instantly cross the idle-chatter threshold and greet the
+/// user the moment they reopen the lid.
+const SLEEP_GAP_THRESHOLD_SECONDS: i64 = TICK_SECONDS as i64 * 3;
 
 #[derive(Clone, Deserialize, Default, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -86,6 +90,11 @@ struct State {
     /// changes between ticks).
     fired_event_ids: HashSet<String>,
     last_tick_date: Option<String>,
+    /// Unix-seconds wall-clock time of the previous tick. Compared against
+    /// the current tick to detect a sleep/wake gap (the process is frozen
+    /// during macOS sleep, so a far-larger-than-`TICK_SECONDS` jump means
+    /// the lid was closed in between). `None` until the first tick runs.
+    last_tick_unix: Option<i64>,
     /// Most recent idle/busy flag pushed by the renderer.
     idle: bool,
     /// Unix-seconds timestamp of the most recent idle→busy
@@ -152,7 +161,7 @@ pub fn init(app: &AppHandle) {
 }
 
 async fn tick(app: &AppHandle) {
-    let (cfg, last_brief_date, prev_tick_date, fired_ids) = {
+    let (cfg, last_brief_date, prev_tick_date, fired_ids, prev_tick_unix) = {
         let s = match STATE.lock() {
             Ok(s) => s,
             Err(_) => return,
@@ -162,6 +171,7 @@ async fn tick(app: &AppHandle) {
             s.last_morning_brief_date.clone(),
             s.last_tick_date.clone(),
             s.fired_event_ids.clone(),
+            s.last_tick_unix,
         )
     };
 
@@ -178,6 +188,29 @@ async fn tick(app: &AppHandle) {
 
     let now = Local::now();
     let today = format_date(&now);
+    let now_unix = now.timestamp();
+
+    // Sleep/wake guard. The process is suspended during macOS sleep, so a
+    // jump far larger than the tick interval since the previous tick means
+    // the lid was closed in between. Idle time accumulated while asleep
+    // isn't real "user has been quiet" time — without this, `idle_since`
+    // (set when the user last fell idle, before sleep) makes `idle_elapsed`
+    // instantly exceed the threshold on wake and idle-chatter greets the
+    // user the moment they reopen the lid. Restart the idle clock from the
+    // wake instant (only when already idle — don't fabricate an idle start
+    // while the renderer is busy) so a fresh `after_min` of real quiet is
+    // required again. Always refresh `last_tick_unix` for the next compare.
+    {
+        let slept = prev_tick_unix
+            .map(|t| now_unix - t > SLEEP_GAP_THRESHOLD_SECONDS)
+            .unwrap_or(false);
+        if let Ok(mut s) = STATE.lock() {
+            if slept && s.idle_since_unix.is_some() {
+                s.idle_since_unix = Some(now_unix);
+            }
+            s.last_tick_unix = Some(now_unix);
+        }
+    }
 
     // Midnight rollover — drop yesterday's calendar dedupe set and
     // the idle-chatter daily counter (kept in sync via the same
@@ -221,7 +254,6 @@ async fn tick(app: &AppHandle) {
                 None => (None, None, std::collections::HashMap::new()),
             }
         };
-        let now_unix = now.timestamp();
         let due = last_check
             .map(|t| now_unix - t >= WEATHER_POLL_SECONDS)
             .unwrap_or(true);
@@ -260,7 +292,6 @@ async fn tick(app: &AppHandle) {
             }
         };
         if let Some(since) = idle_since {
-            let now_unix = now.timestamp();
             let idle_elapsed = now_unix - since;
             let after_secs = cfg.idle_chatter_after_min * 60;
             let cooldown_ok = last_fire
@@ -270,17 +301,11 @@ async fn tick(app: &AppHandle) {
                 && count < IDLE_CHATTER_DAILY_MAX
                 && cooldown_ok
             {
-                // Pick a phrase index pseudo-randomly from the current
-                // time's nanosecond field. Avoids pulling in `rand`
-                // for one small choice; the distribution is good
-                // enough since ticks are 30s apart.
-                let phrase_index =
-                    (now.timestamp_subsec_nanos() % IDLE_CHATTER_PHRASE_COUNT) as u32;
+                // Which line to speak is chosen renderer-side from the
+                // time-of-day-aware idle-chatter pool — Rust only signals
+                // that a fire is due, plus any optional context.
                 let context = compose_idle_chatter_context().await;
-                let payload = ProactiveFired::IdleChatter {
-                    phrase_index,
-                    context,
-                };
+                let payload = ProactiveFired::IdleChatter { context };
                 let _ = app.emit("proactive:fired", &payload);
                 if let Ok(mut s) = STATE.lock() {
                     s.idle_chatter_count = s.idle_chatter_count.saturating_add(1);
@@ -352,7 +377,6 @@ enum ProactiveFired {
     WeatherAlert { detail: String },
     #[serde(rename_all = "camelCase")]
     IdleChatter {
-        phrase_index: u32,
         /// Optional context bundle (time band, next event, current
         /// weather, long-term topics) injected into the renderer's
         /// LLM prompt so the chatter feels grounded instead of
