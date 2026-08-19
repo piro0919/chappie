@@ -34,6 +34,18 @@ export async function generateMetadata({
 
   return {
     metadataBase: new URL(SITE_URL),
+    // localePrefix が as-needed なので、既定ロケールだけ接頭辞が付かない。
+    // canonical と hreflang が無いと en と ja が重複ページ扱いになる。
+    alternates: {
+      canonical:
+        locale === routing.defaultLocale ? SITE_URL : `${SITE_URL}/${locale}`,
+      languages: Object.fromEntries(
+        routing.locales.map((one) => [
+          one,
+          one === routing.defaultLocale ? SITE_URL : `${SITE_URL}/${one}`,
+        ]),
+      ),
+    },
     title,
     description,
     applicationName: "Chappie",
