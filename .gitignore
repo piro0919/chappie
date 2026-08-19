@@ -44,3 +44,6 @@ lp/tsconfig.tsbuildinfo
 lp/public/sitemap*.xml
 lp/public/robots.txt
 .vercel
+
+# Lighthouse CI reports
+.lighthouseci

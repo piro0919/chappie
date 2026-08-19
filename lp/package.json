@@ -14,7 +14,8 @@
     "lint:fix": "biome check --write src/",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lighthouse": "pnpm build && lhci autorun"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
+    "@lhci/cli": "0.15.1",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^20.19.41",
     "@types/react": "^19.2.15",
