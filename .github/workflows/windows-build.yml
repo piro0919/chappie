@@ -38,15 +38,15 @@ jobs:
       # falls back to a PATH probe.
       LIBCLANG_PATH: "C:\\Program Files\\LLVM\\bin"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 11.23.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24.19.0
           cache: pnpm
 
       - name: Install JS deps
