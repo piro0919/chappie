@@ -5,14 +5,15 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { routing } from "../../i18n/routing";
+import {
+  languageAlternates,
+  localePath,
+  ogAlternateLocales,
+  ogLocale,
+} from "../../i18n/urls";
 import "../globals.css";
 
 const SITE_URL = "https://chappie.kkweb.io";
-
-const OG_LOCALE: Record<string, string> = {
-  en: "en_US",
-  ja: "ja_JP",
-};
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -37,14 +38,8 @@ export async function generateMetadata({
     // localePrefix が as-needed なので、既定ロケールだけ接頭辞が付かない。
     // canonical と hreflang が無いと en と ja が重複ページ扱いになる。
     alternates: {
-      canonical:
-        locale === routing.defaultLocale ? SITE_URL : `${SITE_URL}/${locale}`,
-      languages: Object.fromEntries(
-        routing.locales.map((one) => [
-          one,
-          one === routing.defaultLocale ? SITE_URL : `${SITE_URL}/${one}`,
-        ]),
-      ),
+      canonical: localePath(locale),
+      languages: languageAlternates(),
     },
     title,
     description,
@@ -64,11 +59,11 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url:
-        locale === routing.defaultLocale ? SITE_URL : `${SITE_URL}/${locale}`,
+      url: localePath(locale),
       siteName: "Chappie",
       type: "website",
-      locale: OG_LOCALE[locale] ?? "en_US",
+      locale: ogLocale(locale),
+      alternateLocale: ogAlternateLocales(locale),
     },
     twitter: {
       card: "summary_large_image",
