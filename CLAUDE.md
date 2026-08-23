@@ -93,6 +93,12 @@ pnpm tauri build
 - `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD`: minisign signing for the updater (auto-update breaks without it).
 - `APPLE_SIGNING_IDENTITY="-"`: ad-hoc code signing. **Skip this and macOS will show "the app is damaged" after distribution.**
 
+The toolchain has to keep up with the lockfile. Renovate's lock file maintenance
+pulls crates that raise the minimum rustc, and CI installs a fresh stable so it
+never notices — a local box that has not run `rustup update stable` in a while
+fails with `<crate> requires rustc <version>` before compiling anything. That is
+the fix, not pinning the crate back.
+
 Outputs from `pnpm tauri build`:
 - `src-tauri/target/release/bundle/macos/Chappie.app`
 - `src-tauri/target/release/bundle/macos/Chappie.app.tar.gz` (updater feed)
