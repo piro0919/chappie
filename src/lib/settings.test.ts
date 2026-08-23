@@ -13,6 +13,24 @@ vi.mock("@tauri-apps/plugin-store", () => ({
   load: vi.fn(async () => fakeStore),
 }));
 
+// The four credentials go to the Keychain through `secret_get` /
+// `secret_set` rather than the store, so the fake here stands in for the
+// Keychain and lets the tests assert they never reach `settings.json`.
+const fakeKeychain = new Map<string, string>();
+const invoke = vi.fn(async (cmd: string, args: Record<string, string>) => {
+  if (cmd === "secret_get") return fakeKeychain.get(args.key) ?? null;
+  if (cmd === "secret_set") {
+    if (args.value === "") fakeKeychain.delete(args.key);
+    else fakeKeychain.set(args.key, args.value);
+    return null;
+  }
+  throw new Error(`unexpected command ${cmd}`);
+});
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string, args: Record<string, string>) => invoke(cmd, args),
+}));
+
 import {
   __resetForTests,
   loadSettings,
@@ -23,6 +41,7 @@ import {
 describe("settings", () => {
   beforeEach(() => {
     fakeStoreState.clear();
+    fakeKeychain.clear();
     vi.clearAllMocks();
     __resetForTests();
   });
@@ -157,6 +176,52 @@ describe("settings", () => {
     fakeStoreState.set("mode", "paid");
     fakeStoreState.set("subscriptionStatus", "trialing");
     expect((await loadSettings()).mode).toBe("paid");
+  });
+
+  it("keeps credentials out of the settings file", async () => {
+    await saveSettings({
+      subscriptionAccessToken: "jwt",
+      subscriptionRefreshToken: "refresh",
+      switchbotSecret: "shhh",
+      switchbotToken: "tok",
+    });
+
+    for (const key of [
+      "switchbotToken",
+      "switchbotSecret",
+      "subscriptionAccessToken",
+      "subscriptionRefreshToken",
+    ]) {
+      expect(fakeStoreState.has(key)).toBe(false);
+    }
+    expect(fakeKeychain.get("switchbotSecret")).toBe("shhh");
+  });
+
+  it("reads credentials back from the keychain", async () => {
+    await saveSettings({
+      subscriptionAccessToken: "jwt",
+      switchbotToken: "tok",
+    });
+
+    const s = await loadSettings();
+
+    expect(s.switchbotToken).toBe("tok");
+    expect(s.subscriptionAccessToken).toBe("jwt");
+  });
+
+  it("clears a credential rather than storing a blank one", async () => {
+    await saveSettings({ switchbotToken: "tok" });
+
+    await saveSettings({ switchbotToken: "" });
+
+    expect(fakeKeychain.has("switchbotToken")).toBe(false);
+    expect((await loadSettings()).switchbotToken).toBe("");
+  });
+
+  it("treats an unreachable keychain as no credential", async () => {
+    invoke.mockRejectedValueOnce(new Error("keychain is locked"));
+
+    expect((await loadSettings()).subscriptionAccessToken).toBe("");
   });
 });
 

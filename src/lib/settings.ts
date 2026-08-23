@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { load, type Store } from "@tauri-apps/plugin-store";
 
 export type Language =
@@ -89,7 +90,9 @@ export type Settings = {
    */
   autostart: boolean;
   /**
-   * Paid tier auth + subscription cache. All four fields move together:
+   * Paid tier auth + subscription cache. The two tokens live in the login
+   * Keychain, the email and status in the settings file. All four fields
+   * move together:
    * sign-in writes access/refresh/email; sign-out clears all four; the
    * status/periodEnd are refreshed from `/api/me` so the UI can show
    * "Pro 有効・更新日 …" without an extra network round-trip.
@@ -193,10 +196,10 @@ export type Settings = {
   /**
    * SwitchBot Cloud API credentials (the user's own, free for personal
    * use; obtained from the SwitchBot app's Developer Options). Both are
-   * needed to control devices. Read by Rust directly from the store via
-   * StoreExt so the secret never rides the renderer's per-call path —
-   * same spirit as the LLM key living only in Rust. Empty = feature off
-   * (the switchbot tools return error=not_configured).
+   * needed to control devices. Kept in the login Keychain and read by
+   * Rust directly from there, so the secret never rides the renderer's
+   * per-call path. Empty = feature off (the switchbot tools return
+   * error=not_configured).
    */
   switchbotToken: string;
   switchbotSecret: string;
@@ -233,6 +236,44 @@ const DEFAULTS: Settings = {
   switchbotSecret: "",
 };
 const FILE = "settings.json";
+
+/**
+ * The four credentials do not live in `settings.json` — they are generic
+ * password items in the login Keychain, reached through the `secret_get`
+ * / `secret_set` commands. `settings.json` is a plain file any process
+ * running as the user can read, which is the wrong place for a SwitchBot
+ * token or a session JWT.
+ *
+ * They stay in the `Settings` object so callers do not need to know where
+ * a given field is kept. Rust migrates whatever the old plaintext file
+ * still held on startup (see `secrets.rs`), so nothing here reads the
+ * store for these keys.
+ */
+const KEYCHAIN_KEYS = [
+  "subscriptionAccessToken",
+  "subscriptionRefreshToken",
+  "switchbotToken",
+  "switchbotSecret",
+] as const;
+
+type KeychainKey = (typeof KEYCHAIN_KEYS)[number];
+
+/**
+ * A Keychain that refuses to answer — locked, denied, or a non-macOS
+ * build — reads as "not set" rather than throwing, so a missing
+ * credential turns the feature off instead of breaking settings load.
+ */
+async function readSecret(key: KeychainKey): Promise<string> {
+  try {
+    return (await invoke<null | string>("secret_get", { key })) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+async function writeSecret(key: KeychainKey, value: string): Promise<void> {
+  await invoke("secret_set", { key, value });
+}
 
 // `mode` is intentionally absent from STORE_DEFAULTS so a missing key
 // stays undefined at read time — the migration in `loadSettings` needs
@@ -284,12 +325,8 @@ export async function loadSettings(): Promise<Settings> {
     openaiApiKey: apiKey,
     language,
     autostart,
-    subscriptionAccessToken:
-      (await store.get<string>("subscriptionAccessToken")) ??
-      DEFAULTS.subscriptionAccessToken,
-    subscriptionRefreshToken:
-      (await store.get<string>("subscriptionRefreshToken")) ??
-      DEFAULTS.subscriptionRefreshToken,
+    subscriptionAccessToken: await readSecret("subscriptionAccessToken"),
+    subscriptionRefreshToken: await readSecret("subscriptionRefreshToken"),
     subscriptionEmail,
     subscriptionStatus,
     subscriptionPeriodEnd:
@@ -351,10 +388,8 @@ export async function loadSettings(): Promise<Settings> {
     currentVoicevoxSpeakerId:
       (await store.get<number | null>("currentVoicevoxSpeakerId")) ??
       DEFAULTS.currentVoicevoxSpeakerId,
-    switchbotToken:
-      (await store.get<string>("switchbotToken")) ?? DEFAULTS.switchbotToken,
-    switchbotSecret:
-      (await store.get<string>("switchbotSecret")) ?? DEFAULTS.switchbotSecret,
+    switchbotToken: await readSecret("switchbotToken"),
+    switchbotSecret: await readSecret("switchbotSecret"),
   };
 }
 
@@ -385,10 +420,13 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
     await store.set("autostart", patch.autostart);
   }
   if (patch.subscriptionAccessToken !== undefined) {
-    await store.set("subscriptionAccessToken", patch.subscriptionAccessToken);
+    await writeSecret("subscriptionAccessToken", patch.subscriptionAccessToken);
   }
   if (patch.subscriptionRefreshToken !== undefined) {
-    await store.set("subscriptionRefreshToken", patch.subscriptionRefreshToken);
+    await writeSecret(
+      "subscriptionRefreshToken",
+      patch.subscriptionRefreshToken,
+    );
   }
   if (patch.subscriptionEmail !== undefined) {
     await store.set("subscriptionEmail", patch.subscriptionEmail);
@@ -463,10 +501,10 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
     await store.set("currentVoicevoxSpeakerId", patch.currentVoicevoxSpeakerId);
   }
   if (patch.switchbotToken !== undefined) {
-    await store.set("switchbotToken", patch.switchbotToken.trim());
+    await writeSecret("switchbotToken", patch.switchbotToken);
   }
   if (patch.switchbotSecret !== undefined) {
-    await store.set("switchbotSecret", patch.switchbotSecret.trim());
+    await writeSecret("switchbotSecret", patch.switchbotSecret);
   }
   await store.save();
 }

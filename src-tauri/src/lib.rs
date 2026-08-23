@@ -42,6 +42,7 @@ pub mod rag;
 mod reminder;
 mod screen_permission;
 mod screenshot;
+pub mod secrets;
 pub mod session_log;
 pub mod summarizer;
 pub mod switchbot;
@@ -577,10 +578,17 @@ pub fn run() {
             analytics_set_consent_cached,
             analytics_delete_history,
             analytics_recent_events,
+            secrets::secret_get,
+            secrets::secret_set,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+            // Carry any credential still in the plaintext settings file
+            // over to the Keychain. Must run before switchbot.rs or the
+            // renderer reads one, so both only ever see the new home.
+            secrets::migrate_from_store(app.handle());
 
             // Detect upgrade and reset the TCC entries that ad-hoc
             // signing's cdhash churn tends to ghost (Screen Recording

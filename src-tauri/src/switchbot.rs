@@ -6,10 +6,9 @@
 // tray app touches — see the visual/physical-impact design note.
 //
 // Credentials are the user's own (free for personal use). Token + secret
-// come from the SwitchBot app's Developer Options and are stored in the
-// Tauri settings store; we read them here via StoreExt so the secret
-// never rides the renderer's per-call path (same spirit as the LLM key
-// living only in Rust). Nothing works until the user enters both.
+// come from the SwitchBot app's Developer Options and live in the login
+// Keychain (see secrets.rs); we read them here so the secret never rides
+// the renderer's per-call path. Nothing works until the user enters both.
 //
 // Auth (official v1.1): every request carries
 //   Authorization: <token>
@@ -25,10 +24,8 @@ use hmac::{Hmac, Mac};
 use serde_json::{json, Value};
 use sha2::Sha256;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri_plugin_store::StoreExt;
 
 const HOST: &str = "https://api.switch-bot.com";
-const STORE_FILE: &str = "settings.json";
 const TOKEN_KEY: &str = "switchbotToken";
 const SECRET_KEY: &str = "switchbotSecret";
 /// The official Python/Java reference samples leave the Base64 sign as-is.
@@ -54,17 +51,10 @@ pub struct Device {
     pub is_infrared: bool,
 }
 
-fn read_creds(app: &tauri::AppHandle) -> Option<Creds> {
-    let store = app.store(STORE_FILE).ok()?;
-    let get = |k: &str| {
-        store
-            .get(k)
-            .and_then(|v| v.as_str().map(|s| s.trim().to_string()))
-            .filter(|s| !s.is_empty())
-    };
+fn read_creds(_app: &tauri::AppHandle) -> Option<Creds> {
     Some(Creds {
-        token: get(TOKEN_KEY)?,
-        secret: get(SECRET_KEY)?,
+        token: crate::secrets::get(TOKEN_KEY)?,
+        secret: crate::secrets::get(SECRET_KEY)?,
     })
 }
 

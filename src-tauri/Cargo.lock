@@ -675,6 +675,7 @@ dependencies = [
  "reqwest 0.13.3",
  "rss",
  "rubato",
+ "security-framework",
  "serde",
  "serde_json",
  "sha2",

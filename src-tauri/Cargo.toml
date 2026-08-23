@@ -120,6 +120,7 @@ block2 = "0.6"
 # sections, so the macOS build still gets `metal` even though the base
 # whisper-rs dep above doesn't enable it.
 whisper-rs = { version = "0.16", features = ["metal"] }
+security-framework = "3"
 
 [features]
 default = []
