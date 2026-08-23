@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { error: eventErr, count: eventCount } = await supabaseAdmin
+  const { error: eventErr, count: eventCount } = await supabaseAdmin()
     .from("analytics_event")
     .delete({ count: "exact" })
     .eq("device_id", deviceId);
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { error: consentErr } = await supabaseAdmin
+  const { error: consentErr } = await supabaseAdmin()
     .from("analytics_consent")
     .delete()
     .eq("device_id", deviceId);

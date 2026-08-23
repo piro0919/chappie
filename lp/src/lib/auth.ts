@@ -22,20 +22,29 @@ import {
 // branch only triggers when the JWT header explicitly says HS256 AND
 // `SUPABASE_JWT_SECRET` is configured, so it cannot be used to
 // downgrade a prod request.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
+// Read on first use rather than at import time: the build imports every
+// route to collect page data, and reading SUPABASE_URL up here made that
+// fail wherever it is absent - preview deployments most of all.
+let jwksCache: null | ReturnType<typeof createRemoteJWKSet> = null;
 
-if (!supabaseUrl) {
-  throw new Error("SUPABASE_URL must be set in the environment");
+function jwks(): ReturnType<typeof createRemoteJWKSet> {
+  if (jwksCache) return jwksCache;
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  if (!supabaseUrl) {
+    throw new Error("SUPABASE_URL must be set in the environment");
+  }
+
+  jwksCache = createRemoteJWKSet(
+    new URL(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/.well-known/jwks.json`),
+  );
+  return jwksCache;
 }
 
-const jwks = createRemoteJWKSet(
-  new URL(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/.well-known/jwks.json`),
-);
-
-const hs256Key = supabaseJwtSecret
-  ? new TextEncoder().encode(supabaseJwtSecret)
-  : null;
+function hs256Key(): null | Uint8Array {
+  const secret = process.env.SUPABASE_JWT_SECRET;
+  return secret ? new TextEncoder().encode(secret) : null;
+}
 
 export type AuthedUser = {
   userId: string;
@@ -60,14 +69,15 @@ export async function verifyBearer(
   let payload: JWTPayload;
   try {
     if (alg === "HS256") {
-      if (!hs256Key) return null;
-      ({ payload } = await jwtVerify(token, hs256Key, {
+      const key = hs256Key();
+      if (!key) return null;
+      ({ payload } = await jwtVerify(token, key, {
         algorithms: ["HS256"],
       }));
     } else {
       // ES256 is the current Supabase default; RS256 / EdDSA exist on
       // some older / migrated projects.
-      ({ payload } = await jwtVerify(token, jwks, {
+      ({ payload } = await jwtVerify(token, jwks(), {
         algorithms: ["ES256", "RS256", "EdDSA"],
       }));
     }

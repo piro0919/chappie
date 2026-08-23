@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.consent) {
-    const { error } = await supabaseAdmin.from("analytics_consent").upsert(
+    const { error } = await supabaseAdmin().from("analytics_consent").upsert(
       {
         device_id: deviceId,
         last_updated_at: new Date().toISOString(),
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       );
     }
   } else {
-    const { error } = await supabaseAdmin
+    const { error } = await supabaseAdmin()
       .from("analytics_consent")
       .delete()
       .eq("device_id", deviceId);

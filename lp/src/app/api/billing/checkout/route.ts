@@ -28,13 +28,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await supabaseAdmin()
     .from("subscription")
     .select("stripe_customer_id")
     .eq("user_id", user.userId)
     .maybeSingle();
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: PRICE_ID, quantity: 1 }],
     ...(existing?.stripe_customer_id

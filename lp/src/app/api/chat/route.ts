@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     if (isStaffEmail(user.email)) {
       paid = true;
     } else {
-      const { data } = await supabaseAdmin
+      const { data } = await supabaseAdmin()
         .from("subscription")
         .select("status, current_period_end")
         .eq("user_id", user.userId)

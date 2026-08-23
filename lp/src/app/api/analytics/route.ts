@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
   // event silently (200) so a flaky toggle on the client doesn't spam
   // 403s in dev logs. We log the device_id at debug-level upstream so
   // mismatch is still observable.
-  const { data: consentRow } = await supabaseAdmin
+  const { data: consentRow } = await supabaseAdmin()
     .from("analytics_consent")
     .select("device_id")
     .eq("device_id", deviceId)
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { error } = await supabaseAdmin.from("analytics_event").insert({
+  const { error } = await supabaseAdmin().from("analytics_event").insert({
     device_id: deviceId,
     turn_id: turnId,
     utterance,

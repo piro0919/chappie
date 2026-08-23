@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const signature = req.headers.get("stripe-signature");
+  const signature = req.headers.get("stripe()-signature");
   if (!signature) {
     return NextResponse.json({ error: "missing signature" }, { status: 400 });
   }
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = stripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown";
     return NextResponse.json(
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Idempotency: Stripe retries the same event on failure.
-  const { data: seen } = await supabaseAdmin
+  const { data: seen } = await supabaseAdmin()
     .from("processed_event")
     .select("event_id")
     .eq("event_id", event.id)
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
             ? session.subscription
             : session.subscription?.id;
         if (userId && subscriptionId) {
-          const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          const sub = await stripe().subscriptions.retrieve(subscriptionId);
           await upsertSubscription(userId, sub);
         }
         break;
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await supabaseAdmin.from("processed_event").insert({ event_id: event.id });
+  await supabaseAdmin().from("processed_event").insert({ event_id: event.id });
 
   return NextResponse.json({ received: true });
 }
@@ -104,7 +104,7 @@ async function upsertSubscription(userId: string, sub: Stripe.Subscription) {
   const customerId =
     typeof sub.customer === "string" ? sub.customer : sub.customer.id;
 
-  const { error } = await supabaseAdmin.from("subscription").upsert(
+  const { error } = await supabaseAdmin().from("subscription").upsert(
     {
       user_id: userId,
       stripe_customer_id: customerId,
@@ -123,7 +123,7 @@ async function upsertSubscription(userId: string, sub: Stripe.Subscription) {
 async function lookupUserIdFromCustomer(
   customerId: string,
 ): Promise<string | null> {
-  const { data } = await supabaseAdmin
+  const { data } = await supabaseAdmin()
     .from("subscription")
     .select("user_id")
     .eq("stripe_customer_id", customerId)

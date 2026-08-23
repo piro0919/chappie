@@ -25,7 +25,7 @@ export async function consumeQuota(
   turnId: string,
   limitOverride?: number,
 ): Promise<QuotaResult> {
-  const { data, error } = await supabaseAdmin.rpc("consume_quota_with_turn", {
+  const { data, error } = await supabaseAdmin().rpc("consume_quota_with_turn", {
     p_device_id: deviceId,
     p_turn_id: turnId,
   });

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { data } = await supabaseAdmin
+  const { data } = await supabaseAdmin()
     .from("subscription")
     .select("stripe_customer_id")
     .eq("user_id", user.userId)
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await stripe().billingPortal.sessions.create({
     customer: data.stripe_customer_id,
     return_url: `${APP_BASE_URL}/upgrade/success`,
     ...(PORTAL_CONFIG_ID ? { configuration: PORTAL_CONFIG_ID } : {}),

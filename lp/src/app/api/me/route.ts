@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin()
     .from("subscription")
     .select("status, current_period_end, stripe_customer_id")
     .eq("user_id", user.userId)
