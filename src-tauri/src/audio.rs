@@ -15,7 +15,8 @@
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, SampleFormat, StreamConfig};
-use rubato::{FftFixedIn, Resampler};
+use rubato::audioadapter_buffers::direct::InterleavedSlice;
+use rubato::{Fft, FixedSync, Resampler};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::Emitter;
@@ -49,8 +50,8 @@ const VAD_THRESHOLD_BARGE_IN: f32 = 0.6;
 pub const DEFAULT_SILENCE_FRAMES_TO_END: usize = 22;
 pub const MIN_SILENCE_FRAMES_TO_END: usize = 12; // ~380ms
 pub const MAX_SILENCE_FRAMES_TO_END: usize = 38; // ~1200ms
-// Minimum speech frames before accepting an utterance (~95ms) — filters
-// clicks but keeps short utterances ("はい", "うん") and quiet talkers.
+                                                 // Minimum speech frames before accepting an utterance (~95ms) — filters
+                                                 // clicks but keeps short utterances ("はい", "うん") and quiet talkers.
 const MIN_SPEECH_FRAMES: usize = 3;
 // Maximum utterance length cap (~30s). Whisper's own context is ~30s, so going
 // beyond this is pointless; below 30s avoids clipping reasonable spoken queries.
@@ -103,10 +104,8 @@ static STARTED: Mutex<bool> = Mutex::new(false);
 // `set_vad_threshold` / `set_vad_silence_frames`; the segmenter reads
 // `current_*` on each utterance start. f32 stored as u32 bits because
 // there's no AtomicF32. 0 sentinel = "not set" → use the default.
-static VAD_THRESHOLD_BITS: std::sync::atomic::AtomicU32 =
-    std::sync::atomic::AtomicU32::new(0);
-static VAD_SILENCE_FRAMES: std::sync::atomic::AtomicUsize =
-    std::sync::atomic::AtomicUsize::new(0);
+static VAD_THRESHOLD_BITS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+static VAD_SILENCE_FRAMES: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 pub fn current_vad_threshold() -> f32 {
     let bits = VAD_THRESHOLD_BITS.load(Ordering::Relaxed);
@@ -379,10 +378,18 @@ fn run_segmenter(
     } else {
         FRAME_SAMPLES
     };
-    let mut resampler: Option<FftFixedIn<f32>> = if needs_resample {
+    // rubato 5 renamed FftFixedIn to Fft plus a FixedSync mode, and picks
+    // the sub-chunk count itself from the chunk size.
+    let mut resampler: Option<Fft<f32>> = if needs_resample {
         Some(
-            FftFixedIn::<f32>::new(in_rate as usize, TARGET_RATE as usize, in_frame_size, 2, 1)
-                .map_err(|e| format!("rubato init: {e}"))?,
+            Fft::<f32>::new(
+                in_rate as usize,
+                TARGET_RATE as usize,
+                in_frame_size,
+                1,
+                FixedSync::Input,
+            )
+            .map_err(|e| format!("rubato init: {e}"))?,
         )
     } else {
         None
@@ -416,6 +423,8 @@ fn run_segmenter(
 
     let mut accum_in: Vec<f32> = Vec::new();
     let mut accum_out: Vec<f32> = Vec::new();
+    // Reused resampler output so the audio thread does not allocate per frame.
+    let mut resample_out: Vec<f32> = Vec::new();
     // Output of APM, waiting to be drained into VAD frames. APM writes
     // 160-sample frames; VAD reads 512. Keeping them separate avoids
     // mixing pre- and post-APM audio across one VAD frame boundary.
@@ -477,10 +486,22 @@ fn run_segmenter(
         while accum_in.len() >= in_frame_size {
             let input_frame: Vec<f32> = accum_in.drain(..in_frame_size).collect();
             if let Some(rs) = resampler.as_mut() {
-                let out = rs
-                    .process(&[input_frame], None)
-                    .map_err(|e| format!("rubato process: {e}"))?;
-                accum_out.extend_from_slice(&out[0]);
+                // rubato 5 reads and writes through audioadapter buffers.
+                // Resampling into a reused Vec keeps the audio thread off
+                // the allocator, which the old process() call was not.
+                let out_frames = rs.output_frames_next();
+                resample_out.resize(out_frames, 0.0);
+                let adapter_in = InterleavedSlice::new(&input_frame, 1, in_frame_size)
+                    .map_err(|e| format!("rubato input: {e}"))?;
+                let written = {
+                    let mut adapter_out =
+                        InterleavedSlice::new_mut(&mut resample_out, 1, out_frames)
+                            .map_err(|e| format!("rubato output: {e}"))?;
+                    rs.process_into_buffer(&adapter_in, &mut adapter_out, None)
+                        .map_err(|e| format!("rubato process: {e}"))?
+                        .1
+                };
+                accum_out.extend_from_slice(&resample_out[..written]);
             } else {
                 accum_out.extend_from_slice(&input_frame);
             }
@@ -501,9 +522,7 @@ fn run_segmenter(
         // its natural low level so the existing RMS gate catches it.
         let apm_skip = is_barge_in_active();
         while accum_out.len() >= crate::apm::APM_FRAME_SAMPLES {
-            let mut frame: Vec<f32> = accum_out
-                .drain(..crate::apm::APM_FRAME_SAMPLES)
-                .collect();
+            let mut frame: Vec<f32> = accum_out.drain(..crate::apm::APM_FRAME_SAMPLES).collect();
             if !apm_skip {
                 if let Some(p) = apm.as_ref() {
                     if let Err(e) = crate::apm::process_mono(p, &mut frame) {
@@ -528,9 +547,8 @@ fn run_segmenter(
             // by virtue of the chunk arrival rate, which is plenty for
             // a "yes, the mic is hearing you" indicator.
             if !apm_out.is_empty() {
-                let rms = (apm_out.iter().map(|x| x * x).sum::<f32>()
-                    / apm_out.len() as f32)
-                    .sqrt();
+                let rms =
+                    (apm_out.iter().map(|x| x * x).sum::<f32>() / apm_out.len() as f32).sqrt();
                 let _ = app.emit("speaker_enroll:level", rms);
             }
             if let Ok(mut g) = ENROLLMENT_BUF.lock() {
@@ -644,9 +662,7 @@ fn run_segmenter(
                             // skip Whisper entirely. When NOT enrolled,
                             // score_against_enrolled returns None and we
                             // fall through to the existing pipeline.
-                            if let Some(score) =
-                                crate::speaker::score_against_enrolled(&buf)
-                            {
+                            if let Some(score) = crate::speaker::score_against_enrolled(&buf) {
                                 let threshold = crate::speaker::current_threshold();
                                 if score < threshold {
                                     crate::linfo!(
@@ -665,11 +681,7 @@ fn run_segmenter(
                                     let _ = app2.emit("speech-dropped", ());
                                     return;
                                 }
-                                crate::linfo!(
-                                    &app2,
-                                    "speaker",
-                                    "accept: cos={score:.3}"
-                                );
+                                crate::linfo!(&app2, "speaker", "accept: cos={score:.3}");
                             }
                             let started = std::time::Instant::now();
                             match crate::run_whisper(buf) {
@@ -706,4 +718,89 @@ fn run_segmenter(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Drives the resampler exactly the way the segmenter does and checks
+    /// that a tone comes out at the pitch it went in at. rubato 5 changed
+    /// both the constructor and the buffer types, and a mistake there is
+    /// the kind that still compiles - wrong channel count, wrong frame
+    /// count, silence written into the gaps - and only shows up as
+    /// Whisper transcribing noise.
+    #[test]
+    fn resampling_48k_to_16k_keeps_the_pitch() {
+        const IN_RATE: usize = 48_000;
+        const TONE_HZ: f64 = 1_000.0;
+
+        let in_frame_size = (FRAME_SAMPLES as u64 * IN_RATE as u64) / TARGET_RATE as u64;
+        let in_frame_size = in_frame_size as usize;
+        let mut resampler = Fft::<f32>::new(
+            IN_RATE,
+            TARGET_RATE as usize,
+            in_frame_size,
+            1,
+            FixedSync::Input,
+        )
+        .expect("resampler");
+
+        // Half a second of tone is far longer than the resampler's delay,
+        // so the transient at the start cannot dominate the measurement.
+        let total_in = IN_RATE / 2;
+        let input: Vec<f32> = (0..total_in)
+            .map(|n| {
+                (2.0 * std::f64::consts::PI * TONE_HZ * n as f64 / IN_RATE as f64).sin() as f32
+            })
+            .collect();
+
+        let mut out: Vec<f32> = Vec::new();
+        let mut scratch: Vec<f32> = Vec::new();
+        for frame in input.chunks_exact(in_frame_size) {
+            let frames_out = resampler.output_frames_next();
+            scratch.resize(frames_out, 0.0);
+            let adapter_in = InterleavedSlice::new(frame, 1, in_frame_size).expect("in");
+            let written = {
+                let mut adapter_out =
+                    InterleavedSlice::new_mut(&mut scratch, 1, frames_out).expect("out");
+                resampler
+                    .process_into_buffer(&adapter_in, &mut adapter_out, None)
+                    .expect("process")
+                    .1
+            };
+            out.extend_from_slice(&scratch[..written]);
+        }
+
+        // Roughly a third of the input length, since 16k/48k = 1/3.
+        let expected = total_in / 3;
+        assert!(
+            out.len() > expected * 9 / 10,
+            "expected about {expected} frames out, got {}",
+            out.len()
+        );
+
+        // Drop the head, where the resampler is still filling its delay
+        // line and the output is near silence.
+        let tail = &out[out.len() / 2..];
+        let rms = (tail.iter().map(|s| (s * s) as f64).sum::<f64>() / tail.len() as f64).sqrt();
+        assert!(
+            rms > 0.5,
+            "output is silent or heavily attenuated: rms={rms}"
+        );
+
+        // Count zero crossings to recover the frequency. A 1 kHz tone
+        // crosses zero 2000 times a second whatever the sample rate, so a
+        // resampler that dropped or duplicated frames lands far off.
+        let crossings = tail
+            .windows(2)
+            .filter(|w| (w[0] < 0.0) != (w[1] < 0.0))
+            .count();
+        let seconds = tail.len() as f64 / TARGET_RATE as f64;
+        let measured = crossings as f64 / 2.0 / seconds;
+        assert!(
+            (measured - TONE_HZ).abs() < 20.0,
+            "expected {TONE_HZ} Hz out, measured {measured} Hz"
+        );
+    }
 }
