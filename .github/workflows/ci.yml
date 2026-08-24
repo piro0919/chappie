@@ -24,6 +24,8 @@ jobs:
       - run: pnpm build
       - run: pnpm test --run
       - uses: dtolnay/rust-toolchain@stable
+      # webrtc-audio-processing-sys の build.rs が meson を呼ぶ。
+      - run: brew install meson ninja
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
