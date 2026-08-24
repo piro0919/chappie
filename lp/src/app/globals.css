@@ -26,8 +26,8 @@
   --color-ink-muted: var(--color-cocoa-500);
 
   --font-sans:
-    "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, -apple-system, BlinkMacSystemFont,
-    sans-serif;
+    "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
 }
 
 html,

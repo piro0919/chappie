@@ -1,7 +1,7 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import { createReadStream, statSync } from "node:fs";
 import { resolve } from "node:path";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
@@ -28,14 +28,25 @@ const MIME: Record<string, string> = {
 // short-circuit those requests with raw file responses.
 const passthrough = {
   name: "vad-onnx-public-passthrough",
-  configureServer(server: { middlewares: { use: (path: string, handler: (req: unknown, res: unknown) => void) => void } }) {
+  configureServer(server: {
+    middlewares: {
+      use: (
+        path: string,
+        handler: (req: unknown, res: unknown) => void,
+      ) => void;
+    };
+  }) {
     for (const url of STATIC_PASSTHROUGH) {
       server.middlewares.use(url, (_req: unknown, res: unknown) => {
-        const r = res as { setHeader: (k: string, v: string) => void; statusCode: number; end: () => void };
+        const r = res as {
+          setHeader: (k: string, v: string) => void;
+          statusCode: number;
+          end: () => void;
+        };
         const filePath = resolve(process.cwd(), "public", url.slice(1));
         try {
           const size = statSync(filePath).size;
-          const ext = "." + filePath.split(".").pop();
+          const ext = `.${filePath.split(".").pop()}`;
           r.setHeader("Content-Type", MIME[ext] ?? "application/octet-stream");
           r.setHeader("Content-Length", String(size));
           createReadStream(filePath).pipe(res as never);

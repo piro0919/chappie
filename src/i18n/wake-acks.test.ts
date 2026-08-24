@@ -9,7 +9,10 @@ describe("getWakeAcks", () => {
   });
 
   it("returns the in-character pool when the speaker has wakeAcks", () => {
-    const zundamon = VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === 3)!;
+    const zundamon = VOICEVOX_CURATED_SPEAKERS.find((s) => s.id === 3);
+
+    if (!zundamon) throw new Error("ずんだもんが一覧から消えている");
+
     const acks = getWakeAcks("ja", 12, zundamon.id);
     expect(acks).toEqual(zundamon.wakeAcks);
     expect(
@@ -25,7 +28,7 @@ describe("getWakeAcks", () => {
   it("every curated speaker has at least one wakeAck", () => {
     for (const sp of VOICEVOX_CURATED_SPEAKERS) {
       expect(sp.wakeAcks, `${sp.label} is missing wakeAcks`).toBeDefined();
-      expect(sp.wakeAcks!.length).toBeGreaterThan(0);
+      expect(sp.wakeAcks?.length).toBeGreaterThan(0);
     }
   });
 });

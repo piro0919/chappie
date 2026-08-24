@@ -14,12 +14,8 @@
   align-items: center;
   gap: 18px;
   font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Hiragino Maru Gothic ProN",
-    "Hiragino Sans",
-    "Yu Gothic",
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, "Hiragino Maru Gothic ProN",
+    "Hiragino Sans", "Yu Gothic", sans-serif;
   font-size: 18px;
   font-weight: 600;
   line-height: 1.6;
