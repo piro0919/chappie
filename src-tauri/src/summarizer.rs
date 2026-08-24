@@ -71,29 +71,36 @@ fn save_summary(s: &DailySummary) {
     }
 }
 
+/// The `days` calendar dates immediately before `today`, newest-first
+/// and excluding `today` itself (which is still in progress and is
+/// already in the live conversation context). Split out so the
+/// month/year rollback is testable without touching the filesystem.
+fn past_dates(today: NaiveDate, days: i64) -> Vec<NaiveDate> {
+    (1..=days.max(0))
+        .map(|back| today - Duration::days(back))
+        .collect()
+}
+
 /// Read the past `days` days of summaries (skipping today and skipping
 /// dates without a summary). Returns oldest-first so the system prompt
 /// reads chronologically.
 pub fn recent_summaries(days: usize) -> Vec<DailySummary> {
-    if days == 0 {
-        return Vec::new();
-    }
-    let today = Local::now().date_naive();
-    let mut out = Vec::new();
-    for back in 1..=days as i64 {
-        let d = today - Duration::days(back);
-        if let Some(s) = load_summary(d) {
-            out.push(s);
-        }
-    }
-    out.reverse();
-    out
+    past_dates(Local::now().date_naive(), days as i64)
+        .into_iter()
+        .rev()
+        .filter_map(load_summary)
+        .collect()
 }
 
 /// Format the recent summaries as a single system-message body. Returns
 /// an empty string when there's nothing to inject (no past summaries).
 pub fn recent_summaries_prompt(days: usize) -> String {
-    let entries = recent_summaries(days);
+    format_summaries_prompt(&recent_summaries(days))
+}
+
+/// Render summaries as a system-message body. Empty string when there
+/// is nothing to inject, so callers can skip the message entirely.
+fn format_summaries_prompt(entries: &[DailySummary]) -> String {
     if entries.is_empty() {
         return String::new();
     }
@@ -143,9 +150,7 @@ async fn backfill_recent(api_key: &str, days: i64) -> Result<(), String> {
         .filter(|s| !s.trim().is_empty())
         .unwrap_or_else(|| provider.default_model().to_string());
 
-    let today = Local::now().date_naive();
-    for back in 1..=days {
-        let date = today - Duration::days(back);
+    for date in past_dates(Local::now().date_naive(), days) {
         if load_summary(date).is_some() {
             continue;
         }
@@ -175,15 +180,17 @@ async fn backfill_recent(api_key: &str, days: i64) -> Result<(), String> {
     Ok(())
 }
 
-async fn generate_summary(
-    provider: Provider,
-    model: &str,
-    api_key: &str,
-    turns: &[session_log::Turn],
-) -> Result<String, String> {
-    let transcript = turns
+/// Cap on turns fed to one summary call, so a marathon day doesn't
+/// blow up the token bill.
+const MAX_TRANSCRIPT_TURNS: usize = 120;
+
+/// Flatten a day's turns into the transcript block for the summary
+/// prompt. Newlines inside a turn are collapsed to spaces so the
+/// "User:" / "Assistant:" line structure stays unambiguous.
+fn build_transcript(turns: &[session_log::Turn]) -> String {
+    turns
         .iter()
-        .take(120) // cap so a marathon day doesn't blow up tokens
+        .take(MAX_TRANSCRIPT_TURNS)
         .map(|t| {
             format!(
                 "User: {}\nAssistant: {}",
@@ -192,7 +199,16 @@ async fn generate_summary(
             )
         })
         .collect::<Vec<_>>()
-        .join("\n\n");
+        .join("\n\n")
+}
+
+async fn generate_summary(
+    provider: Provider,
+    model: &str,
+    api_key: &str,
+    turns: &[session_log::Turn],
+) -> Result<String, String> {
+    let transcript = build_transcript(turns);
 
     let prompt = format!(
         "以下は1日分のユーザーとAIアシスタント（チャッピー）の会話ログです。\
@@ -302,5 +318,108 @@ pub async fn complete_oneshot(
                 .map(|s| s.to_string())
                 .ok_or_else(|| "gemini: empty content".into())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn day(y: i32, m: u32, d: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, d).expect("valid date")
+    }
+
+    fn turn(user: &str, assistant: &str) -> session_log::Turn {
+        session_log::Turn {
+            ts: 0,
+            user: user.to_string(),
+            assistant: assistant.to_string(),
+            provider: "openai".to_string(),
+            model: "gpt-test".to_string(),
+        }
+    }
+
+    fn summary(date: &str, text: &str) -> DailySummary {
+        DailySummary {
+            date: date.to_string(),
+            text: text.to_string(),
+            generated_at_unix_ms: 0,
+            turns_count: 1,
+        }
+    }
+
+    #[test]
+    fn past_dates_excludes_today_and_runs_newest_first() {
+        assert_eq!(
+            past_dates(day(2026, 8, 24), 3),
+            vec![day(2026, 8, 23), day(2026, 8, 22), day(2026, 8, 21)]
+        );
+    }
+
+    #[test]
+    fn past_dates_rolls_back_over_a_month_boundary() {
+        assert_eq!(
+            past_dates(day(2026, 3, 2), 3),
+            vec![day(2026, 3, 1), day(2026, 2, 28), day(2026, 2, 27)]
+        );
+    }
+
+    #[test]
+    fn past_dates_rolls_back_into_a_leap_day_and_a_previous_year() {
+        assert_eq!(past_dates(day(2024, 3, 1), 1), vec![day(2024, 2, 29)]);
+        assert_eq!(
+            past_dates(day(2026, 1, 1), 2),
+            vec![day(2025, 12, 31), day(2025, 12, 30)]
+        );
+    }
+
+    #[test]
+    fn past_dates_is_empty_for_zero_or_negative_spans() {
+        assert!(past_dates(day(2026, 8, 24), 0).is_empty());
+        assert!(past_dates(day(2026, 8, 24), -5).is_empty());
+    }
+
+    #[test]
+    fn build_transcript_collapses_newlines_inside_a_turn() {
+        let t = build_transcript(&[turn("一行目\n二行目", "返事\nの続き")]);
+        assert_eq!(t, "User: 一行目 二行目\nAssistant: 返事 の続き");
+    }
+
+    #[test]
+    fn build_transcript_separates_turns_with_a_blank_line() {
+        let t = build_transcript(&[turn("a", "b"), turn("c", "d")]);
+        assert_eq!(t, "User: a\nAssistant: b\n\nUser: c\nAssistant: d");
+    }
+
+    #[test]
+    fn build_transcript_caps_a_marathon_day() {
+        let turns: Vec<_> = (0..MAX_TRANSCRIPT_TURNS + 40)
+            .map(|i| turn(&format!("q{i}"), "a"))
+            .collect();
+        let t = build_transcript(&turns);
+        assert_eq!(t.matches("User: ").count(), MAX_TRANSCRIPT_TURNS);
+        assert!(t.contains(&format!("User: q{}", MAX_TRANSCRIPT_TURNS - 1)));
+        assert!(!t.contains(&format!("User: q{MAX_TRANSCRIPT_TURNS}")));
+    }
+
+    #[test]
+    fn build_transcript_of_no_turns_is_empty() {
+        assert_eq!(build_transcript(&[]), "");
+    }
+
+    #[test]
+    fn format_summaries_prompt_is_empty_without_entries() {
+        assert_eq!(format_summaries_prompt(&[]), "");
+    }
+
+    #[test]
+    fn format_summaries_prompt_counts_entries_and_trims_each_body() {
+        let out = format_summaries_prompt(&[
+            summary("2026-08-22", "  疲れていた  "),
+            summary("2026-08-23", "\n機嫌が良かった\n"),
+        ]);
+        assert!(out.starts_with("過去 2 日分の会話の要約"));
+        assert!(out.contains("【2026-08-22】\n疲れていた"));
+        assert!(out.contains("【2026-08-23】\n機嫌が良かった"));
     }
 }

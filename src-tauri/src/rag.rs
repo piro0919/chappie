@@ -53,7 +53,7 @@ fn emb_file_for(date: NaiveDate) -> Option<PathBuf> {
     Some(p)
 }
 
-/// Binary record layout: 8 bytes BE i64 timestamp + EMBEDDING_DIM × f32
+/// Binary record layout: 8 bytes LE i64 timestamp + EMBEDDING_DIM × f32
 /// little-endian = 8 + 1536 = 1544 bytes per record. Append-only.
 const RECORD_BYTES: usize = 8 + EMBEDDING_DIM * 4;
 
@@ -178,6 +178,35 @@ pub fn index_turn(ts: i64, user: &str, assistant: &str) {
     }
 }
 
+/// Minimum cosine similarity for a past turn to be worth injecting.
+/// Better to inject nothing than to inject noise. 0.75 is conservative
+/// for e5, which has a very high baseline similarity even between
+/// unrelated sentences.
+const SIM_THRESHOLD: f32 = 0.75;
+
+/// Days of recent history owned by the L2 daily-summary layer. Turns
+/// newer than this are already in the prompt by another route, so RAG
+/// skips them (`today` included).
+const RECENT_DAYS: i64 = 7;
+
+/// Whether a turn from `date` belongs to RAG rather than to the daily
+/// summaries. Split out from `recall` so the boundary is testable
+/// without an embedding model.
+fn is_recallable(date: NaiveDate, today: NaiveDate) -> bool {
+    date < today - Duration::days(RECENT_DAYS)
+}
+
+/// Take scored candidates and pick what actually goes in the prompt:
+/// drop anything under the threshold, keep the `k` best, then restore
+/// chronological order so the prompt reads oldest-first.
+fn select_recalls(mut scored: Vec<(f32, &IndexedTurn)>, k: usize) -> Vec<&IndexedTurn> {
+    scored.retain(|(s, _)| *s >= SIM_THRESHOLD);
+    scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+    scored.truncate(k);
+    scored.sort_by_key(|(_, t)| t.ts);
+    scored.into_iter().map(|(_, t)| t).collect()
+}
+
 /// Recall `k` semantically related past turns. Excludes anything from
 /// the last 7 days (covered by daily summaries) and from today
 /// (the live conversation already has it). Returns oldest-first so the
@@ -189,24 +218,16 @@ fn recall(query: &str, k: usize) -> Vec<IndexedTurn> {
     let Some(q_emb) = embedding::embed(query, true) else {
         return Vec::new();
     };
-    let cutoff = Local::now().date_naive() - Duration::days(7);
+    let today = Local::now().date_naive();
     let Ok(guard) = INDEX.read() else {
         return Vec::new();
     };
-    let mut scored: Vec<(f32, &IndexedTurn)> = guard
+    let scored: Vec<(f32, &IndexedTurn)> = guard
         .iter()
-        .filter(|t| t.date < cutoff)
+        .filter(|t| is_recallable(t.date, today))
         .map(|t| (embedding::cosine_normalized(&q_emb, &t.embedding), t))
         .collect();
-    // Drop low-similarity hits — better to inject nothing than to inject
-    // noise. 0.75 is conservative for e5 (which has very high baseline
-    // similarity even between unrelated sentences).
-    scored.retain(|(s, _)| *s >= 0.75);
-    scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
-    scored.truncate(k);
-    // Re-sort chronologically for natural reading order in the prompt.
-    scored.sort_by_key(|(_, t)| t.ts);
-    scored.into_iter().map(|(_, t)| t.clone()).collect()
+    select_recalls(scored, k).into_iter().cloned().collect()
 }
 
 /// Format up to `k` related past turns as a system-message body.
@@ -224,4 +245,115 @@ pub fn recall_prompt(query: &str, k: usize) -> String {
     format!(
         "現在の話題と関連がありそうな過去のやり取り（自然な流れで活かして良いが、機械的に切り出さない）:\n\n{body}"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn day(y: i32, m: u32, d: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, d).expect("valid date")
+    }
+
+    fn turn(ts: i64, date: NaiveDate) -> IndexedTurn {
+        IndexedTurn {
+            date,
+            ts,
+            text: format!("turn {ts}"),
+            embedding: vec![0.0; EMBEDDING_DIM],
+        }
+    }
+
+    #[test]
+    fn combined_text_trims_and_labels_both_halves() {
+        assert_eq!(
+            combined_text("  ラーメン食べたい  ", "\nとんこつですね\n"),
+            "User: ラーメン食べたい\nAssistant: とんこつですね"
+        );
+    }
+
+    #[test]
+    fn combined_text_keeps_a_half_that_is_empty() {
+        // A turn with only one side still carries topic signal, so it is
+        // indexed rather than dropped.
+        assert_eq!(combined_text("hello", "   "), "User: hello\nAssistant: ");
+    }
+
+    #[test]
+    fn combined_text_is_empty_only_when_both_halves_are() {
+        assert_eq!(combined_text("   ", "\n\t"), "");
+    }
+
+    #[test]
+    fn is_recallable_excludes_the_window_owned_by_daily_summaries() {
+        let today = day(2026, 8, 24);
+        // Exactly RECENT_DAYS back is still the summary layer's.
+        assert!(!is_recallable(day(2026, 8, 17), today));
+        assert!(is_recallable(day(2026, 8, 16), today));
+        assert!(!is_recallable(today, today));
+    }
+
+    #[test]
+    fn select_recalls_drops_hits_under_the_threshold() {
+        let a = turn(1, day(2026, 1, 1));
+        let b = turn(2, day(2026, 1, 2));
+        let picked = select_recalls(vec![(0.74, &a), (SIM_THRESHOLD, &b)], 5);
+        assert_eq!(picked.iter().map(|t| t.ts).collect::<Vec<_>>(), vec![2]);
+    }
+
+    #[test]
+    fn select_recalls_keeps_the_k_best_then_restores_chronological_order() {
+        let old_weak = turn(10, day(2026, 1, 1));
+        let mid_best = turn(20, day(2026, 1, 2));
+        let new_good = turn(30, day(2026, 1, 3));
+        let picked = select_recalls(
+            vec![(0.80, &old_weak), (0.99, &mid_best), (0.90, &new_good)],
+            2,
+        );
+        // 0.80 loses to the other two; survivors come back oldest-first.
+        assert_eq!(
+            picked.iter().map(|t| t.ts).collect::<Vec<_>>(),
+            vec![20, 30]
+        );
+    }
+
+    #[test]
+    fn select_recalls_returns_nothing_when_all_hits_are_noise() {
+        let a = turn(1, day(2026, 1, 1));
+        assert!(select_recalls(vec![(0.1, &a)], 3).is_empty());
+    }
+
+    #[test]
+    fn records_survive_a_write_read_roundtrip() {
+        let mut path = std::env::temp_dir();
+        path.push(format!(
+            "chappie-rag-roundtrip-{}.emb.bin",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+
+        let mut first = vec![0.0f32; EMBEDDING_DIM];
+        first[0] = 0.5;
+        first[EMBEDDING_DIM - 1] = -0.25;
+        let mut second = vec![0.0f32; EMBEDDING_DIM];
+        second[1] = 1.0;
+
+        write_record(&path, 1_700_000_000_000, &first).expect("write first");
+        write_record(&path, 1_700_000_001_000, &second).expect("append second");
+
+        let back = read_all_records(&path);
+        let _ = std::fs::remove_file(&path);
+
+        assert_eq!(back.len(), 2);
+        assert_eq!(back.get(&1_700_000_000_000), Some(&first));
+        assert_eq!(back.get(&1_700_000_001_000), Some(&second));
+    }
+
+    #[test]
+    fn read_all_records_is_empty_for_a_missing_file() {
+        let mut path = std::env::temp_dir();
+        path.push(format!("chappie-rag-absent-{}.emb.bin", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        assert!(read_all_records(&path).is_empty());
+    }
 }
