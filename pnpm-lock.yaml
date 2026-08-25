@@ -40,49 +40,49 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@biomejs/biome':
-        specifier: ^2.4.15
+        specifier: ^2.5.10
         version: 2.5.10
       '@commitlint/cli':
-        specifier: ^21.0.1
+        specifier: ^21.2.2
         version: 21.2.2(@types/node@20.19.43)(conventional-commits-parser@7.1.2)(typescript@6.0.3)
       '@commitlint/config-conventional':
-        specifier: ^21.0.1
+        specifier: ^21.2.2
         version: 21.2.2
       '@secretlint/secretlint-rule-preset-recommend':
-        specifier: ^13.0.2
+        specifier: ^13.0.4
         version: 13.0.4
       '@tauri-apps/cli':
-        specifier: ^2.11.2
+        specifier: ^2.11.4
         version: 2.11.4
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/react':
-        specifier: ^19.2.15
+        specifier: ^19.2.18
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.3
+        specifier: ^19.2.4
         version: 19.2.4(@types/react@19.2.18)
       '@vitejs/plugin-react':
-        specifier: ^6.0.2
+        specifier: ^6.1.0
         version: 6.1.0(vite@8.2.2(@types/node@20.19.43)(jiti@2.7.0))
       happy-dom:
-        specifier: ^20.9.0
+        specifier: ^20.11.6
         version: 20.11.6
       lefthook:
-        specifier: ^2.1.8
+        specifier: ^2.1.10
         version: 2.1.10
       secretlint:
-        specifier: ^13.0.2
+        specifier: ^13.0.4
         version: 13.0.4(supports-color@10.2.2)
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
       vite:
-        specifier: ^8.0.13
+        specifier: ^8.2.2
         version: 8.2.2(@types/node@20.19.43)(jiti@2.7.0)
       vitest:
-        specifier: ^4.1.7
+        specifier: ^4.1.11
         version: 4.1.11(@types/node@20.19.43)(happy-dom@20.11.6)(vite@8.2.2(@types/node@20.19.43)(jiti@2.7.0))
 
   lp:
@@ -116,28 +116,28 @@ importers:
         version: 22.5.0(@types/node@20.19.43)
     devDependencies:
       '@biomejs/biome':
-        specifier: ^2.4.15
+        specifier: ^2.5.10
         version: 2.5.10
       '@lhci/cli':
         specifier: 0.15.1
         version: 0.15.1(supports-color@10.2.2)
       '@tailwindcss/postcss':
-        specifier: ^4.3.0
+        specifier: ^4.3.3
         version: 4.3.3
       '@types/node':
-        specifier: ^20.19.41
+        specifier: ^20.19.43
         version: 20.19.43
       '@types/react':
-        specifier: ^19.2.15
+        specifier: ^19.2.18
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.3
+        specifier: ^19.2.4
         version: 19.2.4(@types/react@19.2.18)
       next-sitemap:
         specifier: ^4.2.3
         version: 4.2.3(next@16.3.2(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
       tailwindcss:
-        specifier: ^4.3.0
+        specifier: ^4.3.3
         version: 4.3.3
       typescript:
         specifier: ^6.0.3
