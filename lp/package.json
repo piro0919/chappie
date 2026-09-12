@@ -18,15 +18,15 @@
     "lighthouse": "pnpm build && lhci autorun"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.106.1",
+    "@supabase/supabase-js": "^2.116.0",
     "@vercel/analytics": "2.0.1",
-    "jose": "^6.2.3",
-    "lucide-react": "^1.16.0",
-    "next": "^16.2.6",
-    "next-intl": "^4.12.0",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "stripe": "^22.1.1"
+    "jose": "^6.2.12",
+    "lucide-react": "^1.43.0",
+    "next": "^16.3.4",
+    "next-intl": "^4.14.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "stripe": "^22.6.2"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",
