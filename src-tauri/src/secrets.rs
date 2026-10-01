@@ -20,7 +20,14 @@
 // only accept the names below — the commands are not a general
 // Keychain door for the web layer.
 
+#[cfg(not(test))]
 const SERVICE: &str = "io.kkweb.chappie";
+
+// Tests run against the developer's real login keychain. A separate service
+// keeps them from overwriting or deleting the credentials the installed app
+// stores under the same account names.
+#[cfg(test)]
+const SERVICE: &str = "io.kkweb.chappie.test";
 
 /// The settings keys that moved to the Keychain. Also the account names of
 /// the Keychain items, so an entry stays recognisable in Keychain Access.
@@ -141,8 +148,8 @@ pub fn secret_set(key: String, value: String) -> Result<(), String> {
 mod tests {
     use super::*;
 
-    /// Not one of `KEYS`, so the round-trip never touches the account
-    /// names the app actually uses on the machine running the tests.
+    /// Not one of `KEYS`, so the round-trip stays clear of the account
+    /// names the migration test uses.
     const SCRATCH: &str = "chappie-test-scratch";
 
     #[test]
