@@ -7,13 +7,14 @@ const fakeStore = {
     fakeStoreState.set(k, v);
   }),
   save: vi.fn(async () => {}),
+  delete: vi.fn(async (k: string) => fakeStoreState.delete(k)),
 };
 
 vi.mock("@tauri-apps/plugin-store", () => ({
   load: vi.fn(async () => fakeStore),
 }));
 
-// The four credentials go to the Keychain through `secret_get` /
+// Credentials go to the Keychain through `secret_get` /
 // `secret_set` rather than the store, so the fake here stands in for the
 // Keychain and lets the tests assert they never reach `settings.json`.
 const fakeKeychain = new Map<string, string>();
@@ -100,7 +101,7 @@ describe("settings", () => {
   });
 
   it("returns persisted values when present", async () => {
-    fakeStoreState.set("openaiApiKey", "sk-test");
+    fakeKeychain.set("openaiApiKey", "sk-test");
     fakeStoreState.set("language", "en");
     // No persisted `mode`: existing user with a saved key migrates to BYOK.
     expect(await loadSettings()).toEqual({
@@ -118,7 +119,7 @@ describe("settings", () => {
 
   it("merges patch on save and persists", async () => {
     await saveSettings({ openaiApiKey: "sk-new" });
-    expect(fakeStore.set).toHaveBeenCalledWith("openaiApiKey", "sk-new");
+    expect(fakeKeychain.get("openaiApiKey")).toBe("sk-new");
     expect(fakeStore.save).toHaveBeenCalled();
     // No persisted mode + saved key → BYOK via migration.
     expect(await loadSettings()).toEqual({
@@ -180,6 +181,7 @@ describe("settings", () => {
 
   it("keeps credentials out of the settings file", async () => {
     await saveSettings({
+      openaiApiKey: "sk-secret",
       subscriptionAccessToken: "jwt",
       subscriptionRefreshToken: "refresh",
       switchbotSecret: "shhh",
@@ -187,6 +189,7 @@ describe("settings", () => {
     });
 
     for (const key of [
+      "openaiApiKey",
       "switchbotToken",
       "switchbotSecret",
       "subscriptionAccessToken",
@@ -195,6 +198,39 @@ describe("settings", () => {
       expect(fakeStoreState.has(key)).toBe(false);
     }
     expect(fakeKeychain.get("switchbotSecret")).toBe("shhh");
+    expect(fakeKeychain.get("openaiApiKey")).toBe("sk-secret");
+  });
+
+  it("removes a leftover plaintext API key once it is saved to the keychain", async () => {
+    fakeStoreState.set("openaiApiKey", "sk-plain");
+
+    await saveSettings({ openaiApiKey: "sk-plain" });
+
+    expect(fakeStoreState.has("openaiApiKey")).toBe(false);
+    expect(fakeKeychain.get("openaiApiKey")).toBe("sk-plain");
+  });
+
+  it("falls back to a plaintext API key the startup migration could not move", async () => {
+    // e.g. Keychain denied, or a platform without one.
+    fakeStoreState.set("openaiApiKey", "sk-legacy");
+
+    const s = await loadSettings();
+
+    expect(s.openaiApiKey).toBe("sk-legacy");
+    expect(s.mode).toBe("byok");
+  });
+
+  it("keeps the API key in the file when the keychain refuses it", async () => {
+    invoke.mockImplementationOnce(async () => {
+      throw new Error("the keychain is only available on macOS");
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await saveSettings({ openaiApiKey: "sk-win" });
+
+    expect(fakeStoreState.get("openaiApiKey")).toBe("sk-win");
+    expect((await loadSettings()).openaiApiKey).toBe("sk-win");
+    warn.mockRestore();
   });
 
   it("reads credentials back from the keychain", async () => {

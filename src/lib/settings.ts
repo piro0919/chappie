@@ -238,7 +238,7 @@ const DEFAULTS: Settings = {
 const FILE = "settings.json";
 
 /**
- * The four credentials do not live in `settings.json` — they are generic
+ * Credentials do not live in `settings.json` — they are generic
  * password items in the login Keychain, reached through the `secret_get`
  * / `secret_set` commands. `settings.json` is a plain file any process
  * running as the user can read, which is the wrong place for a SwitchBot
@@ -250,6 +250,9 @@ const FILE = "settings.json";
  * store for these keys.
  */
 const KEYCHAIN_KEYS = [
+  // The BYOK provider key. Named for OpenAI because it predates the other
+  // providers; it holds whichever provider's key the user pasted.
+  "openaiApiKey",
   "subscriptionAccessToken",
   "subscriptionRefreshToken",
   "switchbotToken",
@@ -275,12 +278,38 @@ async function writeSecret(key: KeychainKey, value: string): Promise<void> {
   await invoke("secret_set", { key, value });
 }
 
+/**
+ * Rust moves a plaintext key into the Keychain at startup, so the file
+ * only still holds one when that move failed — Keychain denied, or a
+ * platform without one (Windows). Fall back to it rather than silently
+ * dropping a BYOK user to Free.
+ */
+async function loadApiKey(store: Store): Promise<string> {
+  const fromKeychain = await readSecret("openaiApiKey");
+  if (fromKeychain) return fromKeychain;
+  return (await store.get<string>("openaiApiKey")) ?? DEFAULTS.openaiApiKey;
+}
+
+async function saveApiKey(store: Store, value: string): Promise<void> {
+  try {
+    await writeSecret("openaiApiKey", value);
+    await store.delete("openaiApiKey");
+  } catch (e) {
+    // Same fallback as the startup migration: keep the app working on the
+    // old path rather than losing the key.
+    console.warn(
+      "[settings] keychain unavailable; keeping the API key in settings.json",
+      e,
+    );
+    await store.set("openaiApiKey", value);
+  }
+}
+
 // `mode` is intentionally absent from STORE_DEFAULTS so a missing key
 // stays undefined at read time — the migration in `loadSettings` needs
 // to distinguish "never set" (pre-Free-mode install, possibly a BYOK
 // user we should preserve) from "explicitly set to free".
 const STORE_DEFAULTS = {
-  openaiApiKey: DEFAULTS.openaiApiKey,
   language: DEFAULTS.language,
   autostart: DEFAULTS.autostart,
 };
@@ -294,8 +323,7 @@ function getStore(): Promise<Store> {
 
 export async function loadSettings(): Promise<Settings> {
   const store = await getStore();
-  const apiKey =
-    (await store.get<string>("openaiApiKey")) ?? DEFAULTS.openaiApiKey;
+  const apiKey = await loadApiKey(store);
   const language = (await store.get<Language>("language")) ?? DEFAULTS.language;
   const autostart =
     (await store.get<boolean>("autostart")) ?? DEFAULTS.autostart;
@@ -411,7 +439,7 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
     await store.set("mode", patch.mode);
   }
   if (patch.openaiApiKey !== undefined) {
-    await store.set("openaiApiKey", patch.openaiApiKey);
+    await saveApiKey(store, patch.openaiApiKey);
   }
   if (patch.language !== undefined) {
     await store.set("language", patch.language);

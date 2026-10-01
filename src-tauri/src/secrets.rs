@@ -6,21 +6,26 @@
 // devices on the account. The subscription tokens are the same class of
 // thing: a JWT and its refresh token.
 //
-// So the four credentials move to a generic-password Keychain item each,
+// The BYOK provider key (`openaiApiKey` — the name predates Anthropic and
+// Gemini support; it holds whichever provider's key the user pasted) is the
+// same class again: a billable credential.
+//
+// So these credentials move to a generic-password Keychain item each,
 // under this app's bundle id as the service and the old settings key as
 // the account. `migrate_from_store` runs once at startup and carries over
 // whatever the plaintext file already held. Everything that is not a
 // credential stays in the store.
 //
 // The renderer reaches these through `secret_get` / `secret_set`, which
-// only accept the four names below — the commands are not a general
+// only accept the names below — the commands are not a general
 // Keychain door for the web layer.
 
 const SERVICE: &str = "io.kkweb.chappie";
 
 /// The settings keys that moved to the Keychain. Also the account names of
 /// the Keychain items, so an entry stays recognisable in Keychain Access.
-pub const KEYS: [&str; 4] = [
+pub const KEYS: [&str; 5] = [
+    "openaiApiKey",
     "subscriptionAccessToken",
     "subscriptionRefreshToken",
     "switchbotToken",
@@ -206,7 +211,8 @@ mod tests {
     fn only_credentials_are_reachable_from_the_renderer() {
         assert!(is_allowed("switchbotSecret"));
         assert!(!is_allowed("vadThreshold"));
-        assert!(secret_get("openaiApiKey".into()).is_err());
+        assert!(is_allowed("openaiApiKey"), "the BYOK provider key is a credential");
+        assert!(secret_get("language".into()).is_err());
         assert!(secret_set("anything".into(), "x".into()).is_err());
     }
 }
