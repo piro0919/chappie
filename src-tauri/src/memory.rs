@@ -14,8 +14,9 @@
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::path::PathBuf;
 use std::sync::Mutex;
+
+use crate::json_store::Store;
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -55,20 +56,14 @@ pub struct Memory {
     pub created_at_unix_ms: i64,
     /// Last time `recall` returned this entry. Used to lightly boost
     /// memories the LLM has actually leaned on so they keep surfacing.
+    #[serde(default)]
     pub last_recalled_at_unix_ms: Option<i64>,
 }
 
 static MEMORIES: Lazy<Mutex<Vec<Memory>>> = Lazy::new(|| Mutex::new(Vec::new()));
 static NEXT_ID: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(1));
 static LOADED: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
-
-fn store_path() -> Option<PathBuf> {
-    let mut p = dirs::home_dir()?;
-    p.push(".chappie");
-    let _ = std::fs::create_dir_all(&p);
-    p.push("memory.json");
-    Some(p)
-}
+static STORE: Store = Store::new("memory.json", "memory");
 
 fn ensure_loaded() {
     let mut loaded = LOADED.lock().unwrap();
@@ -76,24 +71,14 @@ fn ensure_loaded() {
         return;
     }
     *loaded = true;
-    let Some(path) = store_path() else { return };
-    let Ok(bytes) = std::fs::read(&path) else {
-        return;
-    };
-    let Ok(entries): Result<Vec<Memory>, _> = serde_json::from_slice(&bytes) else {
-        eprintln!("[memory] failed to parse {}", path.display());
-        return;
-    };
+    let entries: Vec<Memory> = STORE.load();
     let max_id = entries.iter().map(|m| m.id).max().unwrap_or(0);
     *NEXT_ID.lock().unwrap() = max_id + 1;
     *MEMORIES.lock().unwrap() = entries;
 }
 
-fn persist_locked(memories: &[Memory]) {
-    let Some(path) = store_path() else { return };
-    if let Ok(json) = serde_json::to_string_pretty(memories) {
-        let _ = std::fs::write(path, json);
-    }
+fn persist_locked(memories: &[Memory]) -> Result<(), String> {
+    STORE.save(memories)
 }
 
 /// Save a new memory. Dedupes on case-fold identical `text` to keep the
@@ -125,7 +110,10 @@ pub fn save(text: String, kind_str: &str) -> Result<Memory, String> {
         last_recalled_at_unix_ms: None,
     };
     list.push(memory.clone());
-    persist_locked(&list);
+    if let Err(e) = persist_locked(&list) {
+        list.pop();
+        return Err(e);
+    }
     Ok(memory)
 }
 
@@ -187,7 +175,9 @@ pub fn recall(query: &str, limit: usize) -> Vec<Memory> {
         out.push(list[*idx].clone());
     }
     if !scored.is_empty() {
-        persist_locked(&list);
+        // Only a ranking hint; the recall itself still succeeded, and the
+        // store already logged the failure.
+        let _ = persist_locked(&list);
     }
     out
 }
@@ -207,16 +197,16 @@ pub fn list_all(kind: Option<&str>, limit: usize) -> Vec<Memory> {
     filtered
 }
 
-pub fn forget(id: u32) -> bool {
+pub fn forget(id: u32) -> Result<bool, String> {
     ensure_loaded();
     let mut list = MEMORIES.lock().unwrap();
-    let before = list.len();
-    list.retain(|m| m.id != id);
-    let removed = list.len() != before;
-    if removed {
-        persist_locked(&list);
+    let remaining: Vec<Memory> = list.iter().filter(|m| m.id != id).cloned().collect();
+    if remaining.len() == list.len() {
+        return Ok(false);
     }
-    removed
+    persist_locked(&remaining)?;
+    *list = remaining;
+    Ok(true)
 }
 
 /// Compact text summary of stable identity facts, suitable for injecting

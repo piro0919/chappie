@@ -19,11 +19,12 @@
 use chrono::{Months, TimeZone};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::task::JoinHandle;
+
+use crate::json_store::Store;
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug, Default)]
 #[serde(rename_all = "lowercase")]
@@ -58,6 +59,7 @@ struct Active {
 
 static REMINDERS: Lazy<Mutex<Vec<Active>>> = Lazy::new(|| Mutex::new(Vec::new()));
 static NEXT_ID: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(1));
+static STORE: Store = Store::new("reminders.json", "reminder");
 
 #[derive(Clone, Serialize)]
 struct FiredEvent {
@@ -65,29 +67,13 @@ struct FiredEvent {
     label: String,
 }
 
-fn store_path() -> Option<PathBuf> {
-    let mut p = dirs::home_dir()?;
-    p.push(".chappie");
-    let _ = std::fs::create_dir_all(&p);
-    p.push("reminders.json");
-    Some(p)
-}
-
-fn persist_locked(reminders: &[Active]) {
-    let Some(path) = store_path() else { return };
+fn persist_locked(reminders: &[Active]) -> Result<(), String> {
     let entries: Vec<&Reminder> = reminders.iter().map(|r| &r.info).collect();
-    if let Ok(json) = serde_json::to_string_pretty(&entries) {
-        let _ = std::fs::write(path, json);
-    }
+    STORE.save(&entries)
 }
 
 pub fn init(app: &AppHandle) {
-    let Some(path) = store_path() else { return };
-    let Ok(bytes) = std::fs::read(&path) else { return };
-    let Ok(entries): Result<Vec<Reminder>, _> = serde_json::from_slice(&bytes) else {
-        eprintln!("[reminder] failed to parse {}", path.display());
-        return;
-    };
+    let entries: Vec<Reminder> = STORE.load();
     let now_ms = chrono::Local::now().timestamp_millis();
     let mut max_id: u32 = 0;
     for mut r in entries {
@@ -116,7 +102,9 @@ pub fn init(app: &AppHandle) {
         schedule(app, r);
     }
     *NEXT_ID.lock().unwrap() = max_id + 1;
-    persist_locked(&REMINDERS.lock().unwrap());
+    // Records dropped/rolled-forward entries. Failure is already logged and
+    // the in-memory schedule is correct either way, so startup carries on.
+    let _ = persist_locked(&REMINDERS.lock().unwrap());
 }
 
 fn schedule(app: &AppHandle, info: Reminder) {
@@ -141,7 +129,9 @@ fn schedule(app: &AppHandle, info: Reminder) {
             if recurrence == Recurrence::Once {
                 let mut list = REMINDERS.lock().unwrap();
                 list.retain(|x| x.info.id != id);
-                persist_locked(&list);
+                // Logged by the store. Worst case the reminder fires once
+                // more after a restart, which beats losing the others.
+                let _ = persist_locked(&list);
                 return;
             }
             // Compute the next fire and update our persisted entry.
@@ -155,7 +145,7 @@ fn schedule(app: &AppHandle, info: Reminder) {
                 // Cancelled while firing — exit cleanly.
                 return;
             }
-            persist_locked(&list);
+            let _ = persist_locked(&list);
         }
     });
     REMINDERS.lock().unwrap().push(Active { info, handle });
@@ -184,7 +174,14 @@ pub fn add(
         recurrence,
     };
     schedule(app, info.clone());
-    persist_locked(&REMINDERS.lock().unwrap());
+    let mut list = REMINDERS.lock().unwrap();
+    if let Err(e) = persist_locked(&list) {
+        // Don't keep a reminder that would silently vanish on restart.
+        if let Some(pos) = list.iter().position(|x| x.info.id == id) {
+            list.swap_remove(pos).handle.abort();
+        }
+        return Err(e);
+    }
     Ok(info)
 }
 
@@ -217,26 +214,30 @@ pub fn list() -> Vec<Reminder> {
     v
 }
 
-pub fn cancel(id: u32) -> bool {
+pub fn cancel(id: u32) -> Result<bool, String> {
     let mut list = REMINDERS.lock().unwrap();
-    if let Some(pos) = list.iter().position(|x| x.info.id == id) {
-        let entry = list.swap_remove(pos);
-        entry.handle.abort();
-        persist_locked(&list);
-        true
-    } else {
-        false
+    let Some(pos) = list.iter().position(|x| x.info.id == id) else {
+        return Ok(false);
+    };
+    let entry = list.swap_remove(pos);
+    if let Err(e) = persist_locked(&list) {
+        // Keep it scheduled: the file still has it, so cancelling only in
+        // memory would make it come back after a restart.
+        list.push(entry);
+        return Err(e);
     }
+    entry.handle.abort();
+    Ok(true)
 }
 
-pub fn cancel_all() -> usize {
+pub fn cancel_all() -> Result<usize, String> {
     let mut list = REMINDERS.lock().unwrap();
+    persist_locked(&[])?;
     let n = list.len();
     for entry in list.drain(..) {
         entry.handle.abort();
     }
-    persist_locked(&list);
-    n
+    Ok(n)
 }
 
 // Parse "YYYY-MM-DD HH:MM" or "YYYY-MM-DDTHH:MM[:SS]" in the user's local

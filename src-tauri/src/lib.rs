@@ -18,6 +18,7 @@ mod download;
 mod finder;
 mod http;
 mod hud;
+mod json_store;
 pub mod i18n;
 pub mod llm;
 mod log_event;

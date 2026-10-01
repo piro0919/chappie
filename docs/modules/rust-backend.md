@@ -66,6 +66,7 @@ The Whisper context lives globally in `OnceCell<Mutex<WhisperContext>>`. Whisper
 
 ## Tools / system integration
 
+- `json_store.rs` — shared persistence for `notes.json` / `memory.json` / `reminders.json`. Files are `{"version", "entries"}` envelopes (bare arrays from older builds still load); new entry fields need `#[serde(default)]`. An unparseable file is renamed to `<name>.corrupt-<timestamp>.json` before the store starts empty; an unreadable file, a failed backup, or a file from a newer format blocks saving for the session instead of overwriting it. Writes go through a same-directory temp file + fsync + rename, and save errors are returned to the tool call rather than dropped.
 - `notes.rs` — voice memo store persisted to `~/.chappie/notes.json`. `add_note(text)` appends; `list_notes(query?, limit)` does case-fold substring filter, newest first; `delete_note(id)` removes. Lazy-loaded on first access. Embedding/RAG can layer on later if recall quality drives it.
 - `volume.rs` — system audio volume helpers via `osascript -e "set volume output volume N"` / `output muted`. Exposes `is_muted` Tauri command for the renderer to branch its TTS pipeline.
 - `music.rs` — Spotify / Apple Music control via osascript (`playpause` / `next track` / `previous track`) and now-playing readout. Only acts on apps that are already running so a casual "play" never silently launches Spotify; auto mode prefers Spotify, falls back to Music.

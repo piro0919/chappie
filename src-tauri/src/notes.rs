@@ -5,8 +5,9 @@
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::sync::Mutex;
+
+use crate::json_store::Store;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Note {
@@ -18,14 +19,7 @@ pub struct Note {
 static NOTES: Lazy<Mutex<Vec<Note>>> = Lazy::new(|| Mutex::new(Vec::new()));
 static NEXT_ID: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(1));
 static LOADED: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
-
-fn store_path() -> Option<PathBuf> {
-    let mut p = dirs::home_dir()?;
-    p.push(".chappie");
-    let _ = std::fs::create_dir_all(&p);
-    p.push("notes.json");
-    Some(p)
-}
+static STORE: Store = Store::new("notes.json", "notes");
 
 fn ensure_loaded() {
     let mut loaded = LOADED.lock().unwrap();
@@ -33,24 +27,14 @@ fn ensure_loaded() {
         return;
     }
     *loaded = true;
-    let Some(path) = store_path() else { return };
-    let Ok(bytes) = std::fs::read(&path) else {
-        return;
-    };
-    let Ok(entries): Result<Vec<Note>, _> = serde_json::from_slice(&bytes) else {
-        eprintln!("[notes] failed to parse {}", path.display());
-        return;
-    };
+    let entries: Vec<Note> = STORE.load();
     let max_id = entries.iter().map(|n| n.id).max().unwrap_or(0);
     *NEXT_ID.lock().unwrap() = max_id + 1;
     *NOTES.lock().unwrap() = entries;
 }
 
-fn persist_locked(notes: &[Note]) {
-    let Some(path) = store_path() else { return };
-    if let Ok(json) = serde_json::to_string_pretty(notes) {
-        let _ = std::fs::write(path, json);
-    }
+fn persist_locked(notes: &[Note]) -> Result<(), String> {
+    STORE.save(notes)
 }
 
 pub fn add(text: String) -> Result<Note, String> {
@@ -71,7 +55,10 @@ pub fn add(text: String) -> Result<Note, String> {
     };
     let mut list = NOTES.lock().unwrap();
     list.push(note.clone());
-    persist_locked(&list);
+    if let Err(e) = persist_locked(&list) {
+        list.pop();
+        return Err(e);
+    }
     Ok(note)
 }
 
@@ -92,14 +79,14 @@ pub fn list(query: Option<&str>, limit: usize) -> Vec<Note> {
     filtered
 }
 
-pub fn delete(id: u32) -> bool {
+pub fn delete(id: u32) -> Result<bool, String> {
     ensure_loaded();
     let mut list = NOTES.lock().unwrap();
-    let before = list.len();
-    list.retain(|n| n.id != id);
-    let removed = list.len() != before;
-    if removed {
-        persist_locked(&list);
+    let remaining: Vec<Note> = list.iter().filter(|n| n.id != id).cloned().collect();
+    if remaining.len() == list.len() {
+        return Ok(false);
     }
-    removed
+    persist_locked(&remaining)?;
+    *list = remaining;
+    Ok(true)
 }

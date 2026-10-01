@@ -1337,8 +1337,10 @@ pub(crate) async fn execute_tool(
             let Some(id) = arg_u64(args, "id") else {
                 return json!({ "ok": false, "error": "id is required" }).to_string();
             };
-            let deleted = crate::notes::delete(id as u32);
-            json!({ "ok": deleted, "id": id }).to_string()
+            match crate::notes::delete(id as u32) {
+                Ok(deleted) => json!({ "ok": deleted, "id": id }).to_string(),
+                Err(e) => json!({ "ok": false, "id": id, "error": e }).to_string(),
+            }
         }
         "save_memory" => {
             let Some(text) = args.get("text").and_then(|v| v.as_str()) else {
@@ -1391,8 +1393,10 @@ pub(crate) async fn execute_tool(
             let Some(id) = arg_u64(args, "id") else {
                 return json!({ "ok": false, "error": "id is required" }).to_string();
             };
-            let deleted = crate::memory::forget(id as u32);
-            json!({ "ok": deleted, "id": id }).to_string()
+            match crate::memory::forget(id as u32) {
+                Ok(deleted) => json!({ "ok": deleted, "id": id }).to_string(),
+                Err(e) => json!({ "ok": false, "id": id, "error": e }).to_string(),
+            }
         }
         "control_music" => {
             let action = arg_str(args, "action");
@@ -1452,11 +1456,15 @@ pub(crate) async fn execute_tool(
         }
         "cancel_reminder" => {
             if let Some(id) = arg_u64(args, "id") {
-                let ok = crate::reminder::cancel(id as u32);
-                json!({ "cancelled": ok, "id": id }).to_string()
+                match crate::reminder::cancel(id as u32) {
+                    Ok(ok) => json!({ "cancelled": ok, "id": id }).to_string(),
+                    Err(e) => json!({ "cancelled": false, "id": id, "error": e }).to_string(),
+                }
             } else {
-                let n = crate::reminder::cancel_all();
-                json!({ "cancelled_all": n }).to_string()
+                match crate::reminder::cancel_all() {
+                    Ok(n) => json!({ "cancelled_all": n }).to_string(),
+                    Err(e) => json!({ "cancelled_all": 0, "error": e }).to_string(),
+                }
             }
         }
         "take_screenshot" => tool_take_screenshot(args).await,
