@@ -111,7 +111,7 @@ The DMG is built separately via `pnpm dmg` (called automatically by `pnpm releas
 
 1. Bump versions in `package.json` and `src-tauri/tauri.conf.json`.
 2. Run the release build above with the env vars.
-3. `pnpm release` — builds the DMG (`pnpm dmg`), creates the GitHub Release, and uploads `.app.tar.gz` / `.sig` / `latest.json` / `.dmg`.
+3. `pnpm release` — builds the DMG (`pnpm dmg`), creates the GitHub Release, and uploads `.app.tar.gz` / `.sig` / `latest.json` / `.dmg`. `scripts/release-check.sh` runs first and refuses to continue unless the working tree is clean, `package.json` and `tauri.conf.json` agree on the version, and the `v<version>` tag (if it already exists, locally or on origin) points at HEAD; before uploading it also checks that the built app reports that version. The release is created with `--target` set to HEAD, so HEAD has to be pushed. Uploads never overwrite: an asset that is already on the release makes `gh release upload` fail, and replacing it is a manual `gh release delete-asset`.
 4. The updater feed at `https://github.com/piro0919/chappie/releases/latest/download/latest.json` will surface the new build to existing installs on next launch.
 
 ## Spec & Plan
