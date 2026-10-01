@@ -1181,24 +1181,30 @@ pub(crate) async fn execute_tool(
             if name.is_empty() {
                 return json!({ "ok": false, "error": "name is empty" }).to_string();
             }
-            // Launch a GUI app by name. macOS: `open -a`. Windows: the shell's
-            // `start`, which resolves App Paths / Start-menu names (Slack,
-            // Spotify, etc. that aren't on PATH). A non-zero exit means the
-            // name didn't resolve → the not_installed / web-fallback branch.
+            // Launch a GUI app by name. macOS: `open -a`. Windows:
+            // ShellExecuteW, which resolves App Paths / Start-menu names
+            // (Slack, Spotify, etc. that aren't on PATH) the same way `start`
+            // does, without going through cmd.exe. `name` comes from the LLM,
+            // and cmd.exe parses `&` / `|` / `^` in an unquoted argument as
+            // command separators, so `cmd /C start "" name` was injectable.
+            // Ok(false) means the name didn't resolve → the not_installed /
+            // web-fallback branch.
             #[cfg(target_os = "macos")]
             let launch = std::process::Command::new("open")
                 .arg("-a")
                 .arg(name)
-                .status();
+                .status()
+                .map(|s| s.success());
             #[cfg(target_os = "windows")]
-            let launch = std::process::Command::new("cmd")
-                .args(["/C", "start", "", name])
-                .status();
+            let launch = shell_open_app(name);
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let launch = std::process::Command::new("xdg-open").arg(name).status();
+            let launch = std::process::Command::new("xdg-open")
+                .arg(name)
+                .status()
+                .map(|s| s.success());
             match launch {
-                Ok(s) if s.success() => json!({ "ok": true, "name": name }).to_string(),
-                Ok(_) => json!({
+                Ok(true) => json!({ "ok": true, "name": name }).to_string(),
+                Ok(false) => json!({
                     "ok": false,
                     "not_installed": true,
                     "error": format!("'{name}' というアプリは見つかりませんでした（インストールされていない可能性があります）。"),
@@ -1638,6 +1644,45 @@ async fn tool_open_youtube(app: &tauri::AppHandle, args: &Value) -> String {
     }
 }
 
+/// An `open_app` name must be a bare app name, not a path or URL:
+/// ShellExecute would otherwise open any file, executable or URL the LLM
+/// names. Control characters and quotes are rejected outright.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+fn is_plain_app_name(name: &str) -> bool {
+    !name.is_empty()
+        && !name
+            .chars()
+            .any(|c| c.is_control() || matches!(c, '/' | '\\' | ':' | '"'))
+}
+
+#[cfg(target_os = "windows")]
+fn shell_open_app(name: &str) -> std::io::Result<bool> {
+    use windows::core::{w, HSTRING, PCWSTR};
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::UI::Shell::ShellExecuteW;
+    use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+    if !is_plain_app_name(name) {
+        return Ok(false);
+    }
+    let file = HSTRING::from(name);
+    // SAFETY: every pointer argument is either null or a NUL-terminated
+    // wide string that outlives the call.
+    let result = unsafe {
+        ShellExecuteW(
+            HWND(std::ptr::null_mut()),
+            w!("open"),
+            &file,
+            PCWSTR::null(),
+            PCWSTR::null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    // Values above 32 mean success; anything else is an SE_ERR_* code,
+    // which for a bare name almost always means "not found".
+    Ok(result.0 as isize > 32)
+}
+
 fn tool_add_reminder_at(app: &tauri::AppHandle, args: &Value) -> String {
     let at = arg_str(args, "at");
     let label = arg_str(args, "label").to_string();
@@ -1719,6 +1764,22 @@ async fn tool_take_screenshot(args: &Value) -> String {
 mod tests {
     use super::*;
     use std::collections::HashSet;
+
+    #[test]
+    fn open_app_accepts_bare_names_only() {
+        assert!(is_plain_app_name("Slack"));
+        assert!(is_plain_app_name("Visual Studio Code"));
+        assert!(is_plain_app_name("notepad.exe"));
+        assert!(is_plain_app_name("Spotify&calc"), "no shell, so & is inert");
+        assert!(!is_plain_app_name(""));
+        assert!(!is_plain_app_name("C:\\Windows\\System32\\cmd.exe"));
+        assert!(!is_plain_app_name("..\\evil.exe"));
+        assert!(!is_plain_app_name("/usr/bin/env"));
+        assert!(!is_plain_app_name("https://example.com"));
+        assert!(!is_plain_app_name("shell:startup"));
+        assert!(!is_plain_app_name("a\"b"));
+        assert!(!is_plain_app_name("slack\ncalc"));
+    }
 
     fn names(v: &Value) -> HashSet<String> {
         v.as_array()
