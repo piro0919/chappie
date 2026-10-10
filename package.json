@@ -37,6 +37,7 @@
     "@biomejs/biome": "^2.5.15",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
+    "@piro0919/biome-config": "github:piro0919/biome-config#v1.0.0",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.7",
     "@tauri-apps/cli": "^2.12.1",
     "@testing-library/react": "^16.3.3",
