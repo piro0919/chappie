@@ -37,17 +37,17 @@
     "@biomejs/biome": "^2.5.15",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
-    "@secretlint/secretlint-rule-preset-recommend": "^13.0.6",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.7",
     "@tauri-apps/cli": "^2.12.1",
     "@testing-library/react": "^16.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-react": "^6.1.2",
     "happy-dom": "^20.14.5",
-    "lefthook": "^2.1.16",
-    "secretlint": "^13.0.6",
+    "lefthook": "^2.1.17",
+    "secretlint": "^13.0.7",
     "typescript": "~7.0.2",
-    "vite": "^8.3.2",
+    "vite": "^8.3.3",
     "vitest": "^4.1.11"
   }
 }
