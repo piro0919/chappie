@@ -16,7 +16,7 @@ jobs:
           version: 11.28.6
       - uses: actions/setup-node@v4
         with:
-          node-version: 24.22.0
+          node-version: 24.22.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
