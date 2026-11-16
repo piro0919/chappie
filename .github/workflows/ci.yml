@@ -12,11 +12,11 @@ jobs:
     # 通った実行は2〜32分だった（2026-11-16 に直近8本を測った）。止まったときに6時間回し続けない。
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
-          version: 11.28.11
-      - uses: actions/setup-node@v4
+          version: 12.20.0
+      - uses: actions/setup-node@v7
         with:
           node-version: 24.22.3
           cache: pnpm
