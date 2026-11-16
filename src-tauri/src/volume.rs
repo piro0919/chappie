@@ -59,7 +59,6 @@ mod imp {
 mod imp {
     use super::VolumeState;
     use windows::core::GUID;
-    use windows::Win32::Foundation::BOOL;
     use windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume;
     use windows::Win32::Media::Audio::{
         eConsole, eRender, IMMDeviceEnumerator, MMDeviceEnumerator,
@@ -117,7 +116,7 @@ mod imp {
     pub fn set_muted(muted: bool) -> Result<(), String> {
         let ep = endpoint()?;
         unsafe {
-            ep.SetMute(BOOL::from(muted), std::ptr::null::<GUID>())
+            ep.SetMute(muted, std::ptr::null::<GUID>())
                 .map_err(|e| format!("SetMute: {e}"))
         }
     }

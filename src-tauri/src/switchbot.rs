@@ -20,7 +20,7 @@
 // rejects with 401, flipping SIGN_UPPERCASE is the one-line escape hatch.
 
 use base64::Engine;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use serde_json::{json, Value};
 use sha2::Sha256;
 use std::time::{SystemTime, UNIX_EPOCH};

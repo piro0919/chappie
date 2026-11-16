@@ -36,7 +36,7 @@ mod imp {
 
 #[cfg(target_os = "windows")]
 mod imp {
-    use windows::Win32::Foundation::{BOOLEAN, LPARAM, WPARAM};
+    use windows::Win32::Foundation::{LPARAM, WPARAM};
     use windows::Win32::System::Power::SetSuspendState;
     use windows::Win32::System::Shutdown::LockWorkStation;
     use windows::Win32::UI::WindowsAndMessaging::{
@@ -62,9 +62,9 @@ mod imp {
             "sleep" => {
                 // SetSuspendState(hibernate=false, force=false,
                 // wakeup-events-disabled=false): a normal sleep. Returns
-                // BOOLEAN (non-zero on success).
-                let ok = unsafe { SetSuspendState(BOOLEAN(0), BOOLEAN(0), BOOLEAN(0)) };
-                if ok.as_bool() {
+                // true on success.
+                let ok = unsafe { SetSuspendState(false, false, false) };
+                if ok {
                     Ok(())
                 } else {
                     Err("SetSuspendState failed".into())
