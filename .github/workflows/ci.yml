@@ -9,6 +9,8 @@ jobs:
   # macOS 専用アプリなので、Linux ランナーでは tauri のシステム依存が揃わない。
   ci:
     runs-on: macos-latest
+    # 通るときは長くて30分ほど（キャッシュが無いとき）。止まったときに6時間回し続けない。
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -29,6 +31,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      # secrets のテストは本物のキーチェーンに読み書きする。ランナーの既定の
+      # キーチェーンのままだと、見えない確認のダイアログで止まり、job が6時間の
+      # 上限まで回り続けた（2026-11-16）。鍵を外した専用のキーチェーンを既定にする。
+      - name: Use an unlocked keychain for the secrets tests
+        run: |
+          security create-keychain -p ci ci.keychain
+          security list-keychains -d user -s ci.keychain $(security list-keychains -d user | tr -d '"')
+          security default-keychain -d user -s ci.keychain
+          security unlock-keychain -p ci ci.keychain
+          security set-keychain-settings ci.keychain
       # whisper.cpp が std::filesystem を使うので、10.15 のままだとビルドが通らない。
       - run: cargo test --manifest-path src-tauri/Cargo.toml
         env:
