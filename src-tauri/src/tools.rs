@@ -1658,7 +1658,6 @@ fn is_plain_app_name(name: &str) -> bool {
 #[cfg(target_os = "windows")]
 fn shell_open_app(name: &str) -> std::io::Result<bool> {
     use windows::core::{w, HSTRING, PCWSTR};
-    use windows::Win32::Foundation::HWND;
     use windows::Win32::UI::Shell::ShellExecuteW;
     use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
@@ -1670,7 +1669,7 @@ fn shell_open_app(name: &str) -> std::io::Result<bool> {
     // wide string that outlives the call.
     let result = unsafe {
         ShellExecuteW(
-            HWND(std::ptr::null_mut()),
+            None,
             w!("open"),
             &file,
             PCWSTR::null(),

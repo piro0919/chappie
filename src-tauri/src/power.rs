@@ -53,8 +53,8 @@ mod imp {
                     SendMessageW(
                         HWND_BROADCAST,
                         WM_SYSCOMMAND,
-                        WPARAM(SC_MONITORPOWER as usize),
-                        LPARAM(2),
+                        Some(WPARAM(SC_MONITORPOWER as usize)),
+                        Some(LPARAM(2)),
                     );
                 }
                 Ok(())
