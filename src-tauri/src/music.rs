@@ -157,7 +157,7 @@ mod imp {
     fn current_session() -> Result<Session, String> {
         let manager = SessionManager::RequestAsync()
             .map_err(|e| format!("SMTC RequestAsync: {e}"))?
-            .get()
+            .join()
             .map_err(|e| format!("SMTC manager: {e}"))?;
         manager
             .GetCurrentSession()
@@ -186,7 +186,7 @@ mod imp {
             other => return Err(format!("unknown action: {other}")),
         }
         .map_err(|e| format!("SMTC {action}: {e}"))?;
-        let ok = op.get().map_err(|e| format!("SMTC {action} await: {e}"))?;
+        let ok = op.join().map_err(|e| format!("SMTC {action} await: {e}"))?;
         Ok(ControlResult {
             ok,
             player: app_label(&session),
@@ -199,7 +199,7 @@ mod imp {
         let props = session
             .TryGetMediaPropertiesAsync()
             .map_err(|e| format!("SMTC media props: {e}"))?
-            .get()
+            .join()
             .map_err(|e| format!("SMTC media props await: {e}"))?;
 
         let non_empty = |h: windows::core::HSTRING| {

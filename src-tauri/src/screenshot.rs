@@ -76,7 +76,6 @@ pub async fn capture(mode: &str, destination: &str) -> Result<ScreenshotResult, 
 #[cfg(target_os = "windows")]
 mod win {
     use super::ScreenshotResult;
-    use windows::Win32::Foundation::HWND;
     use windows::Win32::Graphics::Gdi::{
         BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC,
         GetDIBits, ReleaseDC, SelectObject, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, HGDIOBJ,
@@ -99,15 +98,15 @@ mod win {
                 return Err("invalid virtual screen size".into());
             }
 
-            let screen_dc = GetDC(HWND::default());
+            let screen_dc = GetDC(None);
             if screen_dc.is_invalid() {
                 return Err("GetDC failed".into());
             }
-            let mem_dc = CreateCompatibleDC(screen_dc);
+            let mem_dc = CreateCompatibleDC(Some(screen_dc));
             let bmp = CreateCompatibleBitmap(screen_dc, w, h);
             let old = SelectObject(mem_dc, HGDIOBJ(bmp.0));
 
-            let blt = BitBlt(mem_dc, 0, 0, w, h, screen_dc, x, y, SRCCOPY);
+            let blt = BitBlt(mem_dc, 0, 0, w, h, Some(screen_dc), x, y, SRCCOPY);
 
             let mut bmi = BITMAPINFO::default();
             bmi.bmiHeader.biSize = std::mem::size_of::<BITMAPINFOHEADER>() as u32;
@@ -132,7 +131,7 @@ mod win {
             SelectObject(mem_dc, old);
             let _ = DeleteObject(HGDIOBJ(bmp.0));
             let _ = DeleteDC(mem_dc);
-            ReleaseDC(HWND::default(), screen_dc);
+            ReleaseDC(None, screen_dc);
 
             if blt.is_err() {
                 return Err("BitBlt failed".into());

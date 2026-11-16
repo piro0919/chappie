@@ -9,34 +9,34 @@ importers:
   .:
     dependencies:
       '@supabase/supabase-js':
-        specifier: ^2.112.3
+        specifier: ^2.119.0
         version: 2.119.0(@opentelemetry/api@1.10.0)
       '@tauri-apps/api':
-        specifier: ^2.11.1
+        specifier: ^2.12.4
         version: 2.12.4
       '@tauri-apps/plugin-autostart':
-        specifier: ^2.5.1
+        specifier: ^2.7.0
         version: 2.7.0
       '@tauri-apps/plugin-dialog':
-        specifier: ^2.7.2
+        specifier: ^2.8.4
         version: 2.8.4
       '@tauri-apps/plugin-opener':
-        specifier: ^2.5.4
+        specifier: ^2.7.3
         version: 2.7.3
       '@tauri-apps/plugin-process':
-        specifier: ^2.3.1
+        specifier: ^2.4.0
         version: 2.4.0
       '@tauri-apps/plugin-store':
-        specifier: ^2.4.4
+        specifier: ^2.5.1
         version: 2.5.1
       '@tauri-apps/plugin-updater':
-        specifier: ^2.10.1
+        specifier: ^2.14.1
         version: 2.14.1
       react:
-        specifier: ^19.2.8
+        specifier: ^19.3.1
         version: 19.3.1
       react-dom:
-        specifier: ^19.2.8
+        specifier: ^19.3.1
         version: 19.3.1(react@19.3.1)
     devDependencies:
       '@biomejs/biome':
@@ -91,31 +91,31 @@ importers:
   lp:
     dependencies:
       '@supabase/supabase-js':
-        specifier: ^2.106.1
+        specifier: ^2.119.0
         version: 2.119.0(@opentelemetry/api@1.10.0)
       '@vercel/analytics':
         specifier: 2.0.1
         version: 2.0.1(next@16.4.6(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       jose:
-        specifier: ^6.2.3
+        specifier: ^6.2.17
         version: 6.2.17
       lucide-react:
-        specifier: ^1.16.0
+        specifier: ^1.72.0
         version: 1.73.0(@types/react@19.3.0)(react@19.3.1)
       next:
-        specifier: ^16.2.6
+        specifier: ^16.4.6
         version: 16.4.6(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-intl:
-        specifier: ^4.12.0
+        specifier: ^4.15.1
         version: 4.15.1(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.6(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       react:
-        specifier: ^19.2.6
+        specifier: ^19.3.1
         version: 19.3.1
       react-dom:
-        specifier: ^19.2.6
+        specifier: ^19.3.1
         version: 19.3.1(react@19.3.1)
       stripe:
-        specifier: ^22.1.1
+        specifier: ^22.6.2
         version: 22.6.2(@types/node@26.6.6)
     devDependencies:
       '@biomejs/biome':

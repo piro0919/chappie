@@ -33,7 +33,7 @@ const TOKENIZER_URL: &str =
 /// per-call inference cost flat.
 const MAX_SEQ_LEN: usize = 256;
 
-type Model = SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>;
+type Model = Arc<TypedRunnableModel>;
 
 static MODEL: OnceLock<Option<Model>> = OnceLock::new();
 static TOKENIZER: OnceLock<Option<Tokenizer>> = OnceLock::new();
@@ -192,7 +192,7 @@ pub fn embed(text: &str, is_query: bool) -> Option<Vec<f32>> {
     };
 
     let outputs = model.run(inputs).ok()?;
-    let last_hidden = outputs.first()?.to_array_view::<f32>().ok()?;
+    let last_hidden = outputs.first()?.to_plain_array_view::<f32>().ok()?;
     let shape = last_hidden.shape();
     if shape.len() != 3 || shape[0] != 1 || shape[2] != EMBEDDING_DIM {
         return None;

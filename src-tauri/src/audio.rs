@@ -290,19 +290,19 @@ fn run_capture(
 
     let stream = match sample_format {
         SampleFormat::F32 => device.build_input_stream(
-            &config,
+            config.clone(),
             make_data_callback::<f32>(in_channels, tx.clone()),
             err_fn,
             None,
         ),
         SampleFormat::I16 => device.build_input_stream(
-            &config,
+            config.clone(),
             make_data_callback::<i16>(in_channels, tx.clone()),
             err_fn,
             None,
         ),
         SampleFormat::U16 => device.build_input_stream(
-            &config,
+            config.clone(),
             make_data_callback::<u16>(in_channels, tx.clone()),
             err_fn,
             None,

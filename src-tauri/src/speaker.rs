@@ -62,7 +62,7 @@ pub fn set_threshold(value: f32) {
     THRESHOLD_BITS.store(clamped.to_bits(), Ordering::Relaxed);
 }
 
-type Model = SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>;
+type Model = Arc<TypedRunnableModel>;
 
 /// Lazily-loaded singleton model. Tract models are Send + Sync once
 /// finalized; we hold the plan behind a OnceLock so the segmenter can
@@ -138,7 +138,7 @@ pub fn compute_embedding(samples: &[f32]) -> Option<Vec<f32>> {
     .ok()?
     .into();
     let output = model.run(tvec!(input.into())).ok()?;
-    let emb_view = output.first()?.to_array_view::<f32>().ok()?;
+    let emb_view = output.first()?.to_plain_array_view::<f32>().ok()?;
     Some(emb_view.as_slice()?.to_vec())
 }
 
