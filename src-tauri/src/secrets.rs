@@ -152,8 +152,20 @@ mod tests {
     /// names the migration test uses.
     const SCRATCH: &str = "chappie-test-scratch";
 
+    /// cargo test runs tests on parallel threads. The two tests that write
+    /// to the Keychain take this lock so their writes never overlap. On CI
+    /// the migration's write failed now and then, and the round-trip
+    /// writing at the same moment is the suspect (2026-11-16).
+    static KEYCHAIN: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn keychain_lock() -> std::sync::MutexGuard<'static, ()> {
+        // A test that panicked while holding the lock must not fail the other.
+        KEYCHAIN.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     #[test]
     fn round_trips_through_the_keychain() {
+        let _keychain = keychain_lock();
         let _ = delete(SCRATCH);
 
         assert_eq!(get(SCRATCH), None, "nothing stored yet");
@@ -180,6 +192,7 @@ mod tests {
         use tauri::Manager;
         use tauri_plugin_store::StoreExt;
 
+        let _keychain = keychain_lock();
         let app = tauri::test::mock_builder()
             .plugin(tauri_plugin_store::Builder::default().build())
             .build(tauri::test::mock_context(tauri::test::noop_assets()))
