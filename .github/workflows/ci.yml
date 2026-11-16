@@ -9,7 +9,7 @@ jobs:
   # macOS 専用アプリなので、Linux ランナーでは tauri のシステム依存が揃わない。
   ci:
     runs-on: macos-latest
-    # 通るときは長くて30分ほど（キャッシュが無いとき）。止まったときに6時間回し続けない。
+    # 通った実行は2〜32分だった（2026-11-16 に直近8本を測った）。止まったときに6時間回し続けない。
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
