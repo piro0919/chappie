@@ -65,6 +65,15 @@ jobs:
         with:
           workspaces: src-tauri
 
+      # ort-sys (copy-dylibs) copies DirectML.dll into target/debug/{examples,deps}
+      # and panics with "path not found" when those dirs don't exist yet. They
+      # only exist when rust-cache restored a warm target/, so every cache miss
+      # failed. Create them up front so a cold build behaves like a warm one.
+      - name: Pre-create target dirs for ort-sys
+        working-directory: src-tauri
+        shell: bash
+        run: mkdir -p target/debug/examples target/debug/deps
+
       - name: cargo check (all targets)
         working-directory: src-tauri
         run: cargo check --all-targets --locked
