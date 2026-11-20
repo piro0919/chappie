@@ -46,7 +46,7 @@
     "@vitejs/plugin-react": "^6.3.0",
     "happy-dom": "^21.0.4",
     "lefthook": "^2.2.2",
-    "secretlint": "^13.1.0",
+    "secretlint": "^14.0.1",
     "typescript": "~7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"
